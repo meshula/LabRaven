@@ -1,15 +1,15 @@
-[submodule "libs/nativefiledialog"]
-	path = libs/nativefiledialog
+[submodule "ext/nativefiledialog"]
+	path = ext/nativefiledialog
 	url = https://github.com/mlabbe/nativefiledialog.git
-[submodule "libs/implot"]
-	path = libs/implot
+[submodule "ext/implot"]
+	path = ext/implot
 	url = https://github.com/epezent/implot
-[submodule "libs/glfw"]
-	path = libs/glfw
+[submodule "ext/glfw"]
+	path = ext/glfw
 	url = https://github.com/glfw/glfw
-[submodule "libs/imgui"]
-	path = libs/imgui
+[submodule "ext/imgui"]
+	path = ext/imgui
 	url = https://github.com/ocornut/imgui.git
-[submodule "libs/ImGuiColorTextEdit"]
-	path = libs/ImGuiColorTextEdit
+[submodule "ext/ImGuiColorTextEdit"]
+	path = ext/ImGuiColorTextEdit
 	url = https://github.com/jminor/ImGuiColorTextEdit.git
