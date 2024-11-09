@@ -18,6 +18,14 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/ext/nativefiledialog/src/include
 )
 
+set(OTIO_SHARED_LIBS OFF)
+add_subdirectory("ext/opentimelineio")
+include_directories(
+  ${PROJECT_SOURCE_DIR}/ext/opentimelineio/src
+  ${PROJECT_SOURCE_DIR}/ext/opentimelineio/src/deps
+  ${PROJECT_SOURCE_DIR}/ext/opentimelineio/src/deps/optional-lite/include
+)
+
 if(NOT EMSCRIPTEN AND NOT WIN32)
   set(GLFW_BUILD_EXAMPLES OFF)
   set(GLFW_BUILD_TESTS OFF)
@@ -28,18 +36,19 @@ endif()
 
 if(NOT EMSCRIPTEN)
   add_custom_command(
-      OUTPUT "${PROJECT_SOURCE_DIR}/fonts/embedded_font.inc"
-      COMMAND binary_to_compressed_c -base85 "${PROJECT_SOURCE_DIR}/fonts/mononoki-Regular Nerd Font Complete.ttf" MononokiFont > ${PROJECT_SOURCE_DIR}/fonts/embedded_font.inc
-      COMMENT "Embedding font..."
-      MAIN_DEPENDENCY "fonts/mononoki-Regular Nerd Font Complete.ttf"
-      VERBATIM)
+    OUTPUT "${PROJECT_SOURCE_DIR}/fonts/embedded_font.inc"
+    COMMAND binary_to_compressed_c -base85 "${PROJECT_SOURCE_DIR}/fonts/mononoki-Regular Nerd Font Complete.ttf" MononokiFont > ${PROJECT_SOURCE_DIR}/fonts/embedded_font.inc
+    COMMENT "Embedding font..."
+    MAIN_DEPENDENCY "fonts/mononoki-Regular Nerd Font Complete.ttf"
+    VERBATIM)
 endif()
 
 target_compile_definitions(${PROJECT_NAME}
-    PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
+  PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-    IMGUI
+  OTIO::opentimelineio
+  IMGUI
 )
 
 if (APPLE)

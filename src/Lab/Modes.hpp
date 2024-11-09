@@ -20,6 +20,7 @@
 #ifndef Modes_h
 #define Modes_h
 
+#include <stdbool.h>    // for C compatibility
 #include <stddef.h>
 
 #ifdef __cplusplus

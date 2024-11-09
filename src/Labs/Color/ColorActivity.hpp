@@ -30,7 +30,7 @@ public:
     void SetRenderingColorSpace(const std::string& colorSpace);
     
     virtual const std::string Name() const override { return sname(); }
-    static constexpr const char* sname() { return "Colour"; }
+    static constexpr const char* sname() { return "Color"; }
 };
 
 } // lab

@@ -162,13 +162,14 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
         }
 
         if (activityNames.size() > 0) {
+            int id = (ptrdiff_t) currMajorMode;
             if (ImGui::BeginMenu("Modes##mmenu")) {
                 for (auto m : activityNames) {
-                    auto menuName = m + "###mM";
                     auto mode = mm.FindActivity(m);
                     if (mode) {
                         bool active = mode->IsActive();
-                        if (ImGui::MenuItem(menuName.c_str(), nullptr, active, true)) {
+                        ImGui::PushID(id);
+                        if (ImGui::MenuItem(mode->Name().c_str(), nullptr, active, true)) {
                             if (active) {
                                 mm.DeactivateActivity(m);
                             }
@@ -176,6 +177,8 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
                                 mm.ActivateActivity(m);
                             }
                         }
+                        ImGui::PopID();
+                        ++id;
                     }
                 }
                 ImGui::EndMenu();
