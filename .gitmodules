@@ -13,3 +13,6 @@
 [submodule "ext/ImGuiColorTextEdit"]
 	path = ext/ImGuiColorTextEdit
 	url = https://github.com/meshula/ImGuiColorTextEdit.git
+[submodule "ext/opentimelineio"]
+	path = ext/opentimelineio
+	url = https://github.com/AcademySoftwareFoundation/OpenTimelineIO.git
