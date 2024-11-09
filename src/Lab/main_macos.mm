@@ -1,14 +1,11 @@
-// Dear ImGui: standalone example application for GLFW + Metal, using programmable pipeline
-// (GLFW is a cross-platform general purpose library for handling windows, inputs, OpenGL/Vulkan/Metal graphics context creation, etc.)
-// If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
-// Read online: https://github.com/ocornut/imgui/tree/master/docs
 
+#include "App.h"
+#include "RegisterAllModes.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_metal.h"
+#include "implot.h"
 #include <stdio.h>
-
-#include "main.h"
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -18,9 +15,13 @@
 #import <Metal/Metal.h>
 #import <QuartzCore/QuartzCore.h>
 
+App* app = nullptr;
+
 // Accept and open a file path
 void file_drop_callback(GLFWwindow* window, int count, const char** paths) {
-    FileDropCallback(count, paths);
+    if (app && app->FileDrop) {
+        app->FileDrop(count, paths);
+    }
 }
 
 static void glfw_error_callback(int error, const char* description)
@@ -42,6 +43,10 @@ int main(int argc, char** argv)
 #ifdef POWER_SAVING
     io.ConfigFlags |= ImGuiConfigFlags_EnablePowerSavingMode;
 #endif
+
+    app = gApp();
+    auto mm = gModeManager();
+    RegisterAllModes(*mm);
 
     // Setup style
     ImGui::StyleColorsDark();
@@ -91,7 +96,9 @@ int main(int argc, char** argv)
     ImGui_ImplGlfw_InitForOther(window, true);
     ImGui_ImplMetal_Init(device);
 
-    MainInit(argc, argv, initial_width, initial_height);
+    if (app && app->Init) {
+        app->Init(argc, argv, initial_width, initial_height);
+    }
 
     NSWindow *nswin = glfwGetCocoaWindow(window);
     CAMetalLayer *layer = [CAMetalLayer layer];
@@ -109,10 +116,11 @@ int main(int argc, char** argv)
     glfwSetDropCallback(window, file_drop_callback);
 
     // Main loop
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window) && app && app->IsRunning())
     {
         @autoreleasepool
         {
+#ifdef POWER_SAVING
             // This application doesn't do any animation, so instead
             // of rendering all the time, we block waiting for events.
             // The POWER_SAVING toggle is meant to be used with this
@@ -120,7 +128,6 @@ int main(int argc, char** argv)
             // which would provide both the power savings, and support for
             // animation, if we ever need/want to add animation to the app.
             // See also: https://github.com/ocornut/imgui/pull/5599
-#ifdef POWER_SAVING
             ImGui_ImplGlfw_WaitForEvent();
 #else
             glfwWaitEvents();
@@ -150,7 +157,9 @@ int main(int argc, char** argv)
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-            MainGui();
+            if (app && app->Gui) {
+                app->Gui();
+            }
 
             // Rendering
             ImGui::Render();
@@ -171,7 +180,9 @@ int main(int argc, char** argv)
         }
     }
 
-    MainCleanup();
+    if (app && app->Cleanup) {
+        app->Cleanup();
+    }
 
     // Cleanup
     ImGui_ImplMetal_Shutdown();

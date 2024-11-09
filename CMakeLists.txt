@@ -1,39 +1,17 @@
 cmake_minimum_required(VERSION 3.26)
-cmake_policy(SET CMP0076 NEW)
 
-project(LabRaven VERSION 1.0)
+# set the project name in a variable
+set(PROJECT_NAME raven)
+
+project(${PROJECT_NAME} VERSION 1.0)
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
-add_executable(raven)
-set_property(TARGET raven PROPERTY CXX_STANDARD 17)
+add_executable(${PROJECT_NAME})
+set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
+target_include_directories(${PROJECT_NAME} PUBLIC src)
 
-target_sources(raven
-  PUBLIC
-    Modes.h
-
-    Modes.cpp
-
-    resources/fonts/embedded_font.inc
-)
-
-if(APPLE)
-  target_sources(raven PUBLIC src/main_macos.mm)
-elseif(WIN32)
-  target_sources(raven PUBLIC src/main_win32.cpp)
-  target_compile_definitions(raven PRIVATE -DUNICODE -D_UNICODE)
-elseif(EMSCRIPTEN)
-  target_sources(raven PUBLIC src/main_emscripten.cpp)
-  set(LIBS ${CMAKE_DL_LIBS} SDL2)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=1")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s WASM=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -s FETCH -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=ccall,cwrap -Wl,--shared-memory,--no-check-features --shell-file ${CMAKE_CURRENT_LIST_DIR}/shell_minimal.html")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIMGUI_DISABLE_FILE_FUNCTIONS")
-  set_target_properties(raven PROPERTIES SUFFIX .html)
-  target_link_libraries(raven PUBLIC ${LIBS})
-else()
-  target_sources(raven PUBLIC src/main_glfw.cpp)
-endif()
-
+add_subdirectory("src")
 add_subdirectory("ext")
 
 include_directories(
@@ -45,7 +23,7 @@ if(NOT EMSCRIPTEN AND NOT WIN32)
   set(GLFW_BUILD_TESTS OFF)
   set(GLFW_BUILD_DOCS OFF)
   set(BUILD_SHARED_LIBS OFF)
-  add_subdirectory("libs/glfw")
+  add_subdirectory("ext/glfw")
 endif()
 
 if(NOT EMSCRIPTEN)
@@ -57,11 +35,10 @@ if(NOT EMSCRIPTEN)
       VERBATIM)
 endif()
 
-target_compile_definitions(raven
+target_compile_definitions(${PROJECT_NAME}
     PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
 
-target_link_libraries(raven PUBLIC
-    OTIO::opentimelineio
+target_link_libraries(${PROJECT_NAME} PUBLIC
     IMGUI
 )
 
@@ -70,7 +47,7 @@ if (APPLE)
   find_library(METAL_LIBRARY Metal)
   find_library(METALKIT_LIBRARY MetalKit)
   find_library(QUARTZCORE_LIBRARY QuartzCore)
-  target_link_libraries(raven PUBLIC
+  target_link_libraries(${PROJECT_NAME} PUBLIC
     glfw
     nativefiledialog
     ${COREFOUNDATION_LIBRARY}
@@ -79,19 +56,19 @@ if (APPLE)
     ${QUARTZCORE_LIBRARY}
   )
 elseif(WIN32)
-  target_link_libraries(raven PUBLIC
+  target_link_libraries(${PROJECT_NAME} PUBLIC
     nativefiledialog
     d3d11.lib
     d3dcompiler.lib
     dwmapi.lib
   )
 elseif(NOT EMSCRIPTEN)
-  target_link_libraries(raven PUBLIC
+  target_link_libraries(${PROJECT_NAME} PUBLIC
     glfw
     nativefiledialog
   )
 endif()
 
-install(TARGETS raven
+install(TARGETS ${PROJECT_NAME}
     BUNDLE DESTINATION bin
     RUNTIME DESTINATION bin)
