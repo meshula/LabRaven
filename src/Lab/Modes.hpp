@@ -239,6 +239,7 @@ class ModeManager
     Journal _journal;
 
     std::string _major_mode_pending;
+    std::vector<std::pair<std::string, bool>> _activity_pending;
 
     // private to prevent assignment
     ModeManager& operator=(const ModeManager&);
@@ -283,16 +284,14 @@ public:
     void ActivateActivity(const std::string& name) {
         auto m = FindActivity(name);
         if (m) {
-            m->Activate();
-            _set_activities();
+            _activity_pending.push_back({name, true});
         }
     }
 
     void DeactivateActivity(const std::string& name) {
         auto m = FindActivity(name);
         if (m) {
-            m->Deactivate();
-            _set_activities();
+            _activity_pending.push_back({name, false});
         }
     }
 

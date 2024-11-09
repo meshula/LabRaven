@@ -230,6 +230,20 @@ void ModeManager::UpdateTransactionQueueActivationAndModes() {
         _activate_major_mode("Empty");
     }
 
+    if (_activity_pending.size()) {
+        for (auto& i : _activity_pending) {
+            auto m = FindActivity(i.first);
+            if (m) {
+                if (i.second)
+                    m->Activate();
+                else
+                    m->Deactivate();
+            }
+        }
+        _activity_pending.clear();
+        _set_activities();
+    }
+
     for (auto i : _self->update_activities)
         i->activity.Update(i);
 }
