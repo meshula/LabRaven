@@ -5,6 +5,8 @@ target_sources(${PROJECT_NAME}
   PUBLIC
     Lab//App.h
     Lab/App.cpp
+    Lab/AppTheme.h
+    Lab/AppTheme.cpp
 
     Lab/IconsFontaudio.h
     Lab/ImguiExt.hpp

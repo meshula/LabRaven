@@ -17,6 +17,9 @@ class TimelineActivity : public Activity
     struct data;
     data* _self;
     
+    // activities
+    void RunUI(const LabViewInteraction&);
+
 public:
     explicit TimelineActivity();
     virtual ~TimelineActivity();

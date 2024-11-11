@@ -9,6 +9,8 @@
 #define timeline_provider_h
 
 #include <opentime/timeRange.h>
+#include <string>
+#include <map>
 
 namespace raven {
 

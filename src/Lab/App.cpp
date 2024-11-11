@@ -5,6 +5,7 @@
 #include "App.h"
 #include "Modes.hpp"
 #include "Lab/LabFileDialogManager.hpp"
+#include "Lab/AppTheme.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -259,6 +260,7 @@ App* gApp() {
     static std::once_flag _app_once_flag;
     std::call_once(_app_once_flag, []() {
         _app.reset(new LabApp());
+        ApplyAppStyle();
     });
     return _app.get();
 }
