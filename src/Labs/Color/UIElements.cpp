@@ -3,7 +3,6 @@
 #include <mutex>
 #include "nanocolor.h"
 
-
 void ColorChipWithPicker(ImVec4& color, char id) {
     static ImVec4 saved_palette[32] = {};
     static std::once_flag init_palette;
