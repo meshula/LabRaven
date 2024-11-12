@@ -22,12 +22,9 @@ bool DrawTransportControls(
                            opentime::OPENTIME_VERSION::TimeRange full_timeline_range);
 
 void DrawTimecodeRuler(
+                       PlayHead* tp,
                        float zebra_factor,
                        uint32_t widget_id,
-                       opentime::OPENTIME_VERSION::RationalTime start,
-                       opentime::OPENTIME_VERSION::RationalTime end,
-                       float frame_rate,
-                       float scale,
                        float width,
                        float height);
 

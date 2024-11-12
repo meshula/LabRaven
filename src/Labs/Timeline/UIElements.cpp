@@ -13,17 +13,18 @@ using opentime::OPENTIME_VERSION::RationalTime;
 using opentime::OPENTIME_VERSION::TimeRange;
 
 void DrawTimecodeRuler(
+                       PlayHead* tp,
                        float zebra_factor,
                        uint32_t widget_id,
-                       RationalTime start,
-                       RationalTime end,
-                       float frame_rate,
-                       float scale,
                        float width,
                        float height)
 {
     ImVec2 size(width, height);
     ImVec2 text_offset(7.0f, 5.0f);
+
+    float scale = tp->scale;
+    float frame_rate = tp->playhead.rate();
+    auto start = tp->playhead_limit.start_time();
 
     auto old_pos = ImGui::GetCursorPos();
     ImGui::PushID(widget_id);
@@ -88,10 +89,10 @@ void DrawTimecodeRuler(
     double last_label_end_x = p0.x - text_offset.x * 2;
     for (int tick_index = 0; tick_index < tick_count; tick_index++) {
         auto tick_time = start.rescaled_to(frame_rate)
-        + RationalTime(
+                        + RationalTime(
                              tick_index * tick_duration_in_frames,
                              frame_rate)
-        - tick_offset;
+                         - tick_offset;
 
         double tick_x = tick_index * tick_width - tick_offset_x;
         const ImVec2 tick_start = ImVec2(p0.x + tick_x, p0.y);// + height) / 2);
@@ -236,7 +237,6 @@ bool DrawTransportControls(PlayHead* tp, float width, TimeRange full_timeline_ra
         const ImU32 color = ImGui::ColorConvertFloat4ToU32(GImGui->Style.Colors[ImGuiCol_Button]);
         const float rounding = GImGui->Style.ScrollbarRounding;
 
-        // draw bottom axis ribbon outside scrolling region
         win = ImGui::GetCurrentWindow();
         float startx = upperLeft.x;
         float endy = lowerRight.y;
@@ -245,6 +245,7 @@ bool DrawTransportControls(PlayHead* tp, float width, TimeRange full_timeline_ra
                       startx + columnWidth,
                       endy + 2 * ImGui::GetTextLineHeightWithSpacing());
 
+        // this rectangle represents the entire time line
         win->DrawList->AddRectFilled(tl_start, tl_end, color, rounding);
 
         // draw time panzoomer
@@ -261,6 +262,7 @@ bool DrawTransportControls(PlayHead* tp, float width, TimeRange full_timeline_ra
         ImVec2 cursor_pos = { tl_start.x,
             tl_end.y - ImGui::GetTextLineHeightWithSpacing() };
 
+        // draw the end markers and implement dragging them back and forth
         for (int i = 0; i < 2; ++i) {
             ImVec2 pos = cursor_pos;
             pos.x += columnWidth * float(values[i]);
@@ -302,6 +304,7 @@ bool DrawTransportControls(PlayHead* tp, float width, TimeRange full_timeline_ra
         ImGui::PushID(-1);
         ImGui::SetCursorScreenPos(tl_start);
 
+        // finally drag the bar between the handles and draw it
         ImVec2 zp = tl_end;
         zp.x -= tl_start.x;
         zp.y -= tl_start.y;

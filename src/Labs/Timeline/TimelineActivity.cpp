@@ -42,16 +42,12 @@ void TimelineActivity::RunUI(const LabViewInteraction&)
     // remember where the imgui drawing cursor is
     ImVec2 curCursor = ImGui::GetCursorPos();
 
-    DrawTimecodeRuler(0.5f, // zebra_factor
+    DrawTimecodeRuler(&playhead, 0.5f, // zebra_factor
                   1 + (ptrdiff_t) _self, // widget_id
-                  playhead.playhead_limit.start_time(),
-                  playhead.playhead_limit.end_time_inclusive(),
-                  playhead.playhead.rate(), // frame_rate
-                  playhead.scale, // scale
                   width, // width
                   100); // height
 
-    curCursor.y += 100;
+    curCursor.y += 4 * ImGui::GetTextLineHeightWithSpacing();
     ImGui::SetCursorPos(curCursor);
 
     DrawTransportControls(&playhead, width, full_time_range);
