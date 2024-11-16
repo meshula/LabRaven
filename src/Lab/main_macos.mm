@@ -130,7 +130,13 @@ int main(int argc, char** argv)
             // See also: https://github.com/ocornut/imgui/pull/5599
             ImGui_ImplGlfw_WaitForEvent();
 #else
-            glfwWaitEvents();
+            static int cooldown = 20;
+            if (cooldown <= 0) {
+                glfwWaitEvents();
+                cooldown = 20;
+            }
+            else
+                --cooldown;
 #endif
             // Poll and handle events (inputs, window resize, etc.)
             // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
