@@ -2,5 +2,5 @@
 add_subdirectory(Color)
 add_subdirectory(Console)
 add_subdirectory(Plugin)
+add_subdirectory(Test)
 add_subdirectory(Timeline)
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Labs")

@@ -17,4 +17,3 @@ set(COLOR_SRCS
 )
 
 target_sources(${PROJECT_NAME} PUBLIC ${COLOR_SRCS})
-#source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Labs/Color" FILES ${COLOR_SRCS})

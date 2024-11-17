@@ -1,6 +1,4 @@
 
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Labs")
-
 target_sources(${PROJECT_NAME}
   PUBLIC
     Lab//App.h
@@ -55,11 +53,14 @@ else()
   target_sources(${PROJECT_NAME} PUBLIC Lab/main_glfw.cpp)
 endif()
 
+# Set up to track the activities, for generating the registration code,
+# and the plugins, for the signing system.
 set_property(GLOBAL PROPERTY ACTIVITIES_LIST "")
 get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
+set_property(GLOBAL PROPERTY PLUGINS_LIST "")
+get_property(PLUGINS GLOBAL PROPERTY PLUGINS_LIST)
+
 add_subdirectory(Labs)
-get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
-message(STATUS "Adding activities: ${ACTIVITIES}")
 
 #---------------------------------------------------
 # Create RegisterAllModes.cpp

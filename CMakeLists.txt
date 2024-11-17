@@ -1,5 +1,39 @@
 cmake_minimum_required(VERSION 3.26)
 
+#---------------------------------------------------
+# Helper function to group sources by folder
+#---------------------------------------------------
+
+# Organize sources into folders in IDEs nicely!
+# function per https://github.com/TheLartians/GroupSourcesByFolder.cmake
+function(GroupSourcesByFolder target)
+  set(SOURCE_GROUP_DELIMITER "/")
+  set(last_dir "")
+  set(files "")
+
+  get_target_property(sources ${target} SOURCES)
+
+  foreach(file ${sources})
+    file(RELATIVE_PATH relative_file "${PROJECT_SOURCE_DIR}" ${file})
+    get_filename_component(dir "${relative_file}" PATH)
+    if(NOT "${dir}" STREQUAL "${last_dir}")
+      if(files)
+        source_group("${last_dir}" FILES ${files})
+      endif()
+      set(files "")
+    endif()
+    set(files ${files} ${file})
+    set(last_dir "${dir}")
+  endforeach()
+
+  if(files)
+    source_group("${last_dir}" FILES ${files})
+  endif()
+endfunction()
+
+#---------------------------------------------------
+
+
 # set the project name in a variable
 set(PROJECT_NAME raven)
 
@@ -14,6 +48,13 @@ endif()
 add_executable(${PROJECT_NAME})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 target_include_directories(${PROJECT_NAME} PUBLIC src)
+
+if (APPLE)
+    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/MacOS/plugins")
+else()
+    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/plugins")
+endif()
+
 
 # if Mac, set the MACOSX_BUNDLE property
 # If a bundle is not created, then when running from xcode, or via
@@ -44,33 +85,6 @@ add_subdirectory("ext")
 include_directories(
   ${PROJECT_SOURCE_DIR}/ext/nativefiledialog/src/include
 )
-
-# Organize sources into folders in IDEs nicely!
-# function per https://github.com/TheLartians/GroupSourcesByFolder.cmake
-function(GroupSourcesByFolder target)
-  set(SOURCE_GROUP_DELIMITER "/")
-  set(last_dir "")
-  set(files "")
-
-  get_target_property(sources ${target} SOURCES)
-
-  foreach(file ${sources})
-    file(RELATIVE_PATH relative_file "${PROJECT_SOURCE_DIR}" ${file})
-    get_filename_component(dir "${relative_file}" PATH)
-    if(NOT "${dir}" STREQUAL "${last_dir}")
-      if(files)
-        source_group("${last_dir}" FILES ${files})
-      endif()
-      set(files "")
-    endif()
-    set(files ${files} ${file})
-    set(last_dir "${dir}")
-  endforeach()
-
-  if(files)
-    source_group("${last_dir}" FILES ${files})
-  endif()
-endfunction()
 
 GroupSourcesByFolder(${PROJECT_NAME})
 
@@ -142,20 +156,16 @@ install(TARGETS ${PROJECT_NAME}
 #---------------------------------------------------
 # Plugin support
 #---------------------------------------------------
+# Define paths based on the platform
+
+# Ensure the plugins directory exists (though we are only signing the app)
+file(MAKE_DIRECTORY ${PLUGINS_DIR})
 
 # List of files to copy to the plugins directory
 set(PLUGIN_FILES
     "${PROJECT_SOURCE_DIR}/README.md"
-    #"${PROJECT_SOURCE_DIR}/config.json"
-    #"${PROJECT_SOURCE_DIR}/plugin_data.dat"
+    # Add more files as needed, like config.json, plugin_data.dat
 )
-
-# Define paths based on the platform
-if (APPLE)
-    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/MacOS/plugins")
-else()
-    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/plugins")
-endif()
 
 # Ensure the plugins directory exists
 file(MAKE_DIRECTORY ${PLUGINS_DIR})
@@ -180,15 +190,17 @@ endforeach()
 # Create a custom target that triggers the copy step
 add_custom_target(copy_plugins ALL DEPENDS ${COPIED_FILES})
 
-# If on macOS, sign the entire plugins folder after copying
+# If on macOS, sign the app bundle
 if (APPLE)
+    set(APP_BUNDLE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app")
     add_custom_command(
-        TARGET copy_plugins
+        TARGET ${PROJECT_NAME}
         POST_BUILD
-        COMMAND codesign --force --sign - "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app"
+        COMMAND codesign --force --sign - --timestamp=none --deep "${APP_BUNDLE_PATH}"
         COMMENT "Signing the .app bundle"
     )
 endif()
 
-# Ensure your executable depends on the copy step
+
+# Ensure your plugin build depends on the copy and sign steps
 add_dependencies(${PROJECT_NAME} copy_plugins)

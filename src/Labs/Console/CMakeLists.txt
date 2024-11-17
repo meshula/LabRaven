@@ -1,4 +1,3 @@
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "Labs/Timeline")
 
 # Get the current list of activities
 get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
