@@ -8,14 +8,23 @@ target_sources(${PROJECT_NAME}
     Lab/AppTheme.h
     Lab/AppTheme.cpp
 
+    Lab/LabDirectories.h
+    Lab/LabDirectories.cpp
+    Lab/LabFileDialogManager.hpp
+
     Lab/IconsFontaudio.h
     Lab/ImguiExt.hpp
     Lab/ImguiExt.cpp
+    Lab/imgui_stdlib.h
+    Lab/imgui_stdlib.cpp
+
+    Lab/Landru.hpp
+    Lab/Landru.cpp
+    Lab/LabText.h
+    Lab/LabText_odr.cpp
 
     Lab/StudioCore.hpp
     Lab/StudioCore.cpp
-
-    Lab/LabFileDialogManager.hpp
 
     resources/fonts/embedded_font.inc
 )
@@ -28,6 +37,7 @@ endif()
 if(APPLE)
   target_sources(${PROJECT_NAME} PUBLIC 
     Lab/main_macos.mm
+    Lab/LabDirectoriesObjC.mm
     Lab/LabFileDialogManager.mm
   )
 elseif(WIN32)

@@ -7,6 +7,10 @@ project(${PROJECT_NAME} VERSION 1.0)
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
+if (APPLE)
+    set(APPLE_MAKE_BUNDLE ON)
+endif()
+
 add_executable(${PROJECT_NAME})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 target_include_directories(${PROJECT_NAME} PUBLIC src)
@@ -19,17 +23,19 @@ target_include_directories(${PROJECT_NAME} PUBLIC src)
 # the MACOSX_BUNDLE property is set to TRUE. If there's a reason to make the
 # app a command line program without a bundle, the MACOX_BUNDLE property can
 # be set to FALSE.
-if(APPLE)
-  set_target_properties(${PROJECT_NAME} PROPERTIES
-    MACOSX_BUNDLE TRUE
-    MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/src/Info.plist
-    MACOSX_BUNDLE_GUI_IDENTIFIER "com.${PROJECT_NAME}.app"
-    MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
-    MACOSX_BUNDLE_LONG_VERSION_STRING ${PROJECT_VERSION}
-    #MACOSX_BUNDLE_ICON_FILE ${PROJECT_SOURCE_DIR}/src/icon.icns
-  )
+if (APPLE_MAKE_BUNDLE)
+    set(PRODUCT_BUNDLE_IDENTIFIER "com.planetix.${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/src/Info.plist
+        MACOSX_BUNDLE_GUI_IDENTIFIER "com.${PROJECT_NAME}.app"
+        MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+        MACOSX_BUNDLE_LONG_VERSION_STRING ${PROJECT_VERSION}
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${PRODUCT_BUNDLE_IDENTIFIER}"
+        #MACOSX_BUNDLE_ICON_FILE ${PROJECT_SOURCE_DIR}/src/icon.icns
+    )
 endif()
 
 add_subdirectory("src")
@@ -131,3 +137,15 @@ endif()
 install(TARGETS ${PROJECT_NAME}
     BUNDLE DESTINATION bin
     RUNTIME DESTINATION bin)
+
+# During the installation step, create a directory named plugins in the same
+# directory as the executable and copy README.md from the source root into it.
+# On MacOS, this will be in the .app bundle.
+
+if (APPLE_MAKE_BUNDLE)
+    install(FILES "${PROJECT_SOURCE_DIR}/README.md"
+        DESTINATION bin/${PROJECT_NAME}.app/Contents/MacOS/plugins)
+else()
+    install(FILES "${PROJECT_SOURCE_DIR}/README.md"
+        DESTINATION bin/plugins)
+endif()
