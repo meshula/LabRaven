@@ -73,12 +73,12 @@ struct ConsoleActivity::data {
                 [this]()
                 {
                     console.System().Log(csys::ItemType::INFO)
-                        << "Listing directories" << csys::endl;
-                    console.System().Log(csys::ItemType::INFO) << "exectuable: " <<
+                        << "Directories:" << csys::endl;
+                    console.System().Log(csys::ItemType::INFO) << "exectuable:  "
                         << lab_application_executable_path(nullptr) << csys::endl;
-                    console.System().Log(csys::ItemType::INFO) << "resources: " <<
+                    console.System().Log(csys::ItemType::INFO) << "resources:   "
                         << lab_application_resource_path(nullptr, nullptr) << csys::endl;
-                    console.System().Log(csys::ItemType::INFO) << "preferences: " <<
+                    console.System().Log(csys::ItemType::INFO) << "preferences: "
                         << lab_application_preferences_path(nullptr) << csys::endl;
                 });
 

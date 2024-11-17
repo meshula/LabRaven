@@ -75,6 +75,7 @@ endfunction()
 GroupSourcesByFolder(${PROJECT_NAME})
 
 set(OTIO_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
 add_subdirectory("ext/opentimelineio")
 include_directories(
   ${PROJECT_SOURCE_DIR}/ext/opentimelineio/src
