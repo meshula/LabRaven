@@ -1,6 +1,6 @@
 
 #include "App.h"
-#include "RegisterAllModes.h"
+#include "RegisterAllActivities.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_metal.h"
@@ -45,8 +45,8 @@ int main(int argc, char** argv)
 #endif
 
     app = gApp();
-    auto mm = gModeManager();
-    RegisterAllModes(*mm);
+    auto orch = gOrchestrator();
+    RegisterAllActivities(*orch);
 
     // Setup style
     ImGui::StyleColorsDark();

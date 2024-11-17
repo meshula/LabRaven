@@ -3,7 +3,7 @@
 // Created on 2024-11-07
 
 #include "App.h"
-#include "Modes.hpp"
+#include "StudioCore.hpp"
 #include "Lab/LabFileDialogManager.hpp"
 #include "Lab/AppTheme.h"
 
@@ -15,7 +15,7 @@
 #include <mutex>
 
 using lab::FileDialogManager;
-using lab::ModeManager;
+using lab::Orchestrator;
 
 
 using std::vector;
@@ -76,7 +76,7 @@ ImGuiID DockSpaceOverViewport(const ImGuiViewport* viewport, ImGuiDockNodeFlags 
 
 class LabApp : public App {
     FileDialogManager _fdm;
-    ModeManager _mm;
+    Orchestrator _mm;
     LabViewInteraction _vi;
     int _model_generation = 0;
     bool _should_terminate = false;
@@ -111,7 +111,7 @@ class LabApp : public App {
     }
 
     FileDialogManager* fdm() { return &_fdm; }
-    ModeManager* mm() { return &_mm; }
+    Orchestrator* mm() { return &_mm; }
 
     // dimensions of the viewport of the main window ~ it is the area not
     // occupied by docked panels.
@@ -121,7 +121,7 @@ class LabApp : public App {
 
 LabApp* LabApp::instance = nullptr;
 
-lab::ModeManager* gModeManager() {
+lab::Orchestrator* gOrchestrator() {
     if (LabApp::instance)
         return LabApp::instance->mm();
     return nullptr;
@@ -130,31 +130,31 @@ lab::ModeManager* gModeManager() {
 void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dragging)
 {
     auto& mm = _mm;
-    mm.UpdateTransactionQueueActivationAndModes();
-    auto currMajorMode = mm.CurrentMajorMode();
-    static auto majorModeNames = mm.MajorModeNames();
+    mm.ServiceTransactionsAndActivities();
+    auto currStudio = mm.CurrentStudio();
+    static auto studioNames = mm.StudioNames();
     static auto activityNames = mm.ActivityNames();
         
     if (ImGui::BeginMainMenuBar()) {
         std::string curr = "Welcome";
-        if (currMajorMode)
-            curr = currMajorMode->Name();
+        if (currStudio)
+            curr = currStudio->Name();
         if (curr == "Empty")
             curr = "Welcome";
-        auto menuName = curr + "###MM";
+        auto menuName = curr + "###St";
         if (ImGui::BeginMenu(menuName.c_str())) {
-            for (auto m : majorModeNames) {
-                auto menuName = m + "###MjM";
-                auto mode = mm.FindMode(m);
-                if (mode) {
-                    bool active = mm.CurrentMajorMode()->Name() == m;
+            for (auto m : studioNames) {
+                auto menuName = m + "###St";
+                auto studio = mm.FindStudio(m);
+                if (studio) {
+                    bool active = mm.CurrentStudio()->Name() == m;
                     if (ImGui::MenuItem(menuName.c_str(), nullptr, active, true)) {
                         if (!active)
-                            mm.ActivateMajorMode(m);
+                            mm.ActivateStudio(m);
                     }
                 }
             }
-            if (majorModeNames.size() > 1)
+            if (studioNames.size() > 1)
                 ImGui::Separator();
             if (ImGui::MenuItem("Quit")) {
                 _should_terminate = true;
@@ -163,14 +163,14 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
         }
 
         if (activityNames.size() > 0) {
-            int id = (ptrdiff_t) currMajorMode;
-            if (ImGui::BeginMenu("Modes##mmenu")) {
+            ptrdiff_t id = (ptrdiff_t) currStudio;
+            if (ImGui::BeginMenu("Activities##mmenu")) {
                 for (auto m : activityNames) {
-                    auto mode = mm.FindActivity(m);
-                    if (mode) {
-                        bool active = mode->IsActive();
-                        ImGui::PushID(id);
-                        if (ImGui::MenuItem(mode->Name().c_str(), nullptr, active, true)) {
+                    auto activity = mm.FindActivity(m);
+                    if (activity) {
+                        bool active = activity->IsActive();
+                        ImGui::PushID((int) id);
+                        if (ImGui::MenuItem(activity->Name().c_str(), nullptr, active, true)) {
                             if (active) {
                                 mm.DeactivateActivity(m);
                             }
@@ -226,7 +226,7 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
         (float) viewport->Size.x, (float) viewport->Size.y,
         view_pos_x, view_pos_y, view_sz_x, view_sz_y };
     _vi.dt = dt;
-    mm.RunModeUIs(_vi);
+    mm.RunActivityUIs(_vi);
 
     static bool was_dragging = false;
     

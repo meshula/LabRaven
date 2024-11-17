@@ -12,8 +12,8 @@ target_sources(${PROJECT_NAME}
     Lab/ImguiExt.hpp
     Lab/ImguiExt.cpp
 
-    Lab/Modes.hpp
-    Lab/Modes.cpp
+    Lab/StudioCore.hpp
+    Lab/StudioCore.cpp
 
     Lab/LabFileDialogManager.hpp
 
@@ -63,17 +63,17 @@ set(ACTIVITY_REGISTRATION "")
 # List all activities
 foreach(activity ${ACTIVITIES})
     string(APPEND ACTIVITY_REGISTRATION 
-           "    modemanager.RegisterActivity<${activity}Activity>([](){ return std::make_shared<${activity}Activity>(); });\n")
+           "    orchestrator.RegisterActivity<${activity}Activity>([](){ return std::make_shared<${activity}Activity>(); });\n")
 endforeach()
 
 # Write the generated code to a file
-file(WRITE "${CMAKE_BINARY_DIR}/RegisterAllModes.cpp" "
-#include \"Lab/Modes.hpp\"
+file(WRITE "${CMAKE_BINARY_DIR}/RegisterAllActivities.cpp" "
+#include \"Lab/StudioCore.hpp\"
 ${ACTIVITY_INCLUDES}
 using namespace lab;
-void RegisterAllModes(ModeManager& modemanager) {
+void RegisterAllActivities(Orchestrator& orchestrator) {
 ${ACTIVITY_REGISTRATION}
 }
 ")
 
-target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_BINARY_DIR}/RegisterAllModes.cpp")
+target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_BINARY_DIR}/RegisterAllActivities.cpp")

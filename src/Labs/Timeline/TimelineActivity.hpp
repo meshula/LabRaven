@@ -8,7 +8,7 @@
 #ifndef TimelineActivity_hpp
 #define TimelineActivity_hpp
 
-#include "Lab/Modes.hpp"
+#include "Lab/StudioCore.hpp"
 
 namespace lab {
 

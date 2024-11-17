@@ -16,8 +16,8 @@ typedef struct App {
 App* gApp();
 
 #ifdef __cplusplus
-namespace lab { class ModeManager; }
-lab::ModeManager* gModeManager();
+namespace lab { class Orchestrator; }
+lab::Orchestrator* gOrchestrator();
 #endif
 
 #endif /* App_h */

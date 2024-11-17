@@ -9,7 +9,7 @@
 #ifndef ColorActivity_hpp
 #define ColorActivity_hpp
 
-#include "Lab/Modes.hpp"
+#include "Lab/StudioCore.hpp"
 
 namespace lab {
 

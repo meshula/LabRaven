@@ -11,6 +11,27 @@ add_executable(${PROJECT_NAME})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 target_include_directories(${PROJECT_NAME} PUBLIC src)
 
+# if Mac, set the MACOSX_BUNDLE property
+# If a bundle is not created, then when running from xcode, or via
+# double-clicking the executable in Finder, the app will launch via the
+# terminal.app; under xcode this causes the app to launch twice under the
+# current version of glfw. The reasons are unclear. Until this is resolved,
+# the MACOSX_BUNDLE property is set to TRUE. If there's a reason to make the
+# app a command line program without a bundle, the MACOX_BUNDLE property can
+# be set to FALSE.
+if(APPLE)
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/src/Info.plist
+    MACOSX_BUNDLE_GUI_IDENTIFIER "com.${PROJECT_NAME}.app"
+    MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}
+    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
+    MACOSX_BUNDLE_LONG_VERSION_STRING ${PROJECT_VERSION}
+    #MACOSX_BUNDLE_ICON_FILE ${PROJECT_SOURCE_DIR}/src/icon.icns
+  )
+endif()
+
 add_subdirectory("src")
 add_subdirectory("ext")
 

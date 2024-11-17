@@ -1,5 +1,5 @@
 //
-//  Modes.hpp
+//  StudioCore.hpp
 //  LabExcelsior
 //
 //  Created by Domenico Porcino on 11/26/23.
@@ -7,7 +7,7 @@
 //
 
 /*
- Modes has no dependencies, except the the cpp file requires
+ StudioCore has no dependencies, except the the cpp file requires
  moodycamel's concurrentqueue.hpp obtained from
  https://github.com/cameron314/concurrentqueue
 
@@ -17,8 +17,23 @@
  directive, of course.
  */
 
-#ifndef Modes_h
-#define Modes_h
+/*
+
+Activity
+    unique thing to do
+Studio
+    collection of Activities
+Transactions
+    Things that change the data in the program 
+Journal
+    undo/redo history of Transactions
+Orchestrator
+    Manages the Studios, Activities, Transactions, and Journal
+
+*/
+
+#ifndef StudioCore_h
+#define StudioCore_h
 
 #include <stdbool.h>    // for C compatibility
 #include <stddef.h>
@@ -50,8 +65,8 @@ typedef struct LabViewInteraction {
 
 
 /* Activities add composable functionality to either another
-   Activity, or to a major mode. An activity can activate
-   an Activaty as a dependency, but cannot activate a major mode.
+   Activity, or to a Studio. An activity can activate
+   an Activaty as a dependency, but cannot activate a Studio.
 
    Activities can Render to the main viewport, and can run UI,
    which can consist of any number of panels, menus, and what not.
@@ -62,10 +77,10 @@ typedef struct LabViewInteraction {
    over a manipulator would therefore want to "win" versus hovering over a
    model part, or over the sky background.
 
-   A bid of -1 means that the mode does not want to bid for the operation.
+   A bid of -1 means that the activity does not want to bid for the operation.
  */
 
-// Define ModeActivities in a C-compatible way
+// Define Activities in a C-compatible way
 typedef struct LabActivity {
     void (*Activate)(void*) = nullptr;
     void (*Deactivate)(void*) = nullptr;
@@ -86,7 +101,7 @@ typedef struct LabActivity {
 } // extern "C"
 
 namespace lab {
-class ModeManager;
+class Orchestrator;
 
 struct Transaction {
     std::string message;
@@ -168,7 +183,7 @@ public:
     // the same node.
     void Fork(Transaction&& t);
     
-    // removes mode from the journal but does not delete it
+    // removes node from the journal but does not delete it
     void Remove(JournalNode* node);
     
     JournalNode root;
@@ -184,7 +199,7 @@ protected:
     virtual void Activate()   final { activity.active = true;  _activate();   }
     virtual void Deactivate() final { activity.active = false; _deactivate(); }
 
-    friend class ModeManager;
+    friend class Orchestrator;
 
 public:
     explicit Activity() {}
@@ -197,8 +212,10 @@ public:
     LabActivity activity;
 };
 
+/* A Studio configures the workspace and activates and
+   deactivates a set of activities */
 
-class Mode
+class Studio
 {
 protected:
     bool _active = false;
@@ -206,60 +223,47 @@ protected:
     virtual void _deactivate() {}
 
 public:
-    explicit Mode() {}
-    virtual ~Mode() = default;
+    explicit Studio() = default;
+    virtual ~Studio() = default;
 
     virtual const std::string Name() const = 0;
-
     virtual void Activate()   final { _active = true;  _activate();   }
     virtual void Deactivate() final { _active = false; _deactivate(); }
 
     bool IsActive() const { return _active; }
+
+    virtual const std::vector<std::string>& StudioConfiguration() const = 0;
+    virtual bool MustDeactivateUnrelatedActivitiesOnActivation() const { return true; }
 };
 
-
-
-/* A Major mode configures the workspace and activates and
-   deactivates a set of minor modes */
-
-class MajorMode : public Mode
-{
-public:
-    explicit MajorMode() : Mode() {}
-    virtual ~MajorMode() = default;
-    virtual const std::vector<std::string>& ModeConfiguration() const = 0;
-    virtual bool MustDeactivateUnrelatedModesOnActivation() const { return true; }
-};
-
-class ModeManager
+class Orchestrator
 {
     struct data;
     data* _self;
     
     Journal _journal;
 
-    std::string _major_mode_pending;
+    std::string _studio_pending;
     std::vector<std::pair<std::string, bool>> _activity_pending;
 
     // private to prevent assignment
-    ModeManager& operator=(const ModeManager&);
+    Orchestrator& operator=(const Orchestrator&);
     
-    void _activate_major_mode(const std::string& name);
-    void _deactivate_major_mode(const std::string& name);
+    void _activate_studio(const std::string& name);
+    void _deactivate_studio(const std::string& name);
+    void _register_studio(const std::string& name, std::function< std::shared_ptr<Studio>() > fn);
     void _register_activity(const std::string& name, std::function< std::shared_ptr<Activity>() > fn);
-    void _register_major_mode(const std::string& name, std::function< std::shared_ptr<MajorMode>() > fn);
-
     void _set_activities();
 
 public:
-    ModeManager();
-    ~ModeManager();
+    Orchestrator();
+    ~Orchestrator();
     
-    static ModeManager* Canonical();
+    static Orchestrator* Canonical();
 
     const std::map< std::string, std::shared_ptr<Activity> > Activities() const;
     const std::vector<std::string>& ActivityNames() const;
-    const std::vector<std::string>& MajorModeNames() const;
+    const std::vector<std::string>& StudioNames() const;
 
     template <typename ActivityType>
     void RegisterActivity(std::function< std::shared_ptr<Activity>() > fn)
@@ -267,17 +271,17 @@ public:
         _register_activity(ActivityType::sname(), fn);
     }
 
-    template <typename MajorModeType>
-    void RegisterMajorMode(std::function< std::shared_ptr<MajorMode>() > fn)
+    template <typename StudioType>
+    void RegisterStudio(std::function< std::shared_ptr<Studio>() > fn)
     {
-        static_assert(std::is_base_of<MajorMode, MajorModeType>::value, "must register MajorMode");
-        _register_major_mode(MajorModeType::sname(), fn);
+        static_assert(std::is_base_of<Studio, StudioType>::value, "must register Studio");
+        _register_studio(StudioType::sname(), fn);
     }
 
-    void ActivateMajorMode(const std::string& name) {
-        auto m = FindMode(name);
+    void ActivateStudio(const std::string& name) {
+        auto m = FindStudio(name);
         if (m) {
-            _major_mode_pending = name;
+            _studio_pending = name;
         }
     }
 
@@ -295,13 +299,13 @@ public:
         }
     }
 
-    std::shared_ptr<Mode> FindMode(const std::string &);
+    std::shared_ptr<Studio> FindStudio(const std::string &);
     std::shared_ptr<Activity> FindActivity(const std::string &);
 
     template <typename T>
-    std::shared_ptr<T> FindMode()
+    std::shared_ptr<T> FindStudio()
     {
-        auto m = FindMode(T::sname());
+        auto m = FindStudio(T::sname());
         return std::dynamic_pointer_cast<T>(m);
     }
 
@@ -318,16 +322,16 @@ public:
         return r;
     }
 
-    MajorMode* CurrentMajorMode() const;
+    Studio* CurrentStudio() const;
 
-    void RunModeUIs(const LabViewInteraction&);
+    void RunActivityUIs(const LabViewInteraction&);
     void RunViewportHovering(const LabViewInteraction&);
     void RunViewportDragging(const LabViewInteraction&);
-    void RunModeRendering(const LabViewInteraction&);
+    void RunActivityRendering(const LabViewInteraction&);
     void RunMainMenu();
         
     void EnqueueTransaction(Transaction&&);
-    void UpdateTransactionQueueActivationAndModes();
+    void ServiceTransactionsAndActivities();
 
     Journal& Journal() { return _journal; }
 };
@@ -335,4 +339,4 @@ public:
 } // lab
 
 #endif //__cplusplus
-#endif /* Modes_h */
+#endif /* StudioCore_h */

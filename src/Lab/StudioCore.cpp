@@ -1,12 +1,12 @@
 //
-//  Modes.cpp
+//  StudioCore.cpp
 //  LabExcelsior
 //
 //  Created by Domenico Porcino on 11/26/23.
 //  Copyright © 2023. All rights reserved.
 //
 
-#include "Modes.hpp"
+#include "StudioCore.hpp"
 #include "concurrentqueue.hpp"
 #include <iostream>
 #include <set>
@@ -99,7 +99,7 @@ void Journal::Fork(Transaction&& t) {
     _curr = _curr->sibling;
 }
 
-// removes mode from the journal but does not delete it
+// removes node from the journal but does not delete it
 void Journal::Remove(JournalNode* node) {
     if (!node)
         return;
@@ -133,15 +133,15 @@ void Journal::Remove(JournalNode* node) {
 }
 
 
-struct ModeManager::data {
+struct Orchestrator::data {
     moodycamel::ConcurrentQueue<Transaction> work_queue;
-    MajorMode* current_major_mode = nullptr;
-    std::map< std::string, std::shared_ptr<Activity> > minor_modes;
-    std::map< std::string, std::shared_ptr<MajorMode> > major_modes;
+    Studio* current_studio = nullptr;
+    std::map< std::string, std::shared_ptr<Activity> > activities;
+    std::map< std::string, std::shared_ptr<Studio> > studios;
     std::map< std::string, std::function< std::shared_ptr<Activity>() > > activityFactory;
-    std::map< std::string, std::function< std::shared_ptr<MajorMode>() > > majorModeFactory;
-    std::vector<std::string> minor_mode_names;
-    std::vector<std::string> major_mode_names;
+    std::map< std::string, std::function< std::shared_ptr<Studio>() > > studioFactory;
+    std::vector<std::string> activity_names;
+    std::vector<std::string> studio_names;
     
     std::vector<Activity*> ui_activities;
     std::vector<Activity*> update_activities;
@@ -157,7 +157,7 @@ struct ModeManager::data {
         dragging_activities.clear();
         rendering_activities.clear();
         mainmenu_activities.clear();
-        for (auto& mm : minor_modes) {
+        for (auto& mm : activities) {
             if (mm.second->activity.active) {
                 Activity* a = mm.second.get();
                 if (a->activity.RunUI) ui_activities.push_back(a);
@@ -171,7 +171,7 @@ struct ModeManager::data {
         static bool noisy = true;
         if (noisy) {
             std::cout << "Active Activities: \n";
-            for (auto i : minor_modes) {
+            for (auto i : activities) {
                 if (i.second->activity.active)
                     std::cout << "  " << i.first << std::endl;
             }
@@ -180,37 +180,37 @@ struct ModeManager::data {
 };
 
 namespace {
-    ModeManager* gCanonical;
+    Orchestrator* gCanonical;
 }
 
-ModeManager::ModeManager() {
+Orchestrator::Orchestrator() {
     _self = new data();
     gCanonical = this;
 }
 
-ModeManager::~ModeManager() {
+Orchestrator::~Orchestrator() {
     delete _self;
     gCanonical = nullptr;
 }
 
-void ModeManager::_set_activities() {
+void Orchestrator::_set_activities() {
     _self->SetActivities();
 }
 
 //static
-ModeManager* ModeManager::Canonical() {
+Orchestrator* Orchestrator::Canonical() {
     return gCanonical;
 }
 
-MajorMode* ModeManager::CurrentMajorMode() const {
-    return _self->current_major_mode;
+Studio* Orchestrator::CurrentStudio() const {
+    return _self->current_studio;
 }
 
-void ModeManager::EnqueueTransaction(Transaction&& work) {
+void Orchestrator::EnqueueTransaction(Transaction&& work) {
     _self->work_queue.enqueue(work);
 }
 
-void ModeManager::UpdateTransactionQueueActivationAndModes() {
+void Orchestrator::ServiceTransactionsAndActivities() {
     // complete any pending work
     Transaction work;
     while (_self->work_queue.try_dequeue(work)) {
@@ -221,13 +221,13 @@ void ModeManager::UpdateTransactionQueueActivationAndModes() {
         }
     }
 
-    // activate any pending major mode
-    if (_major_mode_pending.length()) {
-        _activate_major_mode(_major_mode_pending);
-        _major_mode_pending.clear();
+    // activate pending studio if ready
+    if (_studio_pending.length()) {
+        _activate_studio(_studio_pending);
+        _studio_pending.clear();
     }
-    if (!_self->current_major_mode) {
-        _activate_major_mode("Empty");
+    if (!_self->current_studio) {
+        _activate_studio("Empty");
     }
 
     if (_activity_pending.size()) {
@@ -248,64 +248,64 @@ void ModeManager::UpdateTransactionQueueActivationAndModes() {
         i->activity.Update(i);
 }
 
-std::shared_ptr<Mode> ModeManager::FindMode(const std::string & m)
+std::shared_ptr<Studio> Orchestrator::FindStudio(const std::string & m)
 {
-    auto maj = _self->major_modes.find(m);
-    if (maj != _self->major_modes.end())
+    auto maj = _self->studios.find(m);
+    if (maj != _self->studios.end())
         return maj->second;
 
-    auto mmj = _self->majorModeFactory.find(m);
-    if (mmj != _self->majorModeFactory.end())
+    auto mmj = _self->studioFactory.find(m);
+    if (mmj != _self->studioFactory.end())
     {
         auto mm = mmj->second();
-        _self->major_modes[m] = mm;
+        _self->studios[m] = mm;
         return mm;
     }
 
-    return std::shared_ptr<Mode>();
+    return std::shared_ptr<Studio>();
 }
 
-std::shared_ptr<Activity> ModeManager::FindActivity(const std::string & m)
+std::shared_ptr<Activity> Orchestrator::FindActivity(const std::string & m)
 {
-    auto mnr = _self->minor_modes.find(m);
-    if (mnr != _self->minor_modes.end())
+    auto mnr = _self->activities.find(m);
+    if (mnr != _self->activities.end())
         return mnr->second;
 
     auto mmn = _self->activityFactory.find(m);
     if (mmn != _self->activityFactory.end())
     {
         auto mm = mmn->second(); // call creation factory
-        _self->minor_modes[m] = mm;
+        _self->activities[m] = mm;
         return mm;
     }
     return std::shared_ptr<Activity>();
 }
 
-void ModeManager::_activate_major_mode(const std::string& name)
+void Orchestrator::_activate_studio(const std::string& name)
 {
-    auto m = FindMode(name);
-    auto maj = dynamic_cast<MajorMode*>(m.get());
+    auto m = FindStudio(name);
+    auto maj = dynamic_cast<Studio*>(m.get());
     if (!maj)
         return;
 
-    if (_self->current_major_mode) {
-        if (_self->current_major_mode->Name() == name)
+    if (_self->current_studio) {
+        if (_self->current_studio->Name() == name)
             return;
-        _deactivate_major_mode(_self->current_major_mode->Name());
+        _deactivate_studio(_self->current_studio->Name());
     }
 
-    _self->current_major_mode = maj;
-    auto modesList = maj->ModeConfiguration();
-    std::set<std::string> modes;
-    for (auto& i : modesList)
-        modes.insert(i);
-    
-    if (maj->MustDeactivateUnrelatedModesOnActivation()) {
+    _self->current_studio = maj;
+    auto activitiesList = maj->StudioConfiguration();
+    std::set<std::string> activities;
+    for (auto& i : activitiesList)
+        activities.insert(i);
+
+    if (maj->MustDeactivateUnrelatedActivitiesOnActivation()) {
         std::vector<std::string> deactivated;
         
-        for (auto minor : _self->minor_modes) {
-            if (modes.find(minor.first) == modes.end()) {
-                deactivated.push_back(minor.first);
+        for (auto activity : _self->activities) {
+            if (activities.find(activity.first) == activities.end()) {
+                deactivated.push_back(activity.first);
             }
         }
         
@@ -318,14 +318,14 @@ void ModeManager::_activate_major_mode(const std::string& name)
         }
     }
     
-    for (auto& mode : modes) {
-        auto m = FindActivity(mode);
+    for (auto& activity : activities) {
+        auto m = FindActivity(activity);
         if (m) {
             std::cout << "Activating " << m->Name() << std::endl;
             m->Activate();
         }
         else {
-            std::cerr << "Could not find Activity: " << mode << std::endl;
+            std::cerr << "Could not find Activity: " << activity << std::endl;
         }
     }
 
@@ -333,38 +333,38 @@ void ModeManager::_activate_major_mode(const std::string& name)
     _self->SetActivities();
 }
 
-void ModeManager::_deactivate_major_mode(const std::string& name)
+void Orchestrator::_deactivate_studio(const std::string& name)
 {
-    auto m = FindMode(name);
-    auto maj = dynamic_cast<MajorMode*>(m.get());
+    auto m = FindStudio(name);
+    auto maj = dynamic_cast<Studio*>(m.get());
     if (!maj)
         return;
 
-    if (maj == _self->current_major_mode)
-        _self->current_major_mode = nullptr;
+    if (maj == _self->current_studio)
+        _self->current_studio = nullptr;
     
-    auto modes = maj->ModeConfiguration();
-    for (auto& mode : modes) {
-        auto m = FindActivity(mode);
+    auto activities = maj->StudioConfiguration();
+    for (auto& activity : activities) {
+        auto m = FindActivity(activity);
         if (m) {
             std::cout << "Deactivating " << m->Name() << std::endl;
             m->Deactivate();
         }
         else {
-            std::cerr << "Could not find Activity to deactivate: " << mode << std::endl;
+            std::cerr << "Could not find Activity to deactivate: " << activity << std::endl;
         }
     }
     maj->Deactivate();
     _self->SetActivities();
 }
 
-void ModeManager::RunModeUIs(const LabViewInteraction& vi) {
+void Orchestrator::RunActivityUIs(const LabViewInteraction& vi) {
     for (auto i : _self->ui_activities)
         if (i->activity.active && i->activity.RunUI)
             i->activity.RunUI(i, &vi);
 }
 
-void ModeManager::RunViewportHovering(const LabViewInteraction& vi) {
+void Orchestrator::RunViewportHovering(const LabViewInteraction& vi) {
     Activity* dragger = nullptr;
     int highest_bidder = -1;
 
@@ -382,7 +382,7 @@ void ModeManager::RunViewportHovering(const LabViewInteraction& vi) {
     }
 }
 
-void ModeManager::RunViewportDragging(const LabViewInteraction& vi) {
+void Orchestrator::RunViewportDragging(const LabViewInteraction& vi) {
     Activity* dragger = nullptr;
     int highest_bidder = -1;
 
@@ -400,41 +400,41 @@ void ModeManager::RunViewportDragging(const LabViewInteraction& vi) {
     }
 }
 
-void ModeManager::RunModeRendering(const LabViewInteraction& vi) {
+void Orchestrator::RunActivityRendering(const LabViewInteraction& vi) {
     for (auto i : _self->rendering_activities)
         if (i->activity.active && i->activity.Render)
             i->activity.Render(i, &vi);
 }
 
-void ModeManager::RunMainMenu() {
+void Orchestrator::RunMainMenu() {
     for (auto i : _self->mainmenu_activities)
         if (i->activity.active && i->activity.Menu)
             i->activity.Menu(i);
 }
 
 
-const std::map< std::string, std::shared_ptr<Activity> > ModeManager::Activities() const {
-    return _self->minor_modes;
+const std::map< std::string, std::shared_ptr<Activity> > Orchestrator::Activities() const {
+    return _self->activities;
 }
 
-const std::vector<std::string>& ModeManager::ActivityNames() const {
-    return _self->minor_mode_names;
+const std::vector<std::string>& Orchestrator::ActivityNames() const {
+    return _self->activity_names;
 }
 
-const std::vector<std::string>& ModeManager::MajorModeNames() const {
-    return _self->major_mode_names;
+const std::vector<std::string>& Orchestrator::StudioNames() const {
+    return _self->studio_names;
 }
 
-void ModeManager::_register_activity(const std::string& name,
+void Orchestrator::_register_activity(const std::string& name,
                                      std::function< std::shared_ptr<Activity>() > fn) {
     _self->activityFactory[name] = fn;
-    _self->minor_mode_names.push_back(name);
+    _self->activity_names.push_back(name);
 }
 
-void ModeManager::_register_major_mode(const std::string& name,
-                                       std::function< std::shared_ptr<MajorMode>() > fn) {
-    _self->majorModeFactory[name] = fn;
-    _self->major_mode_names.push_back(name);
+void Orchestrator::_register_studio(const std::string& name,
+                                       std::function< std::shared_ptr<Studio>() > fn) {
+    _self->studioFactory[name] = fn;
+    _self->studio_names.push_back(name);
 }
 
 } // lab
