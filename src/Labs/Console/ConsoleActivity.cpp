@@ -53,8 +53,7 @@ struct ConsoleActivity::data {
         console.System().RegisterCommand(
                 "random_background_color", 
                 "Assigns a random color to the background application",
-                [&clear_color = this->clear_color]()
-                {
+                [&clear_color = this->clear_color]() {
                     clear_color.x = (rand() % 256) / 256.f;
                     clear_color.y = (rand() % 256) / 256.f;
                     clear_color.z = (rand() % 256) / 256.f;
@@ -63,15 +62,13 @@ struct ConsoleActivity::data {
         console.System().RegisterCommand(
                 "reset_background_color", 
                 "Reset background color to its original value",
-                [&clear_color = this->clear_color, val = clear_color]()
-                {
+                [&clear_color = this->clear_color, val = clear_color]() {
                     clear_color = val;
                 });
         console.System().RegisterCommand(
                 "dirs",
                 "List directories",
-                [this]()
-                {
+                [this]() {
                     console.System().Log(csys::ItemType::INFO)
                         << "Directories:" << csys::endl;
                     console.System().Log(csys::ItemType::INFO) << "exectuable:  "
@@ -82,15 +79,8 @@ struct ConsoleActivity::data {
                         << lab_application_preferences_path(nullptr) << csys::endl;
                 });
 
-        // Log example information:
-        console.System().Log(csys::ItemType::INFO) << "The following variables have been exposed to the console:" << csys::endl << csys::endl;
-        console.System().Log(csys::ItemType::INFO) << "\tbackground_color - set: [int int int int]" << csys::endl;
-        console.System().Log(csys::ItemType::INFO) << csys::endl << "Try running the following command:" << csys::endl;
-        console.System().Log(csys::ItemType::INFO) << "\tset background_color [255 0 0 255]" << csys::endl << csys::endl;
-        
         console.System().RegisterCommand("l", "Run landru program",
-                                         [this](const csys::String &landru)
-        {
+                                         [this](const csys::String &landru) {
             try {
                 LandruRun(landru.m_String.c_str());
             }

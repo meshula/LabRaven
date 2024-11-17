@@ -139,14 +139,56 @@ install(TARGETS ${PROJECT_NAME}
     BUNDLE DESTINATION bin
     RUNTIME DESTINATION bin)
 
-# During the installation step, create a directory named plugins in the same
-# directory as the executable and copy README.md from the source root into it.
-# On MacOS, this will be in the .app bundle.
+#---------------------------------------------------
+# Plugin support
+#---------------------------------------------------
 
-if (APPLE_MAKE_BUNDLE)
-    install(FILES "${PROJECT_SOURCE_DIR}/README.md"
-        DESTINATION bin/${PROJECT_NAME}.app/Contents/MacOS/plugins)
+# List of files to copy to the plugins directory
+set(PLUGIN_FILES
+    "${PROJECT_SOURCE_DIR}/README.md"
+    #"${PROJECT_SOURCE_DIR}/config.json"
+    #"${PROJECT_SOURCE_DIR}/plugin_data.dat"
+)
+
+# Define paths based on the platform
+if (APPLE)
+    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/MacOS/plugins")
 else()
-    install(FILES "${PROJECT_SOURCE_DIR}/README.md"
-        DESTINATION bin/plugins)
+    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/plugins")
 endif()
+
+# Ensure the plugins directory exists
+file(MAKE_DIRECTORY ${PLUGINS_DIR})
+
+# List to keep track of copied files
+set(COPIED_FILES)
+
+# Loop over each file in PLUGIN_FILES to copy them
+foreach(file ${PLUGIN_FILES})
+    # Extract the filename from the path
+    get_filename_component(filename "${file}" NAME)
+    
+    add_custom_command(
+        OUTPUT "${PLUGINS_DIR}/${filename}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${PLUGINS_DIR}/${filename}"
+        DEPENDS "${file}"
+        COMMENT "Copying ${filename} to plugins directory"
+    )
+    list(APPEND COPIED_FILES "${PLUGINS_DIR}/${filename}")
+endforeach()
+
+# Create a custom target that triggers the copy step
+add_custom_target(copy_plugins ALL DEPENDS ${COPIED_FILES})
+
+# If on macOS, sign the entire plugins folder after copying
+if (APPLE)
+    add_custom_command(
+        TARGET copy_plugins
+        POST_BUILD
+        COMMAND codesign --force --sign - "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app"
+        COMMENT "Signing the .app bundle"
+    )
+endif()
+
+# Ensure your executable depends on the copy step
+add_dependencies(${PROJECT_NAME} copy_plugins)
