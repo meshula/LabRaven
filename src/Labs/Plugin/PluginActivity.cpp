@@ -2,6 +2,7 @@
 #include "PluginActivity.hpp"
 #include "Lab/StudioCore.hpp"
 #include "Lab/LabDirectories.h"
+#include "Lab/App.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -15,6 +16,19 @@
 #include <vector>
 
 namespace lab {
+
+class PluginActivityInstance : public Activity
+{
+public:
+    explicit PluginActivityInstance(const LabActivity& activity_)
+        : Activity() {
+            activity = activity_;
+        }
+
+    virtual const std::string Name() const override {
+        return activity.name;
+    }
+};
 
 struct PluginData {
     std::string name;
@@ -79,6 +93,19 @@ PluginActivity::PluginActivity() {
                 auto plugInNameFn = cr_so_symbol<const char*(*)(void)>(pd.ctx, "PluginName");
                 if (plugInNameFn) {
                     pd.name = plugInNameFn();
+                }
+
+                // the plugin may contain activities. If it does, the function
+                // LabActivity make_activity() should be called to create the activity.
+                auto makeActivityFn = cr_so_symbol<LabActivity(*)(void)>(pd.ctx, "make_activity");
+                if (makeActivityFn) {
+                    LabActivity activity = makeActivityFn();
+                    Activity* act = new PluginActivityInstance(activity);
+                    // register it with the orchestrator by name.
+                    auto orchestrator = Orchestrator::Canonical();
+                    orchestrator->RegisterActivity(activity.name, [act]() {
+                        return std::shared_ptr<Activity>(act);
+                    });
                 }
             }
             else {

@@ -271,6 +271,11 @@ public:
         _register_activity(ActivityType::sname(), fn);
     }
 
+    void RegisterActivity(const std::string& name, std::function< std::shared_ptr<Activity>() > fn)
+    {
+        _register_activity(name, fn);
+    }
+
     template <typename StudioType>
     void RegisterStudio(std::function< std::shared_ptr<Studio>() > fn)
     {
