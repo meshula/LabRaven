@@ -65,6 +65,12 @@ add_subdirectory(Labs)
 #---------------------------------------------------
 # Create RegisterAllModes.cpp
 #
+# if ACTIVITIES is empty, report that.
+get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
+if (NOT ACTIVITIES)
+    message(FATAL_ERROR "Lab: No activities found")
+endif()
+
 set(ACTIVITY_INCLUDES "")
 foreach(activity ${ACTIVITIES})
     string(APPEND ACTIVITY_INCLUDES "#include \"Labs/${activity}/${activity}Activity.hpp\"\n")

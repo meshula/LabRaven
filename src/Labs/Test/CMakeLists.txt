@@ -11,6 +11,9 @@ set(TEST_PLUGIN_SOURCES
 )
 add_library(${PROJECT_NAME} MODULE ${TEST_PLUGIN_SOURCES})
 
+# add ${CMAKE_SOURCE_DIR}/src as an include directory
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
 # echo the sources
 message(INFO, "TestPlugin sources: ${TEST_PLUGIN_SOURCES}")
 
