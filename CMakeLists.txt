@@ -115,26 +115,27 @@ if(NOT EMSCRIPTEN)
 endif()
 
 target_compile_definitions(${PROJECT_NAME}
-  PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
+    PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
-  OTIO::opentimelineio
-  IMGUI
+    OTIO::opentimelineio
+    IMGUI
+    sqlite3
 )
 
 if (APPLE)
-  find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-  find_library(METAL_LIBRARY Metal)
-  find_library(METALKIT_LIBRARY MetalKit)
-  find_library(QUARTZCORE_LIBRARY QuartzCore)
-  target_link_libraries(${PROJECT_NAME} PUBLIC
-    glfw
-    nativefiledialog
-    ${COREFOUNDATION_LIBRARY}
-    ${METAL_LIBRARY}
-    ${METALKIT_LIBRARY}
-    ${QUARTZCORE_LIBRARY}
-  )
+    find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+    find_library(METAL_LIBRARY Metal)
+    find_library(METALKIT_LIBRARY MetalKit)
+    find_library(QUARTZCORE_LIBRARY QuartzCore)
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+        glfw
+        nativefiledialog
+        ${COREFOUNDATION_LIBRARY}
+        ${METAL_LIBRARY}
+        ${METALKIT_LIBRARY}
+        ${QUARTZCORE_LIBRARY}
+    )
 elseif(WIN32)
   target_link_libraries(${PROJECT_NAME} PUBLIC
     nativefiledialog

@@ -33,6 +33,12 @@ endif()
 
 ####################################
 
+add_library(sqlite3 STATIC)
+target_sources(sqlite3 PRIVATE sqlite3/sqlite3.c)
+target_include_directories(sqlite3 PUBLIC sqlite3)
+
+####################################
+
 add_library(IMGUI STATIC)
 
 set_property(TARGET IMGUI PROPERTY CXX_STANDARD 14)

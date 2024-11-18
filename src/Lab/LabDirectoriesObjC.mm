@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string>
 #include <map>
-
+#if 0
 namespace {
    std::map<std::string, bool> prefs;
 }
@@ -41,3 +41,5 @@ void lab_set_pref_for_key(const char* key, const char* value) {
     [defaults setObject:path forKey:[NSString stringWithUTF8String:key]];
     [defaults synchronize];
 }
+#endif
+

@@ -35,7 +35,6 @@ endif()
 if(APPLE)
   target_sources(${PROJECT_NAME} PUBLIC 
     Lab/main_macos.mm
-    Lab/LabDirectoriesObjC.mm
     Lab/LabFileDialogManager.mm
   )
 elseif(WIN32)

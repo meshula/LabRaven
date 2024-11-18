@@ -25,6 +25,12 @@
 # include <limits.h>
 #endif
 
+#include <sqlite3.h>
+#include <map>
+#include <string>
+#include <mutex>
+#include <iostream>
+
 
 // https://stackoverflow.com/questions/11238918/s-isreg-macro-undefined Windows
 // does not define the S_ISREG and S_ISDIR macros in stat.h, so we do. We have
@@ -330,68 +336,186 @@ bool lab_create_path(const char* path) {
         std::string subPath = fullPath.substr(0, pos + 1);
 
         // Create the directory
-        #ifdef _WIN32
-            if (_mkdir(subPath.c_str()) != 0) {
-        #else
+#ifdef _WIN32
+        if (_mkdir(subPath.c_str()) != 0) {
+#else
             if (mkdir(subPath.c_str(), 0777) != 0) {
-        #endif
+#endif
                 // Directory creation failed
                 std::cerr << "Error creating directory: " << subPath << std::endl;
                 return false;
             }
 
-        // Move to the next component
-        ++pos;
+            // Move to the next component
+            ++pos;
+        }
+
+        return true;
     }
 
-    return true;
-}
-
 #if !defined(__APPLE__)
-extern "C"
-const char* lab_application_resource_path(const char * argv0, const char* rsrc)
-{
-    static char* buf = nullptr;
-    if (buf || !argv0 || !rsrc)
-        return buf;
-
-    // buf can only be shorter than this.
-    buf = (char*) malloc(strlen(argv0) + strlen(rsrc) + 3 + strlen("install"));
-    
-    std::vector<char> checkVec;
-    checkVec.resize(strlen(argv0) + 1, 0);
-    char* check = checkVec.data();
-    strncpy(check, argv0, strlen(argv0));
-
-    int sz = 0;
-    do {
-        remove_sep(check);
-        sz = (int) strlen(check);
-        remove_filename(check);
-        int new_sz = (int) strlen(check);
-        if (new_sz == sz)
-            return nullptr;
-        sz = new_sz;
-
-        strncpy(buf, check, strlen(check)+1);
-        add_filename(buf, rsrc);
-        normalize_path(buf);
-        struct stat sb;
-        int res = stat(buf, &sb);
-        if (res == 0 && S_ISDIR(sb.st_mode)) {
+    extern "C"
+    const char* lab_application_resource_path(const char * argv0, const char* rsrc)
+    {
+        static char* buf = nullptr;
+        if (buf || !argv0 || !rsrc)
             return buf;
-        }
 
-        strncpy(buf, check, strlen(check)+1);
-        add_filename(buf, "install");
-        add_filename(buf, rsrc);
-        normalize_path(buf);
-        res = stat(buf, &sb);
-        if (res == 0 && S_ISDIR(sb.st_mode)) {
-            return buf;
-        }
+        // buf can only be shorter than this.
+        buf = (char*) malloc(strlen(argv0) + strlen(rsrc) + 3 + strlen("install"));
 
-    } while (true);
-}
+        std::vector<char> checkVec;
+        checkVec.resize(strlen(argv0) + 1, 0);
+        char* check = checkVec.data();
+        strncpy(check, argv0, strlen(argv0));
+
+        int sz = 0;
+        do {
+            remove_sep(check);
+            sz = (int) strlen(check);
+            remove_filename(check);
+            int new_sz = (int) strlen(check);
+            if (new_sz == sz)
+                return nullptr;
+            sz = new_sz;
+
+            strncpy(buf, check, strlen(check)+1);
+            add_filename(buf, rsrc);
+            normalize_path(buf);
+            struct stat sb;
+            int res = stat(buf, &sb);
+            if (res == 0 && S_ISDIR(sb.st_mode)) {
+                return buf;
+            }
+
+            strncpy(buf, check, strlen(check)+1);
+            add_filename(buf, "install");
+            add_filename(buf, rsrc);
+            normalize_path(buf);
+            res = stat(buf, &sb);
+            if (res == 0 && S_ISDIR(sb.st_mode)) {
+                return buf;
+            }
+
+        } while (true);
+    }
 #endif
 
+namespace {
+    std::map<std::string, std::string> prefs;
+    std::mutex prefsMutex;
+    std::once_flag initFlag;
+    sqlite3* db = nullptr;
+}
+
+LabPreferences LabPreferencesLock() {
+    return LabPreferences(prefs, prefsMutex);
+}
+
+// Utility function to get the full path to the preferences database file
+const char* lab_application_preferences_path(const char* fallbackName);
+
+// Function to initialize the SQLite database and load preferences into cache
+static void initializeDatabase() {
+    const char* path = lab_application_preferences_path("preferences.db");
+    if (!path) {
+        std::cerr << "Error: Could not determine preferences path." << std::endl;
+        return;
+    }
+
+    if (sqlite3_open(path, &db) != SQLITE_OK) {
+        std::cerr << "Error: Could not open SQLite database: " << sqlite3_errmsg(db) << std::endl;
+        return;
+    }
+
+    // Create the preferences table if it doesn't exist
+    const char* createTableSQL = R"(
+        CREATE TABLE IF NOT EXISTS preferences (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        );
+    )";
+    char* errMsg = nullptr;
+    if (sqlite3_exec(db, createTableSQL, nullptr, nullptr, &errMsg) != SQLITE_OK) {
+        std::cerr << "Error: Could not create table: " << errMsg << std::endl;
+        sqlite3_free(errMsg);
+        return;
+    }
+
+    // lock the mutex for the preferences map
+    std::unique_lock<std::mutex> lock(prefsMutex);
+
+    // Load all existing preferences into the in-memory map
+    const char* selectAllSQL = "SELECT key, value FROM preferences;";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, selectAllSQL, -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            const char* key = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            const char* value = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+            if (key && value) {
+                prefs[key] = value;
+            }
+        }
+        sqlite3_finalize(stmt);
+    } else {
+        std::cerr << "Error: Could not load preferences: " << sqlite3_errmsg(db) << std::endl;
+    }
+}
+
+// Function to set a preference (key-value pair)
+extern "C"
+void lab_set_pref_for_key(const char* key, const char* value) {
+    std::call_once(initFlag, initializeDatabase);
+    if (!db) return;
+
+    const char* insertOrUpdateSQL = R"(
+        INSERT INTO preferences (key, value) VALUES (?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value;
+    )";
+
+    // lock the mutex for the preferences map
+    std::unique_lock<std::mutex> lock(prefsMutex);
+
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, insertOrUpdateSQL, -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, value, -1, SQLITE_STATIC);
+
+        if (sqlite3_step(stmt) != SQLITE_DONE) {
+            std::cerr << "Error: Could not set preference: " << sqlite3_errmsg(db) << std::endl;
+        }
+        sqlite3_finalize(stmt);
+
+        // Update the in-memory cache
+        prefs[key] = value;
+    } else {
+        std::cerr << "Error: Could not prepare statement: " << sqlite3_errmsg(db) << std::endl;
+    }
+}
+
+// Function to get a preference (value for a given key)
+extern "C"
+const char* lab_pref_for_key(const char* key) {
+    std::call_once(initFlag, initializeDatabase);
+
+    // lock the mutex for the preferences map
+    std::unique_lock<std::mutex> lock(prefsMutex);
+
+    auto it = prefs.find(key);
+    if (it != prefs.end()) {
+        return it->second.c_str(); // Return a reference to the cached value
+    }
+
+    return nullptr; // Key not found
+}
+
+// Function to close the SQLite database (optional cleanup)
+extern "C"
+void lab_close_preferences() {
+    if (db) {
+        // lock the mutex for the preferences map
+        std::unique_lock<std::mutex> lock(prefsMutex);
+        sqlite3_close(db);
+        db = nullptr;
+    }
+}
