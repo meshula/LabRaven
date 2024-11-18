@@ -75,10 +75,14 @@ PluginActivity::PluginActivity() {
         // the plugin may have a function const char* PluginName() that returns 
         // the name of the plugin, fetch it using cr_so_symbol.
         if (pd.loaded) {
-            cr_plugin_update(pd.ctx);   // causes the plugin to load.
-            auto plugInNameFn = cr_so_symbol<const char*(*)(void)>(pd.ctx, "PluginName");
-            if (plugInNameFn) {
-                pd.name = plugInNameFn();
+            if (0 == cr_plugin_update(pd.ctx)) {   // causes the plugin to load.
+                auto plugInNameFn = cr_so_symbol<const char*(*)(void)>(pd.ctx, "PluginName");
+                if (plugInNameFn) {
+                    pd.name = plugInNameFn();
+                }
+            }
+            else {
+                pd.enabled = false;
             }
         }
 
