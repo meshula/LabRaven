@@ -10,7 +10,7 @@
 
 namespace lab {
 
-class PluginActivity  : public Activity
+class PluginActivity : public Activity
 {
     struct data;
     data* _self;
