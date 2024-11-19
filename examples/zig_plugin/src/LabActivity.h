@@ -16,7 +16,7 @@ typedef struct LabViewInteraction {
 
 // Define ModeActivities in a C-compatible way
 typedef struct LabActivity {
-    // nullptr
+    void* instance ;
     void (*Activate)(void*) ;
     void (*Deactivate)(void*) ;
     void (*Update)(void*) ;

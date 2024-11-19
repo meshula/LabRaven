@@ -82,6 +82,7 @@ typedef struct LabViewInteraction {
 
 // Define Activities in a C-compatible way
 typedef struct LabActivity {
+    void* instance = nullptr; // an activity can store its instance data here
     void (*Activate)(void*) = nullptr;
     void (*Deactivate)(void*) = nullptr;
     void (*Update)(void*) = nullptr;
