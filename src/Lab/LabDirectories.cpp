@@ -133,6 +133,9 @@ const char* lab_application_executable_path(const char * argv0)
 extern "C"
 const char* lab_application_preferences_path(const char* fallbackName) {
     static std::string path;
+    if (path.size() > 0)
+        return path.c_str();
+    
     uid_t uid = getuid();
     struct passwd *pw = getpwuid(uid);
 
@@ -519,3 +522,70 @@ void lab_close_preferences() {
         db = nullptr;
     }
 }
+
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#include <CoreServices/CoreServices.h>
+
+bool lab_reveal_on_desktop(const char* path) {
+    CFURLRef u;
+    int err = 0;
+
+    u = CFURLCreateFromFileSystemRepresentation(NULL,
+                                                (const UInt8 *) path,
+                                                strlen(path),
+                                                false);
+    if (u != NULL) {
+        err = LSOpenCFURLRef(u, NULL);
+        CFRelease(u);
+    } else {
+        err = 1;
+    }
+
+    return err == noErr;
+}
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+
+bool lab_reveal_on_desktop(const char* path) {
+    wchar_t wPath[MAX_PATH];
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, wPath, MAX_PATH);
+
+    if (PathIsDirectoryW(wPath)) {
+        return (int)ShellExecuteW(NULL, L"open", wPath, NULL, NULL, SW_SHOW) > 32;
+    } else {
+        ITEMIDLIST* pidl = ILCreateFromPathW(wPath);
+        if (pidl) {
+            SHOpenFolderAndSelectItems(pidl, 0, NULL, 0);
+            ILFree(pidl);
+            return true;
+        }
+    }
+    return false;
+}
+#endif
+
+#ifdef __linux__
+#include <unistd.h>
+#include <sys/stat.h>
+#include <string>
+
+static bool is_directory(const char* path) {
+    struct stat buffer;
+    return (stat(path, &buffer) == 0 && S_ISDIR(buffer.st_mode));
+}
+
+bool lab_reveal_on_desktop(const char* path) {
+    if (fork() == 0) {
+        const char* args[3] = {"xdg-open", path, NULL};
+        execvp(args[0], const_cast<char* const*>(args));
+        _exit(1); // Only reached if execvp fails
+    }
+    return true;
+}
+#endif
+

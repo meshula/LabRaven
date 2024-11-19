@@ -32,6 +32,13 @@ void PreferencesActivity::RunUI(const LabViewInteraction& interaction)
 
     LabPreferences prefs = LabPreferencesLock();
 
+    std::string prefs_dir = lab_application_preferences_path(nullptr);
+    if (ImGui::Button("[>]")) {
+        lab_reveal_on_desktop(prefs_dir.c_str());
+    }
+    ImGui::SameLine();
+    ImGui::Text("Preferences Directory: %s", prefs_dir.c_str());
+
     // if there are no preferences, display a message
     if (prefs.prefs.empty()) {
         ImGui::Text("No preferences yet.");

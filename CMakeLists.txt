@@ -191,15 +191,13 @@ endforeach()
 # Create a custom target that triggers the copy step
 add_custom_target(copy_plugins ALL DEPENDS ${COPIED_FILES})
 
-# If on macOS, sign the app bundle
 if (APPLE)
-    set(APP_BUNDLE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app")
-    add_custom_command(
-        TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND codesign --force --sign - --timestamp=none --deep "${APP_BUNDLE_PATH}"
-        COMMENT "Signing the .app bundle"
-    )
+    # Set the path to your entitlements file
+    set(ENTITLEMENTS_PATH "${CMAKE_SOURCE_DIR}/src/Lab.entitlements")
+    set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_PATH}")
+    
+    #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Sign to Run Locally")
+    #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual")
 endif()
 
 

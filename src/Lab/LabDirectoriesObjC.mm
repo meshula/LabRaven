@@ -6,10 +6,28 @@
 //  Copyright © 2024 Nick Porcino. All rights reserved.
 //
 
+#import <CoreFoundation/CoreFoundation.h>
+#import <CoreServices/CoreServices.h>
 #import <Foundation/Foundation.h>
 #include <stdio.h>
 #include <string>
 #include <map>
+
+#include <string>
+
+bool lab_reveal_on_desktop(const char* path) {
+    CFStringRef cfPath = CFStringCreateWithCString(NULL, path, kCFStringEncodingUTF8);
+    CFURLRef url = CFURLCreateWithFileSystemPath(NULL, cfPath, kCFURLPOSIXPathStyle, false);
+    LSLaunchURLSpec spec = { url, NULL, NULL, kLSRolesAll, NULL };
+
+    OSStatus status = LSOpenFromURLSpec(&spec, NULL);
+
+    CFRelease(url);
+    CFRelease(cfPath);
+    return (status == noErr);
+}
+
+
 #if 0
 namespace {
    std::map<std::string, bool> prefs;
