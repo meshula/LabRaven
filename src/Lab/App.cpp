@@ -133,7 +133,7 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
     mm.ServiceTransactionsAndActivities();
     auto currStudio = mm.CurrentStudio();
     static auto studioNames = mm.StudioNames();
-    static auto activityNames = mm.ActivityNames();
+    auto activityNames = mm.ActivityNames();
         
     if (ImGui::BeginMainMenuBar()) {
         std::string curr = "Welcome";

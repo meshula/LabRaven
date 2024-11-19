@@ -56,6 +56,3 @@ export fn cr_main(_: *cr_plugin, operation: i32) i32 { //cr_result {
     }
 }
 
-
-
-

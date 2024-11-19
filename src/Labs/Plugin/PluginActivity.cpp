@@ -66,7 +66,7 @@ PluginActivity::PluginActivity() {
         for (const auto& entry : std::filesystem::directory_iterator(dir)) {
             if (entry.is_regular_file()) {
                 std::string ext = entry.path().extension().string();
-                if (ext == ".dll" || ext == ".so") {
+                if (ext == ".dll" || ext == ".so" || ext == ".dylib") {
                     found_plugins.push_back(entry.path());
                 }
             }
@@ -138,11 +138,17 @@ void PluginActivity::RunUI(const LabViewInteraction& interaction) {
     dir = dir.substr(0, dir.find_last_of("/\\"));
     dir += "/plugins";
 
-    ImGui::Text("Plugin Directory: %s", dir.c_str());
+    if (ImGui::Button("[>]")) {
+        lab_reveal_on_desktop(dir.c_str());
+    }
+    ImGui::SameLine();
+    ImGui::Text("Plugin dir: %s", dir.c_str());
 
     if (!_self->found_plugins_dir) {
-        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Plugins directory not found!");
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Plugin directory not found!");
     }
+
+    ImGui::Separator();
 
     // Display the list of plugins, with a checkbox to enable/disable each one
     for (auto& plugin : _self->plugins) {
