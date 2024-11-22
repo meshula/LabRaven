@@ -1,6 +1,7 @@
 
 add_subdirectory(Color)
 add_subdirectory(Console)
+add_subdirectory(Journal)
 add_subdirectory(Plugin)
 add_subdirectory(Preferences)
 add_subdirectory(Test)

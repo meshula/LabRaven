@@ -43,7 +43,7 @@ void TimelineActivity::RunUI(const LabViewInteraction&)
     ImVec2 curCursor = ImGui::GetCursorPos();
 
     DrawTimecodeRuler(&playhead, 0.5f, // zebra_factor
-                  1 + (ptrdiff_t) _self, // widget_id
+                  (uint32_t) (1 + (ptrdiff_t) _self), // widget_id
                   width, // width
                   100); // height
 
