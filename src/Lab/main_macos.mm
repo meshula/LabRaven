@@ -1,6 +1,8 @@
 
 #include "App.h"
 #include "RegisterAllActivities.h"
+#include "Providers/Color/glfwColor.h"
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_metal.h"
@@ -114,6 +116,8 @@ int main(int argc, char** argv)
 
     // Set the drop callback
     glfwSetDropCallback(window, file_drop_callback);
+
+    SetGLFWColorEnvironment(window, "lin_displayp3", ProviderFramebufferFormat_f16HDR);
 
     // Main loop
     while (!glfwWindowShouldClose(window) && app && app->IsRunning())

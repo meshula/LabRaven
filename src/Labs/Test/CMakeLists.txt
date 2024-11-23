@@ -46,16 +46,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${PLUGINS_DIR}
 )
 
-# If on macOS, sign the plugin after it’s built
-if (APPLEX)
-    add_custom_command(
-        TARGET ${PROJECT_NAME}
-        POST_BUILD
-        COMMAND codesign --force --sign - "$<TARGET_FILE:${PROJECT_NAME}>"
-        COMMENT "Signing plugin ${PROJECT_NAME}"
-    )
-endif()
-
 # Conditionally add dependency on the parent project if it’s defined
 if (TARGET ${PARENT_PROJECT_NAME})
     add_dependencies(${PARENT_PROJECT_NAME} ${PROJECT_NAME})

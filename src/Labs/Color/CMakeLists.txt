@@ -6,14 +6,8 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST "${ACTIVITIES};Color")
 set(COLOR_SRCS
     ColorActivity.cpp
     ColorActivity.hpp
-    nanocolor.h
-    nanocolor.c
-    nanocolorUtils.h
-    nanocolorUtils.c
     UIElements.hpp
     UIElements.cpp
-    WavelengthToRGB.h
-    WavelengthToRGB.c
 )
 
 target_sources(${PROJECT_NAME} PUBLIC ${COLOR_SRCS})

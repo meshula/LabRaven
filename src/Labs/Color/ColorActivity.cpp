@@ -6,18 +6,19 @@
 //  Copyright © 2023 Nick Porcino. All rights reserved.
 //
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ColorActivity.hpp"
+#include "UIElements.hpp"
 
-//#include "LabMath.h"
-//#include "metalRay.h"
-#include "nanocolorUtils.h"
+#include "Providers/Color/nanocolorUtils.h"
+#include "Providers/Color/WavelengthToRGB.h"
+
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
+#include "implot.h"
 //#include "LabGL.h"
 //#include "lab_imgui_ext.hpp"
-#include "implot.h"
-#include "WavelengthToRGB.h"
-#include "UIElements.hpp"
+//#include "LabMath.h"
+//#include "metalRay.h"
 
 namespace lab {
 

@@ -60,6 +60,7 @@ set_property(GLOBAL PROPERTY PLUGINS_LIST "")
 get_property(PLUGINS GLOBAL PROPERTY PLUGINS_LIST)
 
 add_subdirectory(Labs)
+add_subdirectory(Providers)
 
 #---------------------------------------------------
 # Create RegisterAllModes.cpp
