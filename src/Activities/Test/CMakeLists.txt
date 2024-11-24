@@ -7,7 +7,7 @@ endif()
 project(TestPlugin VERSION 1.0)
 
 set(TEST_PLUGIN_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/Labs/Test/TestPlugin.cpp
+    ${CMAKE_SOURCE_DIR}/src/Activities/Test/TestPlugin.cpp
 )
 add_library(${PROJECT_NAME} MODULE ${TEST_PLUGIN_SOURCES})
 

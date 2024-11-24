@@ -127,15 +127,15 @@ bool SetGLFWColorEnvironment(GLFWwindow* glfWindow,
     switch (format) {
         case ProviderFramebufferFormat_sRGB:
             metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
-            metalLayer.wantsExtendedDynamicRangeContent = NO;
+            layer.wantsExtendedDynamicRangeContent = NO;
             break;
         case ProviderFramebufferFormat_f16SDR:
             metalLayer.pixelFormat = MTLPixelFormatRGBA16Float;
-            metalLayer.wantsExtendedDynamicRangeContent = NO;
+            layer.wantsExtendedDynamicRangeContent = NO;
             break;
         case ProviderFramebufferFormat_f16HDR:
             metalLayer.pixelFormat = MTLPixelFormatRGBA16Float;
-            metalLayer.wantsExtendedDynamicRangeContent = YES;
+            layer.wantsExtendedDynamicRangeContent = YES;
             break;
         default:
             return false;

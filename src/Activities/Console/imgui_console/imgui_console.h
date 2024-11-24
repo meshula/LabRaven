@@ -5,7 +5,7 @@
 #define IMGUI_CONSOLE_H
 #pragma once
 
-#include "Labs/Console/csys/system.h"
+#include "Activities/Console/csys/system.h"
 #include "imgui.h"
 #include <array>
 

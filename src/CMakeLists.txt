@@ -59,7 +59,7 @@ get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
 set_property(GLOBAL PROPERTY PLUGINS_LIST "")
 get_property(PLUGINS GLOBAL PROPERTY PLUGINS_LIST)
 
-add_subdirectory(Labs)
+add_subdirectory(Activities)
 add_subdirectory(Providers)
 
 #---------------------------------------------------
@@ -73,7 +73,7 @@ endif()
 
 set(ACTIVITY_INCLUDES "")
 foreach(activity ${ACTIVITIES})
-    string(APPEND ACTIVITY_INCLUDES "#include \"Labs/${activity}/${activity}Activity.hpp\"\n")
+    string(APPEND ACTIVITY_INCLUDES "#include \"Activities/${activity}/${activity}Activity.hpp\"\n")
 endforeach()
 
 set(ACTIVITY_REGISTRATION "")

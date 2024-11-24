@@ -1,5 +1,5 @@
 
-#include "Labs/Plugin/cr.h"
+#include "Activities/Plugin/cr.h"
 
 // set up PLUGIN_API with declspec or attribute per platform
 #if defined(_WIN32)
