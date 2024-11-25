@@ -2,6 +2,7 @@
 #include "App.h"
 #include "RegisterAllActivities.h"
 #include "Providers/Color/glfwColor.h"
+#include "Providers/Metal/MetalProvider.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -47,7 +48,7 @@ int main(int argc, char** argv)
 #endif
 
     app = gApp();
-    auto orch = gOrchestrator();
+    auto orch = lab::gOrchestrator();
     RegisterAllActivities(*orch);
 
     // Setup style
@@ -92,7 +93,6 @@ int main(int argc, char** argv)
         return 1;
 
     id <MTLDevice> device = MTLCreateSystemDefaultDevice();
-    id <MTLCommandQueue> commandQueue = [device newCommandQueue];
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOther(window, true);
@@ -108,16 +108,22 @@ int main(int argc, char** argv)
     layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
     nswin.contentView.layer = layer;
     nswin.contentView.wantsLayer = YES;
+    SetGLFWColorEnvironment(window, "lin_displayp3", ProviderFramebufferFormat_f16HDR);
 
     MTLRenderPassDescriptor *renderPassDescriptor = [MTLRenderPassDescriptor new];
+
+    static int const commandBufferPoolSize = 256;
+    LabMetalProvider* metalProvider = [[LabMetalProvider alloc] initWithDevice:device
+                                                         commandBufferPoolSize:commandBufferPoolSize
+                                                                    colorSpace: kCGColorSpaceExtendedLinearDisplayP3];
+
+    id <MTLCommandQueue> commandQueue = metalProvider.commandQueue;
 
     // Our state
     float clear_color[4] = {0.45f, 0.55f, 0.60f, 1.00f};
 
     // Set the drop callback
     glfwSetDropCallback(window, file_drop_callback);
-
-    SetGLFWColorEnvironment(window, "lin_displayp3", ProviderFramebufferFormat_f16HDR);
 
     // Main loop
     while (!glfwWindowShouldClose(window) && app && app->IsRunning())
@@ -161,6 +167,7 @@ int main(int argc, char** argv)
             renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
             id <MTLRenderCommandEncoder> renderEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
             [renderEncoder pushDebugGroup:@"ImGui"];
+            metalProvider.currentRenderEncoder = renderEncoder;
 
             // Start the Dear ImGui frame
             ImGui_ImplMetal_NewFrame(renderPassDescriptor);
@@ -184,6 +191,8 @@ int main(int argc, char** argv)
 
             [renderEncoder popDebugGroup];
             [renderEncoder endEncoding];
+
+            metalProvider.currentRenderEncoder = nil;
 
             [commandBuffer presentDrawable:drawable];
             [commandBuffer commit];

@@ -20,13 +20,15 @@ public:
     FileDialogManager() = default;
     ~FileDialogManager() = default;
 
-    auto requestOpenFile(const std::vector<std::string>& extensions, const std::string& dir) -> int;
+    auto RequestOpenFile(const std::vector<std::string>& extensions, const std::string& dir) -> int;
     struct FileReq {
         enum Result { notReady, canceled, ready, expired };
         std::string path;
         Result status;
     };
-    auto popOpenedFile(int id) -> FileReq;
+
+    // pops the request corresponding to id, unless its status is notReady
+    auto PopOpenedFile(int id) -> FileReq;
 
 private:
     std::map<int, std::string> _fileRequests;

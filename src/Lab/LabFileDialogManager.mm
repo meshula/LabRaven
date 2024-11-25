@@ -56,7 +56,7 @@ void FileDialogManager::runOnMainThread(std::function<void()> func) {
 #endif
 }
 
-auto FileDialogManager::requestOpenFile(const std::vector<std::string>& extensions, const std::string& dir) -> int {
+auto FileDialogManager::RequestOpenFile(const std::vector<std::string>& extensions, const std::string& dir) -> int {
     std::string ext = "";
     std::string path = ".";
     int id = _requestId++;
@@ -95,7 +95,7 @@ auto FileDialogManager::requestOpenFile(const std::vector<std::string>& extensio
 }
 
 
-auto FileDialogManager::popOpenedFile(int id) -> FileReq {
+auto FileDialogManager::PopOpenedFile(int id) -> FileReq {
     std::lock_guard<std::mutex> lock(_mutex);
     auto statusIt = _fileRequestStatus.find(id);
     if (statusIt == _fileRequestStatus.end()) {
