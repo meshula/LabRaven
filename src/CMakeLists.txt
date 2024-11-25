@@ -61,6 +61,7 @@ get_property(PLUGINS GLOBAL PROPERTY PLUGINS_LIST)
 
 add_subdirectory(Activities)
 add_subdirectory(Providers)
+add_subdirectory(Studios)
 
 #---------------------------------------------------
 # Create RegisterAllModes.cpp

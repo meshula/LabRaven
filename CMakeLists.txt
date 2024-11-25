@@ -43,6 +43,10 @@ set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
 if (APPLE)
     set(APPLE_MAKE_BUNDLE ON)
+    enable_language(OBJC)
+    enable_language(OBJCXX)
+    set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
+    set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
 endif()
 
 add_executable(${PROJECT_NAME})
@@ -55,6 +59,12 @@ else()
     set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/plugins")
 endif()
 
+if (APPLE)
+    # enable ARC
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC TRUE
+    )
+endif()
 
 # if Mac, set the MACOSX_BUNDLE property
 # If a bundle is not created, then when running from xcode, or via
@@ -120,6 +130,7 @@ target_compile_definitions(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PUBLIC
     OTIO::opentimelineio
     IMGUI
+    openexr
     sqlite3
 )
 

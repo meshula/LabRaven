@@ -5,6 +5,7 @@ add_subdirectory(Journal)
 add_subdirectory(Plugin)
 add_subdirectory(Preferences)
 add_subdirectory(Test)
+add_subdirectory(Texture)
 add_subdirectory(Timeline)
 
 # if ACTIVITIES is empty, report that.
