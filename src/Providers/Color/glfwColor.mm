@@ -107,7 +107,7 @@ static CFStringRef NanocolorToCGColorSpace(const char* nanocolor) {
 bool SetGLFWColorEnvironment(GLFWwindow* glfWindow,
                              const char* nanoColorNamedColorSpace,
                              ProviderFramebufferFormat format) {
-    NSWindow* nsWindow = (__bridge NSWindow*)glfwGetCocoaWindow(glfWindow);
+    NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(glfWindow);
     if (!nsWindow) {
         return false;
     }

@@ -9,6 +9,7 @@ endif()
 
 set(COLOR_SRCS
     ${PLATFORM_SRCS}
+    ColorProvider.hpp ColorProvider.cpp
     glfwColor.h
     nanocolor.h
     nanocolor.c
