@@ -39,6 +39,12 @@ target_include_directories(sqlite3 PUBLIC sqlite3)
 
 ####################################
 
+add_library(openexr STATIC)
+target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
+target_include_directories(openexr PUBLIC OpenEXR)
+
+####################################
+
 add_library(IMGUI STATIC)
 
 set_property(TARGET IMGUI PROPERTY CXX_STANDARD 14)
