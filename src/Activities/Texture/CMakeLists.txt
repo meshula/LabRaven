@@ -16,3 +16,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     imgui_tex_inspect/imgui_tex_inspect.h 
     imgui_tex_inspect/imgui_tex_inspect.cpp
 )
+
+get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
+list(APPEND METAL_SHADERS "${CMAKE_SOURCE_DIR}/src/Activities/Texture/TextureActivity.metal")
+set_property(GLOBAL PROPERTY METAL_SHADERS_LIST "${METAL_SHADERS}")

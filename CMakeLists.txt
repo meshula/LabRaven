@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.26)
 
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
+include(CheckLanguage)
+include(MetalShaderSupport)
+check_language(Metal)
+if(CMAKE_Metal_COMPILER)
+    enable_language(Metal)
+endif()
+
 #---------------------------------------------------
 # Helper function to group sources by folder
 #---------------------------------------------------
@@ -45,6 +53,7 @@ if (APPLE)
     set(APPLE_MAKE_BUNDLE ON)
     enable_language(OBJC)
     enable_language(OBJCXX)
+    enable_language(Metal)
     set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
     set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
 endif()

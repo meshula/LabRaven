@@ -6,9 +6,9 @@
 
 namespace lab {
 
-static std::map<LabImageData_t*, int> g_textureMap;
+static std::map<std::shared_ptr<LabImageData_t>, int> g_textureMap;
 
-int TextureCache::GetEncodedTexture(LabImageData_t* image) {
+int TextureCache::GetEncodedTexture(std::shared_ptr<LabImageData_t> image) {
     if (image == nullptr) {
         return -1;
     }

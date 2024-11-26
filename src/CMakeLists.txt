@@ -58,10 +58,22 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST "")
 get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
 set_property(GLOBAL PROPERTY PLUGINS_LIST "")
 get_property(PLUGINS GLOBAL PROPERTY PLUGINS_LIST)
+set_property(GLOBAL PROPERTY METAL_SHADERS_LIST "")
+get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
 
 add_subdirectory(Activities)
 add_subdirectory(Providers)
 add_subdirectory(Studios)
+
+#---------------------------------------------------
+get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
+if (NOT METAL_SHADERS OR METAL_SHADERS STREQUAL "")
+    message(INFO ": No Metal shaders found")
+else()
+  message(INFO ": Metal shaders found: ${METAL_SHADERS}")
+  target_sources(${PROJECT_NAME} PRIVATE ${METAL_SHADERS})
+  set_source_files_properties(${METAL_SHADERS} PROPERTIES LANGUAGE Metal)
+endif()
 
 #---------------------------------------------------
 # Create RegisterAllModes.cpp

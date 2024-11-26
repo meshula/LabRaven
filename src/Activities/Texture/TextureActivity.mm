@@ -51,13 +51,19 @@ void BackEnd_SetShader(const ImDrawList*, const ImDrawCmd*, const Inspector* ins
         id<MTLDevice> device = mr.device;
         if (!device)
             break;
+        
+        MTLRenderPassDescriptor* rpd = mr.renderpassDescriptor;
+        if (!rpd) {
+            NSLog(@"ERROR: render pass descriptor has not been set on metal provider.");
+            break;
+        }
 
         renderEncoder = mr.currentRenderEncoder;
 
         id<MTLLibrary> shaderLib = [device newDefaultLibrary];
         if(!shaderLib)
         {
-            NSLog(@" ERROR: Couldnt create a default shader library");
+            NSLog(@" ERROR: Couldn't create a default shader library");
             // assert here because if the shader libary isn't loading, nothing good will happen
             break;
         }
@@ -91,8 +97,6 @@ void BackEnd_SetShader(const ImDrawList*, const ImDrawCmd*, const Inspector* ins
         vertexDescriptor.layouts[0].stepRate = 1;
         vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
         vertexDescriptor.layouts[0].stride = sizeof(ImDrawVert);
-
-        MTLRenderPassDescriptor* rpd = mr.renderpassDescriptor;
         
         MTLRenderPipelineDescriptor* pipelineDescriptor = [[MTLRenderPipelineDescriptor alloc] init];
         pipelineDescriptor.vertexFunction = vertexFunction;

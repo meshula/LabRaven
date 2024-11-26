@@ -49,7 +49,7 @@ Texture LoadTexture(const char *path) {
     Texture ret = { 0, {32, 32} };
     lab::TextureCache* tc = lab::TextureCache::instance();
 
-    LabImageData_t* tex = tc->ReadAndCache(path);
+    std::shared_ptr<LabImageData_t> tex = tc->ReadAndCache(path);
     if (!tex)
         return ret;
 
@@ -163,7 +163,7 @@ void TextureActivity::RunTextureCachePanel() {
     ImGui::Begin("Loaded textures##tcp");
     ImVec2 windowSize = ImGui::GetWindowSize();
 
-    if (_self->cache_selected_texture_index >= 0) {
+    if (_self->cache_selected_texture_index >= 0 && _self->texture_names.size() > 0) {
         if (ImGui::Button("Inspect")) {
             _self->focussedTexture =
                 ImGuiTexInspect::LoadTexture(_self->texture_names[_self->cache_selected_texture_index].c_str());
@@ -175,7 +175,9 @@ void TextureActivity::RunTextureCachePanel() {
         }
     }
     else {
-        ImGui::Button("Load a texture");
+        if (ImGui::Button("Load a texture")) {
+            _self->run_open_file = true;
+        }
     }
 
     windowSize.x = -FLT_MIN;
@@ -242,7 +244,10 @@ void TextureActivity::RunTextureCachePanel() {
     ImGui::PushItemWidth(200);
 
     ColorProvider* cp = ColorProvider::instance();
-    std::string renderCS = cp->RenderingColorSpace();
+    const char* rcsStr = cp->RenderingColorSpace();
+    std::string renderCS;
+    if (rcsStr)
+        renderCS.assign(rcsStr);
 
     /*               _
      _ __ ___   __ _| |_ _ __(_)_  __
@@ -418,7 +423,10 @@ void TextureActivity::Update()
             const char* dir = lab_pref_for_key("LoadTextureDir");
             if (!dir)
                 dir = lab_pref_for_key("LoadStageDir");
-            _self->pending_file = fdm->RequestOpenFile({"exr"}, dir? dir: ".");
+            _self->pending_file = fdm->RequestOpenFile(
+                                       {"exr", "jpg", "jpeg", "png", "gif", "pfm",
+                                        "hdr", "psd", "tga", "pic", "pgm", "ppm"},
+                                         dir? dir: ".");
         }
         else {
             do {

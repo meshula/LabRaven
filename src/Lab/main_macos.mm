@@ -110,12 +110,14 @@ int main(int argc, char** argv)
     nswin.contentView.wantsLayer = YES;
     SetGLFWColorEnvironment(window, "lin_displayp3", ProviderFramebufferFormat_f16HDR);
 
-    MTLRenderPassDescriptor *renderPassDescriptor = [MTLRenderPassDescriptor new];
-
     static int const commandBufferPoolSize = 256;
     LabMetalProvider* metalProvider = [[LabMetalProvider alloc] initWithDevice:device
                                                          commandBufferPoolSize:commandBufferPoolSize
-                                                                    colorSpace: kCGColorSpaceExtendedLinearDisplayP3];
+                                                                    colorSpace:kCGColorSpaceExtendedLinearDisplayP3];
+
+    const bool CREATE_DEPTH_BUFFER = true;
+    [metalProvider createDefaultRenderAttachments:CREATE_DEPTH_BUFFER];
+    MTLRenderPassDescriptor* renderPassDescriptor = metalProvider.renderpassDescriptor;
 
     id <MTLCommandQueue> commandQueue = metalProvider.commandQueue;
 

@@ -8,11 +8,8 @@
 namespace lab {
 
 struct CacheEntry {
-    ~CacheEntry() {
-        delete image;
-    }
     std::string path;
-    LabImageData_t* image;
+    std::shared_ptr<LabImageData_t> image;
 };
 
 struct TextureCache::data {
@@ -36,7 +33,7 @@ TextureCache::~TextureCache() {
     delete _self;
 }
 
-void TextureCache::Add(const char* name, LabImageData_t* image) {
+void TextureCache::Add(const char* name, std::shared_ptr<LabImageData_t> image) {
     auto i = _self->cache.find(name);
     if (i != _self->cache.end()) {
         i->second = CacheEntry{std::string(name), image};
@@ -53,7 +50,7 @@ void TextureCache::Erase(const char* name) {
     }
 }
 
-LabImageData_t* TextureCache::Get(const char* name) {
+std::shared_ptr<LabImageData_t> TextureCache::Get(const char* name) {
     auto i = _self->cache.find(name);
     if (i != _self->cache.end()) {
         return i->second.image;
@@ -79,8 +76,8 @@ namespace {
     }
 }
 
-LabImageData_t* TextureCache::ReadAndCacheEXR(const char* path) {
-    LabImageData_t* imgData = Get(path);
+std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheEXR(const char* path) {
+    std::shared_ptr<LabImageData_t> imgData = Get(path);
     if (imgData && imgData->channelCount != 0)
         return imgData;
 
@@ -99,7 +96,7 @@ LabImageData_t* TextureCache::ReadAndCacheEXR(const char* path) {
     
     printf("Mips found: %d\n", exrReader.numMipLevels);
 
-    LabImageData_t* img0 = nullptr;
+    std::shared_ptr<LabImageData_t> img0 = nullptr;
     for (int mip = 0; mip < exrReader.numMipLevels; ++mip) {
         nanoexr_ImageData_t nimg;
         rv = nanoexr_read_exr(path,
@@ -112,9 +109,10 @@ LabImageData_t* TextureCache::ReadAndCacheEXR(const char* path) {
         }
         else {
             std::string name = std::string(path) + "_" + std::to_string(mip);
-            LabImageData_t* img = new LabImageData_t();
+            std::shared_ptr<LabImageData_t> img(new LabImageData_t());
             if (!img0)
                 img0 = img;
+                        
             img->data = nimg.data;
             img->dataSize = nimg.dataSize;
             img->pixelType = (LabPixelType_t) nimg.pixelType;
@@ -124,7 +122,12 @@ LabImageData_t* TextureCache::ReadAndCacheEXR(const char* path) {
             img->dataWindowMinY = nimg.dataWindowMinY;
             img->dataWindowMaxY = nimg.dataWindowMaxY;
 
+            printf("nimg width, height %d %d\n", nimg.width, nimg.height);
+            printf("img width, height %d %d\n", img->width, img->height);
             _self->cache[name] = CacheEntry{std::string(path), img};
+            printf("nimg width, height %d %d\n", nimg.width, nimg.height);
+            printf("img width, height %d %d\n", img->width, img->height);
+
             printf("Loaded EXR %s, mip %d\n", path, mip);
             printf("mip info: \n");
             printf("  width: %d\n", img->width);
@@ -135,8 +138,8 @@ LabImageData_t* TextureCache::ReadAndCacheEXR(const char* path) {
     return img0;
 }
 
-LabImageData_t* TextureCache::ReadAndCacheSTB(const char* path) {
-    LabImageData_t* imgData = Get(path);
+std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheSTB(const char* path) {
+    std::shared_ptr<LabImageData_t> imgData = Get(path);
     if (imgData && imgData->channelCount != 0)
         return imgData;
 
@@ -149,7 +152,7 @@ LabImageData_t* TextureCache::ReadAndCacheSTB(const char* path) {
     if (!data)
         return nullptr;
 
-    LabImageData_t* img = new LabImageData_t();
+    std::shared_ptr<LabImageData_t> img(new LabImageData_t());
     img->data = (uint8_t*) data;
     img->dataSize = 4 * w * h;
     img->pixelType = LAB_PIXEL_UINT8;
@@ -162,8 +165,8 @@ LabImageData_t* TextureCache::ReadAndCacheSTB(const char* path) {
     return img;
 }
 
-LabImageData_t* TextureCache::ReadAndCachePFM(const char* path) {
-    LabImageData_t* imgData = Get(path);
+std::shared_ptr<LabImageData_t> TextureCache::ReadAndCachePFM(const char* path) {
+    std::shared_ptr<LabImageData_t> imgData = Get(path);
     if (imgData && imgData->channelCount != 0)
         return imgData;
 
@@ -203,7 +206,7 @@ LabImageData_t* TextureCache::ReadAndCachePFM(const char* path) {
     
     fclose(f);
 
-    LabImageData_t* img = new LabImageData_t();
+    std::shared_ptr<LabImageData_t> img(new LabImageData_t());
     img->data = (uint8_t*) data;
     img->dataSize = sz;
     img->pixelType = LAB_PIXEL_FLOAT;
@@ -279,7 +282,7 @@ nanoexr_ImageData_t TextureActivity::ReadAndCacheAVIF(const char* path) {
 
 #endif
 
-LabImageData_t* TextureCache::ReadAndCache(const char* path) {
+std::shared_ptr<LabImageData_t> TextureCache::ReadAndCache(const char* path) {
     //if (strstr(path, ".avif") || strstr(path, ".AVIF"))
     //    return ReadAndCacheAVIF(path);
     if (strstr(path, ".exr") || strstr(path, ".EXR"))
