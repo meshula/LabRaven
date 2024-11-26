@@ -170,12 +170,12 @@ install(TARGETS ${PROJECT_NAME}
 #---------------------------------------------------
 # Define paths based on the platform
 
-# Ensure the plugins directory exists (though we are only signing the app)
+# Ensure the plugins directory exists
 file(MAKE_DIRECTORY ${PLUGINS_DIR})
 
 # List of files to copy to the plugins directory
 set(PLUGIN_FILES
-    "${PROJECT_SOURCE_DIR}/README.md"
+    # "${PROJECT_SOURCE_DIR}/README.md" nb. README is not executable content so it belongs in Resources.
     # Add more files as needed, like config.json, plugin_data.dat
 )
 
