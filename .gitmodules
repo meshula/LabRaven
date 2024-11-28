@@ -16,3 +16,7 @@
 [submodule "ext/opentimelineio"]
 	path = ext/opentimelineio
 	url = https://github.com/AcademySoftwareFoundation/OpenTimelineIO.git
+[submodule "ext/ImGuiHydraEditor"]
+	path = ext/ImGuiHydraEditor
+	url = https://github.com/meshula/ImGuiHydraEditor.git
+	branch = library
