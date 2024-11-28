@@ -5,6 +5,7 @@
 #include "ImGuiHydraEditor/src/models/model.h"
 #include "ImGuiHydraEditor/src/engine.h"
 #include "ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.h"
+#include "ImGuiHydraEditor/src/sceneindices/gridsceneindex.h"
 
 #include <pxr/usd/usdUtils/usdzPackage.h>
 
@@ -19,6 +20,7 @@ struct OpenUSDProvider::Self {
     std::unique_ptr<UsdSessionLayer> layer;
     std::unique_ptr<Engine> engine;
     pxr::XformFilterSceneIndexRefPtr xformSceneIndex;
+    pxr::GridSceneIndexRefPtr gridSceneIndex;
 
     ~Self() {
         engine.reset();
@@ -52,6 +54,8 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
         self->model.reset(new Model());
         self->model->SetStage(loadedStage);
         self->layer.reset(new UsdSessionLayer(self->model.get()));
+        self->gridSceneIndex = GridSceneIndex::New();
+        self->model->AddSceneIndexBase(self->gridSceneIndex);
         auto editableSceneIndex = self->model->GetEditableSceneIndex();
         self->xformSceneIndex = XformFilterSceneIndex::New(editableSceneIndex);
         self->model->SetEditableSceneIndex(self->xformSceneIndex);
