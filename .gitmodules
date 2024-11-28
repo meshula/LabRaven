@@ -20,3 +20,9 @@
 	path = ext/ImGuiHydraEditor
 	url = https://github.com/meshula/ImGuiHydraEditor.git
 	branch = library
+[submodule "ext/cppzmq"]
+	path = ext/cppzmq
+	url = https://github.com/zeromq/cppzmq
+[submodule "ext/libzmq"]
+	path = ext/libzmq
+	url = https://github.com/zeromq/libzmq
