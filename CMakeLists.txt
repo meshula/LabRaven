@@ -41,16 +41,45 @@ endfunction()
 
 #---------------------------------------------------
 
-
 # set the project name in a variable
 set(PROJECT_NAME raven)
 
 project(${PROJECT_NAME} VERSION 1.0)
 
+#---------------------------------------------------
+# options
+if (APPLE)
+    option(APPLE_MAKE_BUNDLE "Create a macOS bundle" ON)
+endif()
+
+option(HAVE_OPENUSD "Enable OpenUSD support" OFF)
+
+if (HAVE_OPENUSD)
+    find_package(pxr QUIET)
+    if (pxr_FOUND)
+        message(STATUS "OpenUSD support enabled, using pxr package found at ${Pxr_DIR}")
+    else()
+        message(FATAL_ERROR "OpenUSD support is enabled, but the pxr package was not found. Please set the Pxr_DIR to point to the root of the USD installation.")
+    endif()
+
+    # garch needs OpenGL.
+    find_package(OpenGL REQUIRED)
+endif()
+
+#---------------------------------------------------
+
+if(WIN32)
+    target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            NOMINMAX
+            _USE_MATH_DEFINES
+    )
+endif()
+
+
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
 if (APPLE)
-    set(APPLE_MAKE_BUNDLE ON)
     enable_language(OBJC)
     enable_language(OBJCXX)
     enable_language(Metal)
@@ -60,7 +89,10 @@ endif()
 
 add_executable(${PROJECT_NAME})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-target_include_directories(${PROJECT_NAME} PUBLIC src)
+target_include_directories(${PROJECT_NAME} PUBLIC 
+    src
+    ext
+    ${PXR_INCLUDE_DIRS})
 
 if (APPLE)
     set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/MacOS/plugins")
@@ -141,6 +173,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     IMGUI
     openexr
     sqlite3
+    ${PXR_LIBRARIES}
 )
 
 if (APPLE)
