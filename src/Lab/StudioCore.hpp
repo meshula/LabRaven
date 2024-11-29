@@ -242,8 +242,6 @@ class Orchestrator
     struct data;
     data* _self;
     
-    Journal _journal;
-
     std::string _studio_pending;
     std::vector<std::pair<std::string, bool>> _activity_pending;
 
@@ -339,7 +337,7 @@ public:
     void EnqueueTransaction(Transaction&&);
     void ServiceTransactionsAndActivities();
 
-    Journal& Journal() { return _journal; }
+    Journal& GetJournal() const;
 };
 
 } // lab

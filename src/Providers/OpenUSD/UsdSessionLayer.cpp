@@ -102,6 +102,9 @@ UsdSessionLayer::Self::Self(Model* model)
 
 UsdSessionLayer::~UsdSessionLayer() {}
 
+PXR_NS::SdfLayerRefPtr UsdSessionLayer::GetSessionLayer() {
+    return self->_sessionLayer;
+}
 
 void UsdSessionLayer::Self::_SetEmptyStage()
 {

@@ -59,8 +59,15 @@ void FileDialogManager::runOnMainThread(std::function<void()> func) {
 auto FileDialogManager::RequestOpenFile(const std::vector<std::string>& extensions, const std::string& dir) -> int {
     std::string ext = "";
     std::string path = ".";
-    int id = _requestId++;
-    
+    int id;
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+
+        id = _requestId++;
+        _fileRequestStatus[id] = FileReq::notReady;
+    }
+
+
     if (!extensions.empty()) {
         ext = extensions[0];
         for (size_t i = 1; i < extensions.size(); ++i) {
@@ -71,10 +78,6 @@ auto FileDialogManager::RequestOpenFile(const std::vector<std::string>& extensio
         path = dir;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(_mutex);
-        _fileRequestStatus[id] = FileReq::notReady;
-    }
 
     auto openFileDialog = [this, id, ext, path]() -> void {
         nfdchar_t* outPath = nullptr;
@@ -84,7 +87,8 @@ auto FileDialogManager::RequestOpenFile(const std::vector<std::string>& extensio
             _fileRequests[id] = outPath;
             _fileRequestStatus[id] = FileReq::ready;
             free(outPath);
-        } else {
+        }
+        else {
             _fileRequests[id] = "";
             _fileRequestStatus[id] = (result == NFD_CANCEL) ? FileReq::canceled : FileReq::expired;
         }
@@ -94,6 +98,73 @@ auto FileDialogManager::RequestOpenFile(const std::vector<std::string>& extensio
     return id;
 }
 
+auto FileDialogManager::RequestSaveFile(const std::vector<std::string>& extensions, const std::string& dir) -> int {
+    std::string ext = "";
+    std::string path = ".";
+    int id;
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        id = _requestId++;
+        _fileRequestStatus[id] = FileReq::notReady;
+    }
+    if (!extensions.empty()) {
+        ext = extensions[0];
+        for (size_t i = 1; i < extensions.size(); ++i) {
+            ext += ", " + extensions[i];
+        }
+    }
+    if (!dir.empty()) {
+        path = dir;
+    }
+
+    auto saveFileDialog = [this, id, ext, path]() -> void {
+        nfdchar_t* outPath = nullptr;
+        nfdresult_t result = NFD_SaveDialog(ext.c_str(), path.c_str(), &outPath);
+        std::lock_guard<std::mutex> lock(_mutex);
+        if (result == NFD_OKAY) {
+            _fileRequests[id] = outPath;
+            _fileRequestStatus[id] = FileReq::ready;
+            free(outPath);
+        }
+        else {
+            _fileRequests[id] = "";
+            _fileRequestStatus[id] = (result == NFD_CANCEL) ? FileReq::canceled : FileReq::expired;
+        }
+    };
+    
+    runOnMainThread(saveFileDialog);
+    return id;
+}
+
+auto FileDialogManager::RequestPickFolder(const std::string& dir) -> int {
+    std::string path = ".";
+    int id;
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        id = _requestId++;
+        _fileRequestStatus[id] = FileReq::notReady;
+    }
+    if (!dir.empty()) {
+        path = dir;
+    }
+
+    auto pickFolderDialog = [this, id, path]() -> void {
+        nfdchar_t* outPath = nullptr;
+        nfdresult_t result = NFD_PickFolder(path.c_str(), &outPath);
+        if (result == NFD_OKAY) {
+            _fileRequests[id] = outPath;
+            _fileRequestStatus[id] = FileReq::ready;
+            free(outPath);
+        }
+        else {
+            _fileRequests[id] = "";
+            _fileRequestStatus[id] = (result == NFD_CANCEL) ? FileReq::canceled : FileReq::expired;
+        }
+    };
+    
+    runOnMainThread(pickFolderDialog);
+    return id;
+}
 
 auto FileDialogManager::PopOpenedFile(int id) -> FileReq {
     std::lock_guard<std::mutex> lock(_mutex);

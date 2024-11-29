@@ -66,6 +66,30 @@ if (HAVE_OPENUSD)
     find_package(OpenGL REQUIRED)
 endif()
 
+# add ext/libzmq as a subdirectory, with EXCLUDE_FROM_ALL.
+# note: EXCLUDE_FROM_ALL is used to indicate that only referenced components
+# should be built.
+# options:
+# ENABLE_DRAFTS ON
+# WITH_TLS OFF ~ requires further investigation on how much burden WSS adds
+# WITH_DOC OFF
+# WITH_PERF_TOOL OFF
+# BUILD_TESTS OFF
+# BUILD_SHARED_LIBS OFF
+# BUILD_STATIC_LIBS ON
+# ENABLE_NO_EXPORT ON
+# set the variables before including the subdirectory
+
+set(ENABLE_DRAFTS ON CACHE BOOL "" FORCE)
+set(WITH_TLS OFF CACHE BOOL "" FORCE)
+set(WITH_DOC OFF CACHE BOOL "" FORCE)
+set(WITH_PERF_TOOL OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
+set(ENABLE_NO_EXPORT ON CACHE BOOL "" FORCE)
+add_subdirectory("ext/libzmq" EXCLUDE_FROM_ALL)
+
 #---------------------------------------------------
 
 if(WIN32)
@@ -92,6 +116,9 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 target_include_directories(${PROJECT_NAME} PUBLIC 
     src
     ext
+    ext/cppzmq
+    ext/libzmq/include
+    Imath::Imath
     ${PXR_INCLUDE_DIRS})
 
 if (APPLE)
@@ -173,6 +200,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     IMGUI
     openexr
     sqlite3
+    libzmq-static
     ${PXR_LIBRARIES}
 )
 

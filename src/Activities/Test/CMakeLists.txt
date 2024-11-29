@@ -26,6 +26,13 @@ if (NOT DEFINED PLUGINS_DIR)
     message(FATAL_ERROR "PLUGINS_DIR is not defined")
 endif()
 
+if (APPLE)
+    # enable ARC
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC TRUE
+    )
+endif()
+
 # set the output directory for the plugin manually to suppress cmake's default
 # behavior of putting it in a build type subdirectory
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -50,5 +57,13 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 if (TARGET ${PARENT_PROJECT_NAME})
     add_dependencies(${PARENT_PROJECT_NAME} ${PROJECT_NAME})
 endif()
+
+# add a signing step to run locally using XCODE_ATTRIBUTES
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development" # or specific identity
+    #XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "YOUR_TEAM_ID"         # Replace with your team ID
+    #XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "Your Provisioning Profile"
+    XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"            # or "Manual"
+)
 
 GroupSourcesByFolder(TestPlugin)

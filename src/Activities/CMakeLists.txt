@@ -8,6 +8,10 @@ add_subdirectory(Test)
 add_subdirectory(Texture)
 add_subdirectory(Timeline)
 
+if (HAVE_OPENUSD)
+    add_subdirectory(OpenUSD)
+endif()
+
 # if ACTIVITIES is empty, report that.
 get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
 if (NOT ACTIVITIES)

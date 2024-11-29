@@ -21,6 +21,9 @@ public:
     ~FileDialogManager() = default;
 
     auto RequestOpenFile(const std::vector<std::string>& extensions, const std::string& dir) -> int;
+    auto RequestSaveFile(const std::vector<std::string>& extensions, const std::string& dir) -> int;
+    auto RequestPickFolder(const std::string& dir) -> int;
+
     struct FileReq {
         enum Result { notReady, canceled, ready, expired };
         std::string path;

@@ -142,7 +142,7 @@ void JournalActivity::RunUI(const LabViewInteraction&) {
     }
 
     ImGui::BeginChild("###Journal");
-    auto& journal = orchestrator->Journal();
+    auto& journal = orchestrator->GetJournal();
     auto curr = &journal.root;
     while (curr) {
         DrawJournalHierarchy(curr);

@@ -6,6 +6,8 @@ target_sources(${PROJECT_NAME}
     Lab/AppTheme.h
     Lab/AppTheme.cpp
 
+    Lab/CSP.hpp
+
     Lab/LabDirectories.h
     Lab/LabDirectories.cpp
     Lab/LabFileDialogManager.hpp

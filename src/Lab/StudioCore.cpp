@@ -7,9 +7,10 @@
 //
 
 #include "StudioCore.hpp"
-#include "concurrentqueue.hpp"
 #include <iostream>
 #include <set>
+#include <thread>
+#include <zmq.hpp>
 
 namespace lab
 {
@@ -133,8 +134,8 @@ void Journal::Remove(JournalNode* node) {
 }
 
 
+
 struct Orchestrator::data {
-    moodycamel::ConcurrentQueue<Transaction> work_queue;
     Studio* current_studio = nullptr;
     std::map< std::string, std::shared_ptr<Activity> > activities;
     std::map< std::string, std::shared_ptr<Studio> > studios;
@@ -149,6 +150,63 @@ struct Orchestrator::data {
     std::vector<Activity*> dragging_activities;
     std::vector<Activity*> rendering_activities;
     std::vector<Activity*> mainmenu_activities;
+
+    Journal journal;
+
+    struct Transactor {
+        zmq::context_t context;
+        zmq::socket_t pull_socket;
+        zmq::socket_t push_socket;
+        std::thread processing_thread;
+        Transactor()
+            : context(1) // one thread, because low frequency and in process.
+            , pull_socket(context, ZMQ_PULL)
+            , push_socket(context, ZMQ_PUSH) {
+                pull_socket.bind("inproc://transactions");
+                push_socket.connect("inproc://transactions");
+            }
+    } transactor;
+
+    data() {
+        transactor.processing_thread = std::thread([this]() {
+            while (true) {
+                zmq::message_t message;
+
+                if (transactor.pull_socket.recv(message, zmq::recv_flags::none)) {
+
+                    // Placement delete and copy to local scope
+                    Transaction* work = static_cast<Transaction*>(message.data());
+                    Transaction transaction = std::move(*work);
+                    work->~Transaction();
+
+                    // Handle special termination logic if needed
+                    if (transaction.message == "STOP") {
+                        break;
+                    }
+
+                    // Process transaction
+                    if (transaction.exec) {
+                        std::cout << "> " << transaction.message << std::endl;
+                        transaction.exec();
+                        journal.Append(std::move(transaction));
+                    }
+                }
+                else  {
+                    // there was an issue. @TODO handle or report it.
+                }
+            }
+        });
+    }
+
+    ~data() {
+        zmq::socket_t stop_socket(transactor.context, ZMQ_PUSH);
+        stop_socket.connect("inproc://transactions");
+        Transaction stop_transaction("STOP", []() {});
+        zmq::message_t message(sizeof(Transaction));
+        new (message.data()) Transaction(std::move(stop_transaction)); // Placement new
+        stop_socket.send(message, zmq::send_flags::none);
+        transactor.processing_thread.join(); // Wait for the thread to exit
+    }
 
     void SetActivities() {
         ui_activities.clear();
@@ -202,25 +260,21 @@ Orchestrator* Orchestrator::Canonical() {
     return gCanonical;
 }
 
+Journal& Orchestrator::GetJournal() const {
+    return _self->journal;
+}
+
 Studio* Orchestrator::CurrentStudio() const {
     return _self->current_studio;
 }
 
 void Orchestrator::EnqueueTransaction(Transaction&& work) {
-    _self->work_queue.enqueue(work);
+    zmq::message_t message(sizeof(Transaction));
+    new (message.data()) Transaction(std::move(work)); // Placement new
+    _self->transactor.push_socket.send(message, zmq::send_flags::none);
 }
 
 void Orchestrator::ServiceTransactionsAndActivities() {
-    // complete any pending work
-    Transaction work;
-    while (_self->work_queue.try_dequeue(work)) {
-        if (work.exec) {
-            std::cout << "> " << work.message << std::endl;
-            work.exec();
-            _journal.Append(std::move(work));
-        }
-    }
-
     // activate pending studio if ready
     if (_studio_pending.length()) {
         _activate_studio(_studio_pending);

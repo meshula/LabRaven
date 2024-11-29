@@ -11,6 +11,9 @@
 #include "Lab/Landru.hpp"
 #include "Lab/LabDirectories.h"
 #include <mutex>
+#include <thread>
+#include <zmq.hpp>
+
 
 csys::ItemLog& operator << (csys::ItemLog &log, ImVec4& vec)
 {
@@ -33,8 +36,80 @@ static void imvec4_setter(ImVec4 & my_type, std::vector<int> vec)
 
 namespace lab {
 
+struct LogMessage {
+    csys::ItemType type;  // Log level or type
+    std::string message;   // The actual log message
+
+    LogMessage(csys::ItemType t, std::string_view msg)
+        : type(t), message(msg) {}
+
+    // Serialize the LogMessage into a zmq::message_t
+    zmq::message_t to_zmq_message() const {
+        // Allocate space for both type and message
+        zmq::message_t msg(sizeof(type) + message.size());
+        auto data = msg.data();
+
+        // Serialize the ItemType and message
+        memcpy(data, &type, sizeof(type));
+        memcpy(static_cast<char*>(data) + sizeof(type), message.data(), message.size());
+        return msg;
+    }
+
+    // Deserialize a zmq::message_t into a LogMessage
+    static LogMessage from_zmq_message(const zmq::message_t& msg) {
+        auto data = msg.data();
+        csys::ItemType t = *static_cast<const csys::ItemType*>(data);
+        std::string_view msg_view(static_cast<const char*>(data) + sizeof(csys::ItemType), msg.size() - sizeof(csys::ItemType));
+        return LogMessage(t, msg_view);
+    }
+};
+
+
 struct ConsoleActivity::data {
-    data() : console("Console") {}
+
+    struct ConsoleSubscriber {
+        zmq::context_t context;
+        zmq::socket_t subscriber;
+        zmq::socket_t publisher; // for sending a STOP message
+        std::thread subscriber_thread;
+        ImGuiConsole& console;
+
+        ConsoleSubscriber(ImGuiConsole& console)
+        : context(1)
+        , publisher(context, ZMQ_PUB)
+        , subscriber(context, ZMQ_SUB)
+        , console(console) {
+            subscriber.connect("inproc://console");
+            publisher.connect("inproc://console");
+            // "" means subscribe to all messages
+
+            subscriber.set(zmq::sockopt::subscribe, "");
+            subscriber_thread = std::thread([this](){
+                while (true) {
+                    zmq::message_t message;
+                    subscriber.recv(&message);
+                    // break if STOP is received
+                    if (message.size() == 4 && memcmp(message.data(), "STOP", 4) == 0)
+                        break;
+
+                    // Deserialize the message
+                    LogMessage log_msg = LogMessage::from_zmq_message(message);
+
+                    // Log the message
+                    this->console.System().Log(log_msg.type) << log_msg.message << csys::endl;
+                }
+            });
+        }
+        ~ConsoleSubscriber() {
+            // send a STOP message to the subscriber thread
+            zmq::message_t message(4);
+            memcpy(message.data(), "STOP", 4);
+            publisher.send(message);
+            subscriber_thread.join();
+        }
+    } consoleSubscriber;
+
+    data() : console("Console"), consoleSubscriber(console) {}
     ~data() {}
 
     void init() {
@@ -105,12 +180,6 @@ ConsoleActivity::ConsoleActivity()
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
         static_cast<ConsoleActivity*>(instance)->RunUI(*vi);
     };
-    activity.ToolBar = [](void* instance) {
-        static_cast<ConsoleActivity*>(instance)->ToolBar();
-    };
-    activity.Menu = [](void* instance) {
-        static_cast<ConsoleActivity*>(instance)->Menu();
-    };
 }
 
 ConsoleActivity::~ConsoleActivity()
@@ -129,29 +198,24 @@ void ConsoleActivity::RunUI(const LabViewInteraction&)
     _self->console.Draw();
 }
 
-void ConsoleActivity::ToolBar() {
-}
-
-void ConsoleActivity::Menu() {
-    if (ImGui::BeginMenu("Modes")) {
-        if (ImGui::MenuItem("Console", nullptr, _self->ui_visible, true)) {
-            _self->ui_visible = !_self->ui_visible;
-        }
-        ImGui::EndMenu();
-    }
-}
-
 void ConsoleActivity::Log(std::string_view s) {
-    _self->console.System().Log(csys::ItemType::LOG) << s << csys::endl;
+    LogMessage msg(csys::ItemType::LOG, s);
+    _self->consoleSubscriber.publisher.send(msg.to_zmq_message());
 }
+
 void ConsoleActivity::Warning(std::string_view s) {
-    _self->console.System().Log(csys::ItemType::WARNING) << s << csys::endl;
+    LogMessage msg(csys::ItemType::WARNING, s);
+    _self->consoleSubscriber.publisher.send(msg.to_zmq_message());
 }
+
 void ConsoleActivity::Error(std::string_view s) {
-    _self->console.System().Log(csys::ItemType::ERROR) << s << csys::endl;
+    LogMessage msg(csys::ItemType::ERROR, s);
+    _self->consoleSubscriber.publisher.send(msg.to_zmq_message());
 }
+
 void ConsoleActivity::Info(std::string_view s) {
-    _self->console.System().Log(csys::ItemType::INFO) << s << csys::endl;
+    LogMessage msg(csys::ItemType::INFO, s);
+    _self->consoleSubscriber.publisher.send(msg.to_zmq_message());
 }
 
 

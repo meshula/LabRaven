@@ -22,6 +22,7 @@ class OpenUSDActivity : public Activity
     
     // activities
     void RunUI(const LabViewInteraction&);
+    void Menu();
 
 public:
     OpenUSDActivity();

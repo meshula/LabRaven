@@ -1,8 +1,8 @@
 #ifndef UsdSessionLayer_hpp
 #define UsdSessionLayer_hpp
 
+#include <pxr/usd/sdf/layer.h>
 #include <memory>
-
 #include "ImGuiHydraEditor/src/models/model.h"
 
 namespace lab {
@@ -19,6 +19,9 @@ class UsdSessionLayer {
      */
     UsdSessionLayer(pxr::Model* model);
     ~UsdSessionLayer();
+
+    PXR_NS::SdfLayerRefPtr GetSessionLayer();
+
 };
 
 } // lab
