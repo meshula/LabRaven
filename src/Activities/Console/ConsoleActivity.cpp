@@ -81,9 +81,8 @@ struct ConsoleActivity::data {
         , console(console) {
             subscriber.connect("inproc://console");
             publisher.connect("inproc://console");
-            // "" means subscribe to all messages
+            subscriber.set(zmq::sockopt::subscribe, ""); // "" means subscribe to all messages
 
-            subscriber.set(zmq::sockopt::subscribe, "");
             subscriber_thread = std::thread([this](){
                 while (true) {
                     zmq::message_t message;

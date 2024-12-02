@@ -23,67 +23,81 @@ PXR_NAMESPACE_USING_DIRECTIVE
 class LoadStageModule : public CSP_Module {
 public:
     LoadStageModule(CSP_Engine& engine)
-        : CSP_Module(engine, "LoadStageModule") {
-        initialize_states();
+    : CSP_Module(engine, "LoadStageModule")
+    {
+    }
+
+    enum class Process : int {
+        OpenRequest = 200,
+        Opening,
+        Error,
+        OpenFile,
+        Idle
+    };
+
+    static constexpr int toInt(Process p) { return static_cast<int>(p); }
+
+    void LoadStage() {
+        emit_event("file_open_request", toInt(Process::OpenRequest));
     }
 
 private:
     int pendingFile = 0;
     FileDialogManager::FileReq req;
 
-    void initialize_states() {
-        processes.push_back({"OpenRequest", "file_open_request",
-                             [this](CSP_Module& module, int) {
-                                 printf("Entering file_open_request\n");
-                                 auto fdm = LabApp::instance()->fdm();
-                                 const char* dir = lab_pref_for_key("LoadStageDir");
-                                 pendingFile = fdm->RequestOpenFile(
-                                                                    {"usd","usda","usdc","usdz"},
-                                                                      dir? dir: ".");
-                                 module.emit_event("opening", 0);
-                             }});
+    virtual void initialize_processes() override {
+        add_process({toInt(Process::OpenRequest), "file_open_request",
+                     [this]() {
+                         printf("Entering file_open_request\n");
+                         auto fdm = LabApp::instance()->fdm();
+                         const char* dir = lab_pref_for_key("LoadStageDir");
+                         pendingFile = fdm->RequestOpenFile(
+                                                            {"usd","usda","usdc","usdz"},
+                                                              dir? dir: ".");
+                         this->emit_event("opening", toInt(Process::Opening));
+                     }});
 
-        processes.push_back({"Opening", "opening",
-                            [this](CSP_Module& module, int) {
-                                printf("Entering opening\n");
-                                auto fdm = LabApp::instance()->fdm();
-                                req = fdm->PopOpenedFile(pendingFile);
-                                switch (req.status) {
-                                    case FileDialogManager::FileReq::notReady:
-                                        module.emit_event("opening", 0); // continue polling
-                                        break;
-                                    case FileDialogManager::FileReq::expired:
-                                    case FileDialogManager::FileReq::canceled:
-                                        module.emit_event("file_error", 0);
-                                        break;
-                                    default:
-                                        module.emit_event("file_open_success", 0);
-                                        break;
-                                }
-                             }});
+        add_process({toInt(Process::Opening), "opening",
+            [this]() {
+                        printf("Entering opening\n");
+                        auto fdm = LabApp::instance()->fdm();
+                        req = fdm->PopOpenedFile(pendingFile);
+                        switch (req.status) {
+                            case FileDialogManager::FileReq::notReady:
+                                this->emit_event("opening", toInt(Process::Opening)); // continue polling
+                                break;
+                            case FileDialogManager::FileReq::expired:
+                            case FileDialogManager::FileReq::canceled:
+                                this->emit_event("file_error", toInt(Process::Error));
+                                break;
+                            default:
+                                this->emit_event("file_open_success", toInt(Process::OpenFile));
+                                break;
+                        }
+                     }});
 
-        processes.push_back({"Error", "file_error",
-                             [](CSP_Module& module, int) {
-                                 printf("Entering file_error\n");
-                                 std::cout << "Error: Failed to open file. Returning to Ready...\n";
-                                 module.emit_event("idle", 0);
-                             }});
+        add_process({toInt(Process::Error), "file_error",
+                     [this]() {
+                         printf("Entering file_error\n");
+                         std::cout << "Error: Failed to open file. Returning to Ready...\n";
+                         this->emit_event("idle", toInt(Process::Idle));
+                     }});
 
-        processes.push_back({"OpenFile", "file_success",
-                             [this](CSP_Module& module, int) {
-                                 printf("Entering file_success\n");
-                                 std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
-                                 if (usd) {
-                                     usd->LoadStage(req.path);
-                                     // get the directory of path and save it as the default
-                                     // directory for the next time the user loads a stage
-                                     std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
-                                     lab_set_pref_for_key("LoadStageDir", dir.c_str());
-                                 }
-                                 module.emit_event("idle", 0);
-                             }});
+        add_process({toInt(Process::OpenFile), "file_success",
+            [this]() {
+                         printf("Entering file_success\n");
+                         std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                         if (usd) {
+                             usd->LoadStage(req.path);
+                             // get the directory of path and save it as the default
+                             // directory for the next time the user loads a stage
+                             std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
+                             lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                         }
+                this->emit_event("idle", toInt(Process::Idle));
+                     }});
 
-        processes.push_back({"Idle", "idle", [](CSP_Module&, int) {
+        add_process({toInt(Process::Idle), "idle", []() {
             printf("Entering idle\n");
         }});
     }
@@ -93,172 +107,194 @@ private:
 class ReferenceLayerModule : public CSP_Module {
 public:
     ReferenceLayerModule(CSP_Engine& engine)
-        : CSP_Module(engine, "ReferenceLayerModule") {
-        initialize_states();
+    : CSP_Module(engine, "ReferenceLayerModule")
+    {
     }
 
     bool instance = false;
+
+    enum class Process : int {
+        OpenRequest = 300,
+        Opening,
+        Error,
+        OpenFile,
+        Idle
+    };
+
+    static constexpr int toInt(Process p) { return static_cast<int>(p); }
+
 
 private:
     int pendingFile = 0;
     FileDialogManager::FileReq req;
 
-    void initialize_states() {
-        processes.push_back({"OpenRequest", "layer_reference_request",
-                             [this](CSP_Module& module, int) {
-                                 printf("Entering layer_reference_request\n");
-                                 auto fdm = LabApp::instance()->fdm();
-                                 const char* dir = lab_pref_for_key("LoadStageDir");
-                                 pendingFile = fdm->RequestOpenFile(
-                                                                    {"usd","usda","usdc","usdz"},
-                                                                      dir? dir: ".");
-                                 module.emit_event("opening", 0);
-                             }});
+    virtual void initialize_processes() override {
+        add_process({toInt(Process::OpenRequest), "layer_reference_request",
+            [this]() {
+                         printf("Entering layer_reference_request\n");
+                         auto fdm = LabApp::instance()->fdm();
+                         const char* dir = lab_pref_for_key("LoadStageDir");
+                         pendingFile = fdm->RequestOpenFile(
+                                                            {"usd","usda","usdc","usdz"},
+                                                              dir? dir: ".");
+                this->emit_event("opening", toInt(Process::Opening));
+                     }});
 
-        processes.push_back({"Opening", "opening",
-                            [this](CSP_Module& module, int) {
-                                printf("Entering opening\n");
-                                auto fdm = LabApp::instance()->fdm();
-                                req = fdm->PopOpenedFile(pendingFile);
-                                switch (req.status) {
-                                    case FileDialogManager::FileReq::notReady:
-                                        module.emit_event("opening", 0); // continue polling
-                                        break;
-                                    case FileDialogManager::FileReq::expired:
-                                    case FileDialogManager::FileReq::canceled:
-                                        module.emit_event("file_error", 0);
-                                        break;
-                                    default:
-                                        module.emit_event("file_open_success", 0);
-                                        break;
-                                }
-                             }});
+        add_process({toInt(Process::Opening), "opening",
+            [this]() {
+                        printf("Entering opening\n");
+                        auto fdm = LabApp::instance()->fdm();
+                        req = fdm->PopOpenedFile(pendingFile);
+                        switch (req.status) {
+                            case FileDialogManager::FileReq::notReady:
+                                this->emit_event("opening", toInt(Process::Opening)); // continue polling
+                                break;
+                            case FileDialogManager::FileReq::expired:
+                            case FileDialogManager::FileReq::canceled:
+                                this->emit_event("file_error", toInt(Process::Error));
+                                break;
+                            default:
+                                this->emit_event("file_open_success", toInt(Process::OpenFile));
+                                break;
+                        }
+                     }});
 
-        processes.push_back({"Error", "file_error",
-                             [](CSP_Module& module, int) {
-                                 printf("Entering file_error\n");
-                                 std::cout << "Error: Failed to open file. Returning to Ready...\n";
-                                 module.emit_event("idle", 0);
-                             }});
+        add_process({toInt(Process::Error), "file_error",
+                     [this]() {
+                         printf("Entering file_error\n");
+                         std::cout << "Error: Failed to open file. Returning to Ready...\n";
+                         this->emit_event("idle", toInt(Process::Idle));
+                     }});
 
-        processes.push_back({"OpenFile", "file_success",
-                             [this](CSP_Module& module, int) {
-                                 printf("Entering file_success\n");
-                                 std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
-                                 if (usd) {
-                                     auto stage = usd->Stage();
-                                     if (stage) {
-                                         auto mm = LabApp::instance()->mm();
-                                         //auto cameraMode = mm->LockActivity(_self->cameraMode);
-                                         pxr::GfVec3d pos(0,0,0);// = cameraMode->HitPoint();
-                                         mm->EnqueueTransaction(Transaction{"Reference a layer", [this, usd, pos, stage](){
-                                             std::string path(req.path);
-                                             pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
-                                             primPath = primPath.AppendChild(TfToken("Models"));
-                                             usd->ReferenceLayer(stage, path, primPath, true, pos, instance);
-                                             // get the directory of path and save it as the default
-                                             // directory for the next time the user loads a stage
-                                             std::string dir = path.substr(0, path.find_last_of("/\\"));
-                                             lab_set_pref_for_key("LoadStageDir", dir.c_str());
-                                         }});
-                                     }
-                                 }
-                                 module.emit_event("idle", 0);
-                             }});
+        add_process({toInt(Process::OpenFile), "file_success",
+            [this]() {
+                         printf("Entering file_success\n");
+                         std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                         if (usd) {
+                             auto stage = usd->Stage();
+                             if (stage) {
+                                 auto mm = LabApp::instance()->mm();
+                                 //auto cameraMode = mm->LockActivity(_self->cameraMode);
+                                 pxr::GfVec3d pos(0,0,0);// = cameraMode->HitPoint();
+                                 mm->EnqueueTransaction(Transaction{"Reference a layer", [this, usd, pos, stage](){
+                                     std::string path(req.path);
+                                     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
+                                     primPath = primPath.AppendChild(TfToken("Models"));
+                                     usd->ReferenceLayer(stage, path, primPath, true, pos, instance);
+                                     // get the directory of path and save it as the default
+                                     // directory for the next time the user loads a stage
+                                     std::string dir = path.substr(0, path.find_last_of("/\\"));
+                                     lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                                 }});
+                             }
+                         }
+                this->emit_event("idle", toInt(Process::Idle));
+                     }});
 
-        processes.push_back({"Idle", "idle", [](CSP_Module&, int) {
-                                printf("Entering idle\n");
-                            }});
+        add_process({toInt(Process::Idle), "idle", []() {
+                        printf("Entering idle\n");
+                    }});
     }
 };
 
 class ExportStageModule : public CSP_Module {
 public:
     ExportStageModule(CSP_Engine& engine)
-        : CSP_Module(engine, "ExportStageModule") {
-        initialize_states();
+        : CSP_Module(engine, "ExportStageModule")
+    {
     }
+
+    enum class Process : int {
+        ExportRequest = 400,
+        Saving,
+        Error,
+        ExportFile,
+        Idle
+    };
+
+    static constexpr int toInt(Process p) { return static_cast<int>(p); }
+
 
 private:
     int pendingFile = 0;
     FileDialogManager::FileReq req;
 
-    void initialize_states() {
-        processes.push_back({"Export Request", "file_export_request",
-                             [this](CSP_Module& module, int) {
-                                 printf("Entering file_export_request\n");
-                                 auto fdm = LabApp::instance()->fdm();
-                                 const char* dir = lab_pref_for_key("LoadStageDir");
-                                 pendingFile = fdm->RequestSaveFile(
-                                                                    {"usd","usda","usdc","usdz"},
-                                                                      dir? dir: ".");
-                                 module.emit_event("saving", 0);
-                             }});
+    virtual void initialize_processes() override {
+        add_process({toInt(Process::ExportRequest), "file_export_request",
+            [this]() {
+                         printf("Entering file_export_request\n");
+                         auto fdm = LabApp::instance()->fdm();
+                         const char* dir = lab_pref_for_key("LoadStageDir");
+                         pendingFile = fdm->RequestSaveFile(
+                                                            {"usd","usda","usdc","usdz"},
+                                                              dir? dir: ".");
+                this->emit_event("saving", toInt(Process::Saving));
+                     }});
 
-        processes.push_back({"Saving", "saving",
-                            [this](CSP_Module& module, int) {
-                                printf("Entering saving\n");
-                                auto fdm = LabApp::instance()->fdm();
-                                req = fdm->PopOpenedFile(pendingFile);
-                                switch (req.status) {
-                                    case FileDialogManager::FileReq::notReady:
-                                        module.emit_event("opening", 0); // continue polling
-                                        break;
-                                    case FileDialogManager::FileReq::expired:
-                                    case FileDialogManager::FileReq::canceled:
-                                        module.emit_event("file_error", 0);
-                                        break;
-                                    default:
-                                        module.emit_event("file_success", 0);
-                                        break;
-                                }
-                             }});
+        add_process({toInt(Process::Saving), "saving",
+            [this]() {
+                        printf("Entering saving\n");
+                        auto fdm = LabApp::instance()->fdm();
+                        req = fdm->PopOpenedFile(pendingFile);
+                        switch (req.status) {
+                            case FileDialogManager::FileReq::notReady:
+                                this->emit_event("opening", toInt(Process::Saving)); // continue polling
+                                break;
+                            case FileDialogManager::FileReq::expired:
+                            case FileDialogManager::FileReq::canceled:
+                                this->emit_event("file_error", toInt(Process::Error));
+                                break;
+                            default:
+                                this->emit_event("file_success", toInt(Process::ExportFile));
+                                break;
+                        }
+                     }});
 
-        processes.push_back({"Error", "file_error",
-                             [](CSP_Module& module, int) {
-                                 printf("Entering file_error\n");
-                                 std::cout << "Error: Failed to save file. Returning to idle...\n";
-                                 module.emit_event("idle", 0);
-                             }});
+        add_process({toInt(Process::Error), "file_error",
+                     [this]() {
+                         printf("Entering file_error\n");
+                         std::cout << "Error: Failed to save file. Returning to idle...\n";
+                         this->emit_event("idle", toInt(Process::Idle));
+                     }});
 
-        processes.push_back({"ExportFile", "file_success",
-                             [this](CSP_Module& module, int) {
-                                 printf("Entering file_success\n");
-                                 std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
-                                 if (usd) {
-                                     std::string path(req.path);
-                                     auto mm = LabApp::instance()->mm();
-                                     std::weak_ptr<ConsoleActivity> cap;
-                                     auto console = mm->LockActivity(cap);
-                                     std::string msg = "Exporting stage: " + path;
-                                     console->Info(msg);
-                                     usd->ExportStage(path);
+        add_process({toInt(Process::ExportFile), "file_success",
+            [this]() {
+                         printf("Entering file_success\n");
+                         std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                         if (usd) {
+                             std::string path(req.path);
+                             auto mm = LabApp::instance()->mm();
+                             std::weak_ptr<ConsoleActivity> cap;
+                             auto console = mm->LockActivity(cap);
+                             std::string msg = "Exporting stage: " + path;
+                             console->Info(msg);
+                             usd->ExportStage(path);
 
-                                     // get the directory of path and save it as the default
-                                     // directory for the next time the user loads a stage
-                                     std::string dir = path.substr(0, path.find_last_of("/\\"));
-                                     lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                             // get the directory of path and save it as the default
+                             // directory for the next time the user loads a stage
+                             std::string dir = path.substr(0, path.find_last_of("/\\"));
+                             lab_set_pref_for_key("LoadStageDir", dir.c_str());
 
-                                     // create a string of the form yyyymmdd-hhmmss
-                                     // to append to the session file name
-                                     time_t rawtime;
-                                     struct tm* timeinfo;
-                                     char buffer[80];
-                                     time(&rawtime);
-                                     timeinfo = localtime(&rawtime);
-                                     strftime(buffer, sizeof(buffer), "%Y%m%d-%H%M%S", timeinfo);
-                                     std::string str(buffer);
+                             // create a string of the form yyyymmdd-hhmmss
+                             // to append to the session file name
+                             time_t rawtime;
+                             struct tm* timeinfo;
+                             char buffer[80];
+                             time(&rawtime);
+                             timeinfo = localtime(&rawtime);
+                             strftime(buffer, sizeof(buffer), "%Y%m%d-%H%M%S", timeinfo);
+                             std::string str(buffer);
 
-                                     // create a new path by stripping of the extension,
-                                     // adding -session, then set the extension to usda.
-                                     std::string sessionPath = path.substr(0, path.find_last_of("."));
-                                     sessionPath += "-session-" + str + ".usda";
-                                     usd->ExportSessionLayer(sessionPath);
-                                 }
-                                 module.emit_event("idle", 0);
-                             }});
+                             // create a new path by stripping of the extension,
+                             // adding -session, then set the extension to usda.
+                             std::string sessionPath = path.substr(0, path.find_last_of("."));
+                             sessionPath += "-session-" + str + ".usda";
+                             usd->ExportSessionLayer(sessionPath);
+                         }
+                this->emit_event("idle", toInt(Process::Idle));
+                     }});
 
-        processes.push_back({"Idle", "idle", [](CSP_Module&, int) {
+        add_process({toInt(Process::Idle), "idle", []() {
             printf("Entering idle\n");
         }});
     }
@@ -270,7 +306,9 @@ struct OpenUSDActivity::data {
     data()
         : loadStageModule(engine)
         , exportStageModule(engine)
-        , referenceLayerModule(engine) {}
+        , referenceLayerModule(engine) {
+            engine.run();
+        }
     ~data() = default;
 
     bool run_shot_template_ui = false;
@@ -292,6 +330,10 @@ OpenUSDActivity::OpenUSDActivity() : Activity() {
     activity.Menu = [](void* instance) {
         static_cast<OpenUSDActivity*>(instance)->Menu();
     };
+
+    _self->loadStageModule.Register();
+    _self->exportStageModule.Register();
+    _self->referenceLayerModule.Register();
 }
 
 OpenUSDActivity::~OpenUSDActivity() {
@@ -370,7 +412,8 @@ void OpenUSDActivity::Menu() {
     Orchestrator* mm = Orchestrator::Canonical();
     if (ImGui::BeginMenu("Stage")) {
         if (ImGui::MenuItem("Load Stage ...")) {
-            _self->loadStageModule.emit_event("file_open_request", 0);
+            _self->engine.test();
+            _self->loadStageModule.LoadStage();
         }
         if (ImGui::MenuItem("New Stage")) {
             mm->EnqueueTransaction(Transaction{"New Stage", [](){

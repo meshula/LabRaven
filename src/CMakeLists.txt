@@ -1,30 +1,22 @@
 
 target_sources(${PROJECT_NAME}
   PUBLIC
-    Lab//App.h
-    Lab/App.cpp
-    Lab/AppTheme.h
-    Lab/AppTheme.cpp
+    Lab//App.h Lab/App.cpp
+    Lab/AppTheme.h Lab/AppTheme.cpp
 
-    Lab/CSP.hpp
+    Lab/CSP.hpp Lab/CSP.cpp
 
-    Lab/LabDirectories.h
-    Lab/LabDirectories.cpp
+    Lab/LabDirectories.h Lab/LabDirectories.cpp
     Lab/LabFileDialogManager.hpp
 
     Lab/IconsFontaudio.h
-    Lab/ImguiExt.hpp
-    Lab/ImguiExt.cpp
-    Lab/imgui_stdlib.h
-    Lab/imgui_stdlib.cpp
+    Lab/ImguiExt.hpp Lab/ImguiExt.cpp
+    Lab/imgui_stdlib.h Lab/imgui_stdlib.cpp
 
-    Lab/Landru.hpp
-    Lab/Landru.cpp
-    Lab/LabText.h
-    Lab/LabText_odr.cpp
+    Lab/Landru.hpp Lab/Landru.cpp
+    Lab/LabText.h Lab/LabText_odr.cpp
 
-    Lab/StudioCore.hpp
-    Lab/StudioCore.cpp
+    Lab/StudioCore.hpp Lab/StudioCore.cpp
 
     resources/fonts/embedded_font.inc
 )
