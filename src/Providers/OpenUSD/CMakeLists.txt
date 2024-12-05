@@ -1,3 +1,5 @@
+get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
+set_property(GLOBAL PROPERTY PROVIDERS_LIST "${PROVIDERS};OpenUSD")
 
 set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/SpaceFillCurve.hpp

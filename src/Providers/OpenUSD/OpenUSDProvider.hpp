@@ -1,6 +1,7 @@
 #ifndef Provider_OpenUSDProvider_hpp
 #define Provider_OpenUSDProvider_hpp
 
+#include "Lab/StudioCore.hpp"
 #include <memory>
 #include <string>
 #include <pxr/base/gf/vec3d.h>
@@ -9,12 +10,16 @@
 
 namespace lab {
 
-class OpenUSDProvider {
+class OpenUSDProvider : public Provider {
     struct Self;
     std::unique_ptr<Self> self;
+
 public:
     OpenUSDProvider();
     ~OpenUSDProvider();
+
+    virtual const std::string Name() const override { return sname(); }
+    static constexpr const char* sname() { return "OpenUSD"; }
 
     static std::shared_ptr<OpenUSDProvider> instance();
     static void ReleaseInstance();
@@ -57,8 +62,6 @@ public:
     PXR_NS::SdfPath CreatePrimShape(const std::string& shape, PXR_NS::GfVec3d pos, float radius);
     PXR_NS::SdfPath CreateParGeometry(const std::string& shape, PXR_NS::GfVec3d pos);
     PXR_NS::SdfPath CreateParHeightfield(PXR_NS::GfVec3d pos);
-
-
 };
 
 } // lab

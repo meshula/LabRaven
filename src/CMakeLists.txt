@@ -50,6 +50,8 @@ endif()
 # and the plugins, for the signing system.
 set_property(GLOBAL PROPERTY ACTIVITIES_LIST "")
 get_property(ACTIVITIES GLOBAL PROPERTY ACTIVITIES_LIST)
+set_property(GLOBAL PROPERTY PROVIDERS_LIST "")
+get_property(PROVIDES GLOBAL PROPERTY PROVIDERS_LIST)
 set_property(GLOBAL PROPERTY PLUGINS_LIST "")
 get_property(PLUGINS GLOBAL PROPERTY PLUGINS_LIST)
 set_property(GLOBAL PROPERTY METAL_SHADERS_LIST "")
@@ -78,6 +80,12 @@ if (NOT ACTIVITIES)
     message(FATAL_ERROR "Lab: No activities found")
 endif()
 
+# if PROVIDERS is empty, report that.
+get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
+if (NOT PROVIDERS)
+    message(FATAL_ERROR "Lab: No providers found")
+endif()
+
 set(ACTIVITY_INCLUDES "")
 foreach(activity ${ACTIVITIES})
     string(APPEND ACTIVITY_INCLUDES "#include \"Activities/${activity}/${activity}Activity.hpp\"\n")
@@ -90,13 +98,27 @@ foreach(activity ${ACTIVITIES})
            "    orchestrator.RegisterActivity<${activity}Activity>([](){ return std::make_shared<${activity}Activity>(); });\n")
 endforeach()
 
+set(PROVIDER_REGISTRATION "")
+# List all providers
+foreach(provider ${PROVIDERS})
+    string(APPEND PROVIDER_REGISTRATION 
+           "    orchestrator.RegisterProvider<${provider}Provider>([](){ return std::make_shared<${provider}Provider>(); });\n")
+endforeach()
+
+set(PROVIDER_INCLUDES "")
+foreach(provider ${PROVIDERS})
+    string(APPEND PROVIDER_INCLUDES "#include \"Providers/${provider}/${provider}Provider.hpp\"\n")
+endforeach()
+
 # Write the generated code to a file
 file(WRITE "${CMAKE_BINARY_DIR}/RegisterAllActivities.cpp" "
 #include \"Lab/StudioCore.hpp\"
 ${ACTIVITY_INCLUDES}
+${PROVIDER_INCLUDES}
 using namespace lab;
 void RegisterAllActivities(Orchestrator& orchestrator) {
 ${ACTIVITY_REGISTRATION}
+${PROVIDER_REGISTRATION}
 }
 ")
 

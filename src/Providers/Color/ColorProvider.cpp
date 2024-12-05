@@ -10,9 +10,12 @@ struct ColorProvider::data {
     std::string renderingColorSpace;
 };
 
-ColorProvider::ColorProvider() {
+ColorProvider::ColorProvider() : Provider(ColorProvider::sname()) {
     _self = new ColorProvider::data();
     _instance = this;
+    provider.Documentation = [](void* instance) -> const char* {
+        return "Provides a rendering color space";
+    };
 }
 
 ColorProvider::~ColorProvider() {

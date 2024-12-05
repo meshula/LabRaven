@@ -21,7 +21,7 @@ class PluginActivityInstance : public Activity
 {
 public:
     explicit PluginActivityInstance(const LabActivity& activity_)
-        : Activity() {
+        : Activity(activity_.name) {
             activity = activity_;
         }
 
@@ -51,7 +51,7 @@ struct PluginActivity::data
     }
 };
 
-PluginActivity::PluginActivity() {
+PluginActivity::PluginActivity() : Activity(PluginActivity::sname()) {
     _self = new data;
 
     // look in the plugins directory for any plugins, recognizable by a .dll or .so extension.

@@ -28,7 +28,7 @@ public:
     TextureActivity();
     virtual ~TextureActivity();
     virtual const std::string Name() const override { return sname(); }
-    static constexpr std::string sname() { return "Texture"; }
+    static constexpr const char* sname() { return "Texture"; }
 };
 
 } //lab

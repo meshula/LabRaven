@@ -11,7 +11,7 @@ struct PreferencesActivity::data
 {
 };
 
-PreferencesActivity::PreferencesActivity()
+PreferencesActivity::PreferencesActivity() : Activity(PreferencesActivity::sname())
 {
     _self = new data;
 

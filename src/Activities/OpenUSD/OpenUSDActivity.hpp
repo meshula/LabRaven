@@ -28,7 +28,7 @@ public:
     OpenUSDActivity();
     virtual ~OpenUSDActivity();
     virtual const std::string Name() const override { return sname(); }
-    static constexpr std::string sname() { return "OpenUSD"; }
+    static constexpr const char* sname() { return "OpenUSD"; }
 };
 }
 

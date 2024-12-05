@@ -173,7 +173,7 @@ struct ConsoleActivity::data {
 };
 
 ConsoleActivity::ConsoleActivity()
-: Activity()
+: Activity(ConsoleActivity::sname())
 , _self(new data)
 {
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {

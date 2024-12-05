@@ -139,10 +139,13 @@ struct Orchestrator::data {
     Studio* current_studio = nullptr;
     std::map< std::string, std::shared_ptr<Activity> > activities;
     std::map< std::string, std::shared_ptr<Studio> > studios;
+    std::map< std::string, std::shared_ptr<Provider> > providers;
     std::map< std::string, std::function< std::shared_ptr<Activity>() > > activityFactory;
     std::map< std::string, std::function< std::shared_ptr<Studio>() > > studioFactory;
+    std::map< std::string, std::function< std::shared_ptr<Provider>() > > providerFactory;
     std::vector<std::string> activity_names;
     std::vector<std::string> studio_names;
+    std::vector<std::string> provider_names;
     
     std::vector<Activity*> ui_activities;
     std::vector<Activity*> update_activities;
@@ -335,6 +338,22 @@ std::shared_ptr<Activity> Orchestrator::FindActivity(const std::string & m)
     return std::shared_ptr<Activity>();
 }
 
+std::shared_ptr<Provider> Orchestrator::FindProvider(const std::string & m)
+{
+    auto mnr = _self->providers.find(m);
+    if (mnr != _self->providers.end())
+        return mnr->second;
+
+    auto mmn = _self->providerFactory.find(m);
+    if (mmn != _self->providerFactory.end())
+    {
+        auto mm = mmn->second(); // call creation factory
+        _self->providers[m] = mm;
+        return mm;
+    }
+    return std::shared_ptr<Provider>();
+}
+
 void Orchestrator::_activate_studio(const std::string& name)
 {
     auto m = FindStudio(name);
@@ -479,6 +498,10 @@ const std::vector<std::string>& Orchestrator::StudioNames() const {
     return _self->studio_names;
 }
 
+const std::vector<std::string>& Orchestrator::ProviderNames() const {
+    return _self->provider_names;
+}
+
 void Orchestrator::_register_activity(const std::string& name,
                                      std::function< std::shared_ptr<Activity>() > fn) {
     _self->activityFactory[name] = fn;
@@ -489,6 +512,12 @@ void Orchestrator::_register_studio(const std::string& name,
                                        std::function< std::shared_ptr<Studio>() > fn) {
     _self->studioFactory[name] = fn;
     _self->studio_names.push_back(name);
+}
+
+void Orchestrator::_register_provider(const std::string& name,
+                                     std::function< std::shared_ptr<Provider>() > fn) {
+    _self->providerFactory[name] = fn;
+    _self->provider_names.push_back(name);
 }
 
 } // lab

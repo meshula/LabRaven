@@ -18,7 +18,7 @@ struct JournalActivity::data {
     JournalNode* selection = nullptr;
 };
 
-JournalActivity::JournalActivity() : Activity() {
+JournalActivity::JournalActivity() : Activity(JournalActivity::sname()) {
     _self = new JournalActivity::data;
     
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {

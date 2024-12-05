@@ -12,7 +12,7 @@ struct TimelineActivity::data {
 };
 
 TimelineActivity::TimelineActivity()
-: Activity() {
+: Activity(TimelineActivity::sname()) {
     _self = new TimelineActivity::data;
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
         static_cast<TimelineActivity*>(instance)->RunUI(*vi);

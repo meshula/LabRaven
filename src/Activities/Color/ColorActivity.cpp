@@ -560,7 +560,7 @@ int ColorActivity::data::RenderColorChart(const LabViewDimensions& d) {
 
 
 ColorActivity::ColorActivity()
-: Activity() {
+: Activity(ColorActivity::sname()) {
     _self = new ColorActivity::data;
     
     activity.Render = [](void* instance, const LabViewInteraction* vi) {

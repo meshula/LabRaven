@@ -126,7 +126,7 @@ struct TextureActivity::data {
 };
 
 TextureActivity::TextureActivity()
-: Activity() {
+: Activity(TextureActivity::sname()) {
     _self = new TextureActivity::data;
 
     activity.Menu = [](void* instance) {

@@ -8,3 +8,10 @@ endif()
 if(HAVE_OPENUSD)
     add_subdirectory(OpenUSD)
 endif()
+
+# if PROVIDERS is empty, report that.
+get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
+if (NOT PROVIDERS)
+    message(FATAL_ERROR "Labs: No providers found")
+endif()
+

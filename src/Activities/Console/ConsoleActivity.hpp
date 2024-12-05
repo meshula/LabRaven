@@ -26,8 +26,8 @@ public:
     explicit ConsoleActivity();
     virtual ~ConsoleActivity();
     virtual const std::string Name() const override { return sname(); }
-    static constexpr std::string sname() { return "Console"; }
-    
+    static constexpr const char* sname() { return "Console"; }
+
     //--------------------------------------------
     void Log(std::string_view);
     void Warning(std::string_view);

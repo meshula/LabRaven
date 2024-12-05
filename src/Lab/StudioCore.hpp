@@ -94,9 +94,16 @@ typedef struct LabActivity {
     void (*ViewportHovering)(void*, const LabViewInteraction*) = nullptr;
     int  (*ViewportDragBid)(void*, const LabViewInteraction*) = nullptr;
     void (*ViewportDragging)(void*, const LabViewInteraction*) = nullptr;
+    const char* (*Documentation)(void*) = nullptr;
     const char* name = nullptr; // string is not owned by the activity
     bool active = false;
 } LabActivity;
+
+typedef struct LabProvider {
+    void* instance = nullptr; // a provider can store its instance data here
+    const char* (*Documentation)(void*) = nullptr;
+    const char* name = nullptr; // string is not owned by the activity
+} LabProvider;
 
 #ifdef __cplusplus
 } // extern "C"
@@ -203,7 +210,8 @@ protected:
     friend class Orchestrator;
 
 public:
-    explicit Activity() {}
+    explicit Activity() = delete;
+    explicit Activity(const char* cname) { activity.name = cname; }
     virtual ~Activity() = default;
 
     virtual const std::string Name() const = 0;
@@ -237,6 +245,17 @@ public:
     virtual bool MustDeactivateUnrelatedActivitiesOnActivation() const { return true; }
 };
 
+
+class Provider
+{
+public:
+    Provider() = delete;
+    explicit Provider(const char* cname) { provider.name = cname;}
+    virtual ~Provider() = default;
+    virtual const std::string Name() const = 0;
+    LabProvider provider;
+};
+
 class Orchestrator
 {
     struct data;
@@ -252,6 +271,7 @@ class Orchestrator
     void _deactivate_studio(const std::string& name);
     void _register_studio(const std::string& name, std::function< std::shared_ptr<Studio>() > fn);
     void _register_activity(const std::string& name, std::function< std::shared_ptr<Activity>() > fn);
+    void _register_provider(const std::string& name, std::function< std::shared_ptr<Provider>() > fn);
     void _set_activities();
 
 public:
@@ -263,6 +283,7 @@ public:
     const std::map< std::string, std::shared_ptr<Activity> > Activities() const;
     const std::vector<std::string>& ActivityNames() const;
     const std::vector<std::string>& StudioNames() const;
+    const std::vector<std::string>& ProviderNames() const;
 
     template <typename ActivityType>
     void RegisterActivity(std::function< std::shared_ptr<Activity>() > fn)
@@ -280,6 +301,13 @@ public:
     {
         static_assert(std::is_base_of<Studio, StudioType>::value, "must register Studio");
         _register_studio(StudioType::sname(), fn);
+    }
+
+    template <typename ProviderType>
+    void RegisterProvider(std::function< std::shared_ptr<Provider>() > fn)
+    {
+        static_assert(std::is_base_of<Provider, ProviderType>::value, "must register Provider");
+        _register_provider(ProviderType::sname(), fn);
     }
 
     void ActivateStudio(const std::string& name) {
@@ -305,6 +333,7 @@ public:
 
     std::shared_ptr<Studio> FindStudio(const std::string &);
     std::shared_ptr<Activity> FindActivity(const std::string &);
+    std::shared_ptr<Provider> FindProvider(const std::string &);
 
     template <typename T>
     std::shared_ptr<T> FindStudio()

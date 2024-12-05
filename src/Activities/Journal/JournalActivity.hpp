@@ -32,7 +32,7 @@ public:
     JournalActivity();
     virtual ~JournalActivity();
     virtual const std::string Name() const override { return sname(); }
-    static constexpr std::string sname() { return "Journal"; }
+    static constexpr const char* sname() { return "Journal"; }
 };
 }
 

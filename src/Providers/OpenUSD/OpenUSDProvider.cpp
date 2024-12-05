@@ -102,9 +102,12 @@ struct OpenUSDProvider::Self {
     }
 };
 
-OpenUSDProvider::OpenUSDProvider()
-: self(new Self)
+OpenUSDProvider::OpenUSDProvider() : Provider(OpenUSDProvider::sname())
+, self(new Self)
 {
+    provider.Documentation = [](void* instance) -> const char* {
+        return "Provides a Stage, a Session Layer, and a Hydra2 Engine";
+    };
 }
 
 OpenUSDProvider::~OpenUSDProvider()

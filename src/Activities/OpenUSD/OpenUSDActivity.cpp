@@ -321,7 +321,7 @@ struct OpenUSDActivity::data {
     ReferenceLayerModule referenceLayerModule;
 };
 
-OpenUSDActivity::OpenUSDActivity() : Activity() {
+OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
     _self = new OpenUSDActivity::data();
 
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
