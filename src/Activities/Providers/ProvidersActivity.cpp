@@ -48,7 +48,7 @@ void ProvidersActivity::RunUI(const LabViewInteraction& interaction) {
     int item = 0;
     for (auto& provider : _self->providerNames) {
         const bool is_selected = (_self->selectedProvider == item);
-        if (ImGui::Selectable(provider.c_str()), is_selected) {
+        if (ImGui::Selectable(provider.c_str(), is_selected)) {
             _self->selectedProvider = item;
         }
         if (is_selected)
