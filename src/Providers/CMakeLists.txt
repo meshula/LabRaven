@@ -1,5 +1,6 @@
 
 add_subdirectory(Color)
+add_subdirectory(Selection)
 add_subdirectory(Texture)
 
 if(APPLE)

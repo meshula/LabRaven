@@ -21,11 +21,6 @@ target_sources(${PROJECT_NAME}
     resources/fonts/embedded_font.inc
 )
 
-# add HAVE_NO_USD preprocessor directive
-if (NOT USD_FOUND)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_NO_USD)
-endif()
-
 if(APPLE)
   target_sources(${PROJECT_NAME} PUBLIC 
     Lab/main_macos.mm

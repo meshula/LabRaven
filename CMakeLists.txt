@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.26)
 
+if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
+  message(
+    FATAL_ERROR
+      "CMake generation is not allowed within the source directory!")
+endif()
+
+
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
 include(CheckLanguage)
 include(MetalShaderSupport)
@@ -57,7 +64,7 @@ option(HAVE_OPENUSD "Enable OpenUSD support" OFF)
 if (HAVE_OPENUSD)
     find_package(pxr QUIET)
     if (pxr_FOUND)
-        message(STATUS "OpenUSD support enabled, using pxr package found at ${Pxr_DIR}")
+        message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
     else()
         message(FATAL_ERROR "OpenUSD support is enabled, but the pxr package was not found. Please set the Pxr_DIR to point to the root of the USD installation.")
     endif()
@@ -100,6 +107,10 @@ if(WIN32)
     )
 endif()
 
+# add HAVE_OPENUSD set to 1 to the compile definitions
+if (NOT HAVE_OPENUSD)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_NO_USD)
+endif()
 
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
