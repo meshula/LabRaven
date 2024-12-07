@@ -97,7 +97,7 @@ UsdSessionLayer::Self::Self(Model* model)
     _stageSceneIndex = sceneIndices.stageSceneIndex;
     _model->AddSceneIndexBase(sceneIndices.finalSceneIndex);
 
-    _SetEmptyStage();
+    //_SetEmptyStage(); /// @TODO was this in the original code? why wipe out the stage?
 }
 
 UsdSessionLayer::~UsdSessionLayer() {}

@@ -235,7 +235,6 @@ private:
 
         add_process({toInt(Process::Saving), "saving",
             [this]() {
-                        printf("Entering saving\n");
                         auto fdm = LabApp::instance()->fdm();
                         req = fdm->PopOpenedFile(pendingFile);
                         switch (req.status) {

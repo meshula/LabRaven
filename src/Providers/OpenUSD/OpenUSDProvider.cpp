@@ -25,6 +25,7 @@
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/usd/sdf/types.h>
 #include <pxr/usd/usd/attribute.h>
+#include <pxr/usd/usd/debugCodes.h>
 #include <pxr/usd/usdGeom/basisCurves.h>
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/capsule.h>
@@ -60,7 +61,6 @@ struct OpenUSDProvider::Self {
 
     // things related to the templating utility
     pxr::UsdStageRefPtr templateStage;
-
     int stage_generation = 0;
 
     // list of all the schema types, and a string buffer for dear ImGui
@@ -119,11 +119,11 @@ OpenUSDProvider::~OpenUSDProvider()
 }
 
 void OpenUSDProvider::SetEmptyStage() {
+    PXR_NS::TfDebug::SetDebugSymbolsByName("USD_STAGE_LIFETIMES", true);
     self->SetEmptyStage();
     LoadStage("");
     auto stage = Stage();
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
-    printf("Default prim path %s\n", primPath.GetString().c_str());
     CreateCube({0,0,0});
 }
 
@@ -1148,18 +1148,18 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
             UsdGeomScope labScope = UsdGeomScope::Define(stage, SdfPath("/Lab"));
             stage->SetDefaultPrim(labScope.GetPrim());
             stage->SetEditTarget(rootLayer);
-
-            pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
-            printf("Default prim path %s\n", primPath.GetString().c_str());
         }
     }
     if (stage) {
         self->stage_generation++;
-        auto pseudoRoot = stage->GetPseudoRoot();
-        printf("Pseudo root path: %s\n", pseudoRoot.GetPath().GetString().c_str());
-        for (auto const& c : pseudoRoot.GetChildren())
-        {
-            printf("\tChild path: %s\n", c.GetPath().GetString().c_str());
+        constexpr bool testLoad = false;
+        if (testLoad) {
+            auto pseudoRoot = stage->GetPseudoRoot();
+            printf("Pseudo root path: %s\n", pseudoRoot.GetPath().GetString().c_str());
+            for (auto const& c : pseudoRoot.GetChildren())
+            {
+                printf("\tChild path: %s\n", c.GetPath().GetString().c_str());
+            }
         }
 
         self->model.reset(new Model());
