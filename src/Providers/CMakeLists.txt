@@ -1,6 +1,8 @@
 
+add_subdirectory(Assets)
 add_subdirectory(Color)
 add_subdirectory(Selection)
+add_subdirectory(Sprite)
 add_subdirectory(Texture)
 
 if(APPLE)

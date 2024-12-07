@@ -9,6 +9,8 @@
 #ifndef MetalProvider_h
 #define MetalProvider_h
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 #define LMR_EXTERN extern "C"
 #else
@@ -68,5 +70,28 @@
 
 void* LabGetEncodedTexture(int texture);
 void LabReleaseEncodedTexture(void* texture);
+
+
+LMR_EXTERN
+int LabCreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels);
+
+LMR_EXTERN
+int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels);
+
+LMR_EXTERN
+int LabCreateRGBAf32Texture(int width, int height, uint8_t* rgba_pixels);
+
+LMR_EXTERN
+int LabCreateYf32Texture(int width, int height, uint8_t* rgba_pixels);
+
+LMR_EXTERN
+void LabRemoveTexture(int texture);
+
+LMR_EXTERN
+void* LabTextureHardwareHandle(int texture);
+
+typedef struct {
+    int texture;
+} LabTextureHandle;
 
 #endif /* MetalResources_h */

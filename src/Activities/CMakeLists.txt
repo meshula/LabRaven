@@ -11,6 +11,7 @@ add_subdirectory(Timeline)
 
 if (HAVE_OPENUSD)
     add_subdirectory(OpenUSD)
+    add_subdirectory(UsdOutliner)
 endif()
 
 # if ACTIVITIES is empty, report that.

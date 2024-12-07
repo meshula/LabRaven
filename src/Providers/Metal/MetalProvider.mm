@@ -378,3 +378,47 @@ void LabReleaseEncodedTexture(void* texture) {
     }
     [provider RemoveMTLTexture:txt];
 }
+
+
+extern "C"
+int LabCreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels) {
+    if (gLabMetalProvider)
+        return [gLabMetalProvider CreateRGBA8Texture:width height:height rgba_pixels:rgba_pixels];
+    return 0;
+}
+
+extern "C"
+int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels) {
+    if (gLabMetalProvider)
+        return [gLabMetalProvider CreateRGBAf16Texture:width height:height rgba_pixels:rgba_pixels];
+    return 0;
+}
+
+extern "C"
+int LabCreateRGBAf32Texture(int width, int height, uint8_t* rgba_pixels) {
+    if (gLabMetalProvider)
+        return [gLabMetalProvider CreateRGBAf32Texture:width height:height rgba_pixels:rgba_pixels];
+    return 0;
+}
+
+extern "C"
+int LabCreateYf32Texture(int width, int height, uint8_t* rgba_pixels) {
+    if (gLabMetalProvider)
+        return [gLabMetalProvider CreateYf32Texture:width height:height rgba_pixels:rgba_pixels];
+    return 0;
+}
+
+extern "C"
+void LabRemoveTexture(int texture) {
+    if (gLabMetalProvider)
+        [gLabMetalProvider RemoveTexture:texture];
+}
+
+extern "C"
+void* LabTextureHardwareHandle(int texture) {
+    if (!gLabMetalProvider)
+        return nullptr;
+    
+    id<MTLTexture> tx = [gLabMetalProvider Texture:texture];
+    return (__bridge void*)tx;
+}
