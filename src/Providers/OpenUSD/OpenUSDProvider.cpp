@@ -1128,6 +1128,14 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
 
     UsdStageRefPtr loadedStage = UsdStage::Open(filePath);
     if (loadedStage) {
+
+        auto pseudoRoot = loadedStage->GetPseudoRoot();
+        printf("Pseudo root path: %s\n", pseudoRoot.GetPath().GetString().c_str());
+        for (auto const& c : pseudoRoot.GetChildren())
+        {
+            printf("\tChild path: %s\n", c.GetPath().GetString().c_str());
+        }
+
         self->model.reset(new Model());
         self->model->SetStage(loadedStage);
         self->layer.reset(new UsdSessionLayer(self->model.get()));

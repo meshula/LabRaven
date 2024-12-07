@@ -59,7 +59,6 @@ private:
 
         add_process({toInt(Process::Opening), "opening",
             [this]() {
-                        printf("Entering opening\n");
                         auto fdm = LabApp::instance()->fdm();
                         req = fdm->PopOpenedFile(pendingFile);
                         switch (req.status) {
