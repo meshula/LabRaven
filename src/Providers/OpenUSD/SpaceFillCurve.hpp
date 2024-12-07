@@ -569,6 +569,7 @@ template <typename intcode_t> DMC_DECL intcode_t toSFCurveCode(i3vec x, SFCurveT
     case CURVE_RASTER: return toSFCurveCode<intcode_t, CURVE_RASTER>(x);
     case CURVE_BOUSTRO: return toSFCurveCode<intcode_t, CURVE_BOUSTRO>(x);
     case CURVE_TILED2: return toSFCurveCode<intcode_t, CURVE_TILED2>(x);
+    case CURVE_COUNT: break; // quiet warning
     }
     return 0;
 }
@@ -580,6 +581,7 @@ template <typename intcode_t> DMC_DECL i3vec toSFCurveCoords(intcode_t x, SFCurv
     case CURVE_RASTER: return toSFCurveCoords<intcode_t, CURVE_RASTER>(x);
     case CURVE_BOUSTRO: return toSFCurveCoords<intcode_t, CURVE_BOUSTRO>(x);
     case CURVE_TILED2: return toSFCurveCoords<intcode_t, CURVE_TILED2>(x);
+    case CURVE_COUNT: break; // quiet warning
     }
     return i3vec(0);
 }

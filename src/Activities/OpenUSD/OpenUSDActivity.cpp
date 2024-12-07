@@ -122,6 +122,9 @@ public:
 
     static constexpr int toInt(Process p) { return static_cast<int>(p); }
 
+    void ReferenceLayer() {
+        emit_event("file_open_request", toInt(Process::OpenRequest));
+    }
 
 private:
     int pendingFile = 0;
@@ -437,16 +440,17 @@ void OpenUSDActivity::Menu() {
         std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
         auto stage = usd->Stage();
         if (!stage) {
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); // Adjust alpha to make it look disabled
+            // Adjust alpha to make it look disabled
+            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
         }
         static bool at_hit_point = true;
         if (ImGui::MenuItem("Reference a Layer ...")) {
             _self->referenceLayerModule.instance = false;
-            _self->referenceLayerModule.emit_event("layer_reference_requeset", 0);
+            _self->referenceLayerModule.emit_event("layer_reference_request", 0);
         }
         if (ImGui::MenuItem("Instance a Layer ...")) {
             _self->referenceLayerModule.instance = true;
-            _self->referenceLayerModule.emit_event("layer_reference_requeset", 0);
+            _self->referenceLayerModule.emit_event("layer_reference_request", 0);
         }
 
         ImGui::Indent(60);

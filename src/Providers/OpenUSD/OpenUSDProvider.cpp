@@ -61,6 +61,8 @@ struct OpenUSDProvider::Self {
     // things related to the templating utility
     pxr::UsdStageRefPtr templateStage;
 
+    int stage_generation = 0;
+
     // list of all the schema types, and a string buffer for dear ImGui
     std::set<TfType> schemaTypes;
     std::map<std::string, TfType> primTypes;
@@ -92,7 +94,9 @@ struct OpenUSDProvider::Self {
     }
 
     ~Self() {
-        SetEmptyStage();
+        engine.reset();
+        layer.reset();
+        model.reset();
     }
 
     void SetEmptyStage() {
@@ -116,6 +120,11 @@ OpenUSDProvider::~OpenUSDProvider()
 
 void OpenUSDProvider::SetEmptyStage() {
     self->SetEmptyStage();
+    LoadStage("");
+    auto stage = Stage();
+    pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
+    printf("Default prim path %s\n", primPath.GetString().c_str());
+    CreateCube({0,0,0});
 }
 
 UsdStageRefPtr OpenUSDProvider::Stage() const {
@@ -1117,19 +1126,36 @@ pxr::SdfPath OpenUSDProvider::CreatePrimShape(const std::string& shape,
 
 void OpenUSDProvider::LoadStage(std::string const& filePath)
 {
-    if (UsdStage::IsSupportedFile(filePath))
-    {
-        printf("File format supported: %s\n", filePath.c_str());
+    UsdStageRefPtr stage;
+    if (filePath.length()) {
+        if (UsdStage::IsSupportedFile(filePath))
+        {
+            printf("File format supported: %s\n", filePath.c_str());
+        }
+        else {
+            fprintf(stderr, "%s : File format not supported\n", filePath.c_str());
+            return;
+        }
+        stage = UsdStage::Open(filePath, UsdStage::LoadAll);
     }
     else {
-        fprintf(stderr, "%s : File format not supported\n", filePath.c_str());
-        return;
+        stage = pxr::UsdStage::CreateInMemory();
+        if (stage) {
+            UsdGeomSetStageUpAxis(stage, pxr::UsdGeomTokens->y);
+
+            auto rootLayer = stage->GetRootLayer();
+
+            UsdGeomScope labScope = UsdGeomScope::Define(stage, SdfPath("/Lab"));
+            stage->SetDefaultPrim(labScope.GetPrim());
+            stage->SetEditTarget(rootLayer);
+
+            pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
+            printf("Default prim path %s\n", primPath.GetString().c_str());
+        }
     }
-
-    UsdStageRefPtr loadedStage = UsdStage::Open(filePath);
-    if (loadedStage) {
-
-        auto pseudoRoot = loadedStage->GetPseudoRoot();
+    if (stage) {
+        self->stage_generation++;
+        auto pseudoRoot = stage->GetPseudoRoot();
         printf("Pseudo root path: %s\n", pseudoRoot.GetPath().GetString().c_str());
         for (auto const& c : pseudoRoot.GetChildren())
         {
@@ -1137,7 +1163,7 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
         }
 
         self->model.reset(new Model());
-        self->model->SetStage(loadedStage);
+        self->model->SetStage(stage);
         self->layer.reset(new UsdSessionLayer(self->model.get()));
         self->gridSceneIndex = GridSceneIndex::New();
         self->model->AddSceneIndexBase(self->gridSceneIndex);
@@ -1148,9 +1174,6 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
         self->engine.reset(new Engine(self->model->GetFinalSceneIndex(), plugin));
     }
     else {
-        self->engine.reset();
-        self->layer.reset();
-        self->model.reset();
         fprintf(stderr, "Stage was not loaded at %s\n", filePath.c_str());
     }
 }
