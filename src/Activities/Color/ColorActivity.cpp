@@ -805,8 +805,6 @@ CMFMatch match10[] = {
 
 // The plotting function for ImGui/ImPlot
 void ShowSensitivityPlot() {
-    ImGui::Begin("Sensitivity Plot");
-
     if (ImPlot::BeginPlot("Photoreceptor Sensitivity",
                           ImVec2(-1, -1), ImPlotFlags_NoLegend)) {
         ImPlot::SetupLegend(ImPlotLocation_NorthEast,
@@ -841,7 +839,6 @@ void ShowSensitivityPlot() {
 
         ImPlot::EndPlot();
     }
-    ImGui::End();
 }
 
 
@@ -868,21 +865,23 @@ CMFMatch interpolateCMF(const CMFMatch* data, int count, double wavelength) {
 
 // Function to plot the 10-degree CMF data
 void ShowColorMatchPlot10Degree(const CMFMatch* data, int count) {
-    ImGui::Begin("10-Degree CMF Plot");
     if (ImPlot::BeginPlot("CIE 1964 10-degree CMF",
                           ImVec2(-1, -1), ImPlotFlags_NoLegend)) {
         ImPlot::SetupLegend(ImPlotLocation_NorthEast, ImPlotLegendFlags_None);
         ImPlot::SetupAxes("Wavelength (nm)", "Matching Function");
         //ImPlotLegendFlags_Outside);
 
-        static double lambda_vals[100];   // X-axis: wavelengths
-        static double x_vals[100];        // Y-axis: x-bar
-        static double y_vals[100];        // Y-axis: y-bar
-        static double z_vals[100];        // Y-axis: z-bar
+        static double lambda_vals[101];   // X-axis: wavelengths
+        static double x_vals[101];        // Y-axis: x-bar
+        static double y_vals[101];        // Y-axis: y-bar
+        static double z_vals[101];        // Y-axis: z-bar
 
         // Fill data arrays using interpolation
-        for (int i = 0; i < 100; ++i) {
-            double lambda = 390 + i * 3.1;  // Sampling from 390nm to 700nm
+
+        lambda_vals[0] = 380;
+        x_vals[0] = y_vals[0] = z_vals[0] = 0.f;
+        for (int i = 1; i < 101; ++i) {
+            double lambda = 390 + (i-1) * 3.1;  // Sampling from 390nm to 700nm
             lambda_vals[i] = lambda;
             CMFMatch interpolated = interpolateCMF(data, count, lambda);
             x_vals[i] = interpolated.x;  // x-bar
@@ -904,6 +903,24 @@ void ShowColorMatchPlot10Degree(const CMFMatch* data, int count) {
 
         ImPlot::EndPlot();
     }
+}
+
+void ShowPhotometricSensitivity() {
+    ImGui::Begin("Photometric Sensitivity");
+    static bool showSenstivity = true;
+    
+    if (ImGui::BeginTabBar("###Photometric Sensitivity", ImGuiTabBarFlags_NoTabListScrollingButtons)) {
+        if (ImGui::BeginTabItem("Photoreceptor Sensitivity")) {
+            ShowSensitivityPlot();
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("10-Degree CMF Plot")) {
+            ShowColorMatchPlot10Degree(match10, sizeof(match10)/sizeof(CMFMatch));
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+
     ImGui::End();
 }
 
@@ -1230,8 +1247,7 @@ void ColorActivity::RunUI(const LabViewInteraction&)
     }
     ImGui::End();
 
-    ShowSensitivityPlot();
-    ShowColorMatchPlot10Degree(match10, sizeof(match10)/sizeof(CMFMatch));
+    ShowPhotometricSensitivity();
     _self->PlotSpectralLocus(match10, sizeof(match10)/sizeof(CMFMatch));
     PlotSpectralResponseCurve(match10, sizeof(match10)/sizeof(CMFMatch));
 }
