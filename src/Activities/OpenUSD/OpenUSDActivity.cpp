@@ -13,6 +13,7 @@
 #include "Lab/LabFileDialogManager.hpp"
 #include "Lab/LabDirectories.h"
 #include "Activities/Console/ConsoleActivity.hpp"
+#include "UsdOutlinerActivity.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include <pxr/usd/usd/prim.h>
 
@@ -335,6 +336,10 @@ OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
     _self->loadStageModule.Register();
     _self->exportStageModule.Register();
     _self->referenceLayerModule.Register();
+
+    auto orchestrator = Orchestrator::Canonical();
+    orchestrator->RegisterActivity<UsdOutlinerActivity>(
+        [](){ return std::make_shared<UsdOutlinerActivity>(); });
 }
 
 OpenUSDActivity::~OpenUSDActivity() {

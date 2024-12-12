@@ -877,16 +877,19 @@ void ShowColorMatchPlot10Degree(const CMFMatch* data, int count) {
         static double z_vals[101];        // Y-axis: z-bar
 
         // Fill data arrays using interpolation
-
-        lambda_vals[0] = 380;
-        x_vals[0] = y_vals[0] = z_vals[0] = 0.f;
-        for (int i = 1; i < 101; ++i) {
-            double lambda = 390 + (i-1) * 3.1;  // Sampling from 390nm to 700nm
-            lambda_vals[i] = lambda;
-            CMFMatch interpolated = interpolateCMF(data, count, lambda);
-            x_vals[i] = interpolated.x;  // x-bar
-            y_vals[i] = interpolated.y;  // y-bar
-            z_vals[i] = interpolated.z;  // z-bar
+        static bool must_fill = true;
+        if (must_fill) {
+            lambda_vals[0] = 380;
+            x_vals[0] = y_vals[0] = z_vals[0] = 0.f;
+            for (int i = 1; i < 101; ++i) {
+                double lambda = 390 + (i-1) * 3.1;  // Sampling from 390nm to 700nm
+                lambda_vals[i] = lambda;
+                CMFMatch interpolated = interpolateCMF(data, count, lambda);
+                x_vals[i] = interpolated.x;  // x-bar
+                y_vals[i] = interpolated.y;  // y-bar
+                z_vals[i] = interpolated.z;  // z-bar
+            }
+            must_fill = false;
         }
 
         // Force red color for x-bar (X)
