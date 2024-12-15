@@ -51,6 +51,8 @@ set_property(GLOBAL PROPERTY PLUGINS_LIST "")
 get_property(PLUGINS GLOBAL PROPERTY PLUGINS_LIST)
 set_property(GLOBAL PROPERTY METAL_SHADERS_LIST "")
 get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
+set_property(GLOBAL PROPERTY STUDIO_LIST "")
+get_property(STUDIOS GLOBAL PROPERTY STUDIO_LIST)
 
 add_subdirectory(Activities)
 add_subdirectory(Providers)
@@ -81,6 +83,12 @@ if (NOT PROVIDERS)
     message(FATAL_ERROR "Lab: No providers found")
 endif()
 
+# if STUDIOS is empty, report that.
+get_property(STUDIOS GLOBAL PROPERTY STUDIOS_LIST)
+if (NOT STUDIOS)
+    message(FATAL_ERROR "Lab: No studios found")
+endif()
+
 set(ACTIVITY_INCLUDES "")
 foreach(activity ${ACTIVITIES})
     string(APPEND ACTIVITY_INCLUDES "#include \"Activities/${activity}/${activity}Activity.hpp\"\n")
@@ -105,15 +113,29 @@ foreach(provider ${PROVIDERS})
     string(APPEND PROVIDER_INCLUDES "#include \"Providers/${provider}/${provider}Provider.hpp\"\n")
 endforeach()
 
+set(STUDIO_REGISTRATION "")
+# List all studios
+foreach(studio ${STUDIOS})
+    string(APPEND STUDIO_REGISTRATION 
+           "    orchestrator.RegisterStudio<${studio}Studio>([](){ return std::make_shared<${studio}Studio>(); });\n")
+endforeach()
+
+set(STUDIO_INCLUDES "")
+foreach(studio ${STUDIOS})
+    string(APPEND STUDIO_INCLUDES "#include \"Studios/${studio}/${studio}Studio.hpp\"\n")
+endforeach()
+
 # Write the generated code to a file
 file(WRITE "${CMAKE_BINARY_DIR}/RegisterAllActivities.cpp" "
 #include \"Lab/StudioCore.hpp\"
 ${ACTIVITY_INCLUDES}
 ${PROVIDER_INCLUDES}
+${STUDIO_INCLUDES}
 using namespace lab;
 void RegisterAllActivities(Orchestrator& orchestrator) {
 ${ACTIVITY_REGISTRATION}
 ${PROVIDER_REGISTRATION}
+${STUDIO_REGISTRATION}
 }
 ")
 

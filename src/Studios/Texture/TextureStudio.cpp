@@ -7,14 +7,10 @@
 //
 
 #include "TextureStudio.hpp"
-#include "Activities/Color/ColorActivity.hpp"
-//#include "Activities/Texture/TextureActivity.hpp"
 #include <iostream>
 
 namespace lab {
 struct TextureStudio::data {
-    std::weak_ptr<lab::ColorActivity> colourMM;
- //   std::weak_ptr<lab::TextureActivity> textureMM;
     bool restoreTm = false;
 };
 
@@ -27,7 +23,7 @@ TextureStudio::~TextureStudio() {
 }
 
 static const std::vector<std::string> modes = {
-    "Colour",
+    "Color",
     "Texture",
 };
 

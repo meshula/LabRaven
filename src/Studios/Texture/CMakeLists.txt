@@ -1,4 +1,7 @@
 
+get_property(STUDIOS GLOBAL PROPERTY STUDIOS_LIST)
+set_property(GLOBAL PROPERTY STUDIOS_LIST "${STUDIOS};Texture")
+
 set(TEXTURE_SRCS
     TextureStudio.cpp
     TextureStudio.hpp

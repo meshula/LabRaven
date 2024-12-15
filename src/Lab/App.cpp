@@ -158,7 +158,7 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
                 auto menuName = m + "###St";
                 auto studio = mm.FindStudio(m);
                 if (studio) {
-                    bool active = mm.CurrentStudio()->Name() == m;
+                    bool active = studio->Name() == curr;
                     if (ImGui::MenuItem(menuName.c_str(), nullptr, active, true)) {
                         if (!active)
                             mm.ActivateStudio(m);
