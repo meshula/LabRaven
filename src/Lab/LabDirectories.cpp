@@ -131,7 +131,7 @@ const char* lab_application_executable_path(const char * argv0)
 }
 
 extern "C"
-const char* lab_application_preferences_path(const char* fallbackName) {
+const char* lab_application_preferences_path(const char* prefFileName) {
     static std::string path;
     if (path.size() > 0)
         return path.c_str();
@@ -168,8 +168,6 @@ const char* lab_application_preferences_path(const char* fallbackName) {
     if (bundleIdentifierCString[0] != '\0') {
         path += bundleIdentifierCString;
         printf("Bundle Identifier: %s\n", bundleIdentifierCString);
-    } else if (fallbackName) {
-        path += fallbackName;
     } else {
         std::cerr << "Error: No valid bundle identifier or fallback name provided." << std::endl;
         return nullptr;
@@ -183,6 +181,8 @@ const char* lab_application_preferences_path(const char* fallbackName) {
         return nullptr;
     }
 
+    if (prefFileName)
+        path += prefFileName;
     return path.c_str();
 }
 
