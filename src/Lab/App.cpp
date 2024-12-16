@@ -153,16 +153,20 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
         if (curr == "Empty")
             curr = "Welcome";
         auto menuName = curr + "###St";
+        int menuIdx = 0;
         if (ImGui::BeginMenu(menuName.c_str())) {
             for (auto m : studioNames) {
-                auto menuName = m + "###St";
                 auto studio = mm.FindStudio(m);
                 if (studio) {
+                    ptrdiff_t id = (ptrdiff_t) this;
+                    id += menuIdx;
+                    ImGui::PushID((int) id);
                     bool active = studio->Name() == curr;
-                    if (ImGui::MenuItem(menuName.c_str(), nullptr, active, true)) {
+                    if (ImGui::MenuItem(m.c_str(), nullptr, active, true)) {
                         if (!active)
                             mm.ActivateStudio(m);
                     }
+                    ImGui::PopID();
                 }
             }
             if (studioNames.size() > 1)

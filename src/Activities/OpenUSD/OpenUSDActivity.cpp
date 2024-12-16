@@ -14,6 +14,7 @@
 #include "Lab/LabDirectories.h"
 #include "Activities/Console/ConsoleActivity.hpp"
 #include "UsdOutlinerActivity.hpp"
+#include "TfDebugActivity.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include <pxr/usd/usd/prim.h>
 
@@ -340,6 +341,8 @@ OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
     auto orchestrator = Orchestrator::Canonical();
     orchestrator->RegisterActivity<UsdOutlinerActivity>(
         [](){ return std::make_shared<UsdOutlinerActivity>(); });
+    orchestrator->RegisterActivity<DebuggerActivity>(
+        [](){ return std::make_shared<DebuggerActivity>(); });
 }
 
 OpenUSDActivity::~OpenUSDActivity() {

@@ -11,7 +11,6 @@
 
 namespace lab {
 struct TextureStudio::data {
-    bool restoreTm = false;
 };
 
 TextureStudio::TextureStudio() : Studio() {
@@ -22,13 +21,13 @@ TextureStudio::~TextureStudio() {
     delete _self;
 }
 
-static const std::vector<std::string> modes = {
+static const std::vector<std::string> activities = {
     "Color",
     "Texture",
 };
 
 const std::vector<std::string>& TextureStudio::StudioConfiguration() const {
-    return modes;
+    return activities;
 }
 
 } // lab
