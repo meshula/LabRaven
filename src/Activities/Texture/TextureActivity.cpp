@@ -8,6 +8,7 @@
 
 #include "TextureActivity.hpp"
 #include "Lab/App.h"
+#include "Lab/CSP.hpp"
 #include "Lab/LabDirectories.h"
 #include "Lab/LabFileDialogManager.hpp"
 #include "Providers/Color/ColorProvider.hpp"
@@ -38,6 +39,7 @@ namespace {
     std::map<int, LabImageData_t> loadedTextureMap;
     std::map<ImTextureID, int> loadedTextureMapReverse;
     std::map<std::string, Texture> hardwareTextures;
+    vector<string> texture_names;
 }
 
 Texture LoadTexture(const char *path) {
@@ -62,6 +64,8 @@ Texture LoadTexture(const char *path) {
         loadedTextureMap[i] = *tex;
         loadedTextureMapReverse[ret.texture] = i;
         hardwareTextures[path] = ret;
+
+        texture_names.push_back(path);
     }
     return ret;
 }
@@ -115,14 +119,108 @@ bool BackEnd_GetData(Inspector* inspector, ImTextureID texture,
 
 namespace lab {
 
+class LoadTextureModule : public CSP_Module {
+public:
+    LoadTextureModule(CSP_Engine& engine)
+        : CSP_Module(engine, "LoadTextureModule")
+    {
+    }
+
+    enum class Process : int {
+        LoadRequest = 100,
+        Loading,
+        Error,
+        LoadFile,
+        Idle
+    };
+
+    static constexpr int toInt(Process p) { return static_cast<int>(p); }
+
+    void LoadTexture() {
+        emit_event("file_load_request", toInt(Process::LoadRequest));
+    }
+
+private:
+    int pendingFile = 0;
+    FileDialogManager::FileReq req;
+
+    virtual void initialize_processes() override {
+        add_process({toInt(Process::LoadRequest), "file_load_request",
+            [this]() {
+                printf("Entering file_load_request\n");
+                auto fdm = LabApp::instance()->fdm();
+                const char* dir = lab_pref_for_key("LoadTextureDir");
+                pendingFile = fdm->RequestOpenFile(
+                    {"png","jpg","jpeg","tga","bmp","gif","hdr","exr","pfm"},
+                    dir? dir: ".");
+                this->emit_event("loading", toInt(Process::Loading));
+            }});
+
+        add_process({toInt(Process::Loading), "loading",
+            [this]() {
+                auto fdm = LabApp::instance()->fdm();
+                req = fdm->PopOpenedFile(pendingFile);
+                switch (req.status) {
+                    case FileDialogManager::FileReq::notReady:
+                        this->emit_event("loading", toInt(Process::Loading)); // continue polling
+                        break;
+                    case FileDialogManager::FileReq::expired:
+                    case FileDialogManager::FileReq::canceled:
+                        this->emit_event("file_error", toInt(Process::Error));
+                        break;
+                    default:
+                        this->emit_event("file_load_success", toInt(Process::LoadFile));
+                        break;
+                }
+            }});
+
+        add_process({toInt(Process::Error), "file_error",
+            [this]() {
+                printf("Entering file_error\n");
+                std::cout << "Error: Failed to open file. Returning to Ready...\n";
+                this->emit_event("idle", toInt(Process::Idle));
+            }});
+
+        add_process({toInt(Process::LoadFile), "file_load_success",
+            [this]() {
+                printf("Entering file_load_success\n");
+                auto fdm = LabApp::instance()->fdm();
+                auto path = req.path.c_str();
+                auto tc = TextureCache::instance();
+                auto img = ImGuiTexInspect::LoadTexture(req.path.c_str());
+                if (img.texture >= 0) {
+                    printf("Loaded texture %s\n", path);
+                    // get the directory of path and save it as the default
+                    std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
+                    lab_set_pref_for_key("LoadTextureDir", dir.c_str());
+                }
+                else {
+                    printf("Failed to load texture %s\n", path);
+                }
+                this->emit_event("idle", toInt(Process::Idle));
+            }});
+
+        add_process({toInt(Process::Idle), "idle", []() {
+            printf("Entering idle\n");
+        }});
+    }
+};
+
 struct TextureActivity::data {
     int utility_preset_index = 0;
     int cache_selected_texture_index = 0;
     int pending_file = -1; // file dialog manager id for in flight requests
-    vector<string> texture_names;
     std::once_flag init;
-    bool run_open_file = false;
     ImGuiTexInspect::Texture focussedTexture;
+    LoadTextureModule loadTextureModule;
+    CSP_Engine engine;
+
+    data() : loadTextureModule(engine) {
+        engine.run();
+        loadTextureModule.Register();
+    }
+
+    ~data() = default;
 };
 
 TextureActivity::TextureActivity()
@@ -163,29 +261,29 @@ void TextureActivity::RunTextureCachePanel() {
     ImGui::Begin("Loaded textures##tcp");
     ImVec2 windowSize = ImGui::GetWindowSize();
 
-    if (_self->cache_selected_texture_index >= 0 && _self->texture_names.size() > 0) {
+    if (_self->cache_selected_texture_index >= 0 && ImGuiTexInspect::texture_names.size() > 0) {
         if (ImGui::Button("Inspect")) {
             _self->focussedTexture =
-                ImGuiTexInspect::LoadTexture(_self->texture_names[_self->cache_selected_texture_index].c_str());
+            ImGuiTexInspect::LoadTexture(ImGuiTexInspect::texture_names[_self->cache_selected_texture_index].c_str());
         }
     }
-    else if (_self->texture_names.size()) {
+    else if (ImGuiTexInspect::texture_names.size()) {
         if (ImGui::Button("Select a texture")) {
             _self->cache_selected_texture_index = 0;
         }
     }
     else {
         if (ImGui::Button("Load a texture")) {
-            _self->run_open_file = true;
+            _self->loadTextureModule.LoadTexture();
         }
     }
 
     windowSize.x = -FLT_MIN;
     windowSize.y = 0;
     if (ImGui::BeginListBox("###TextureCacheList", windowSize)) {
-        for (size_t n = 0; n < _self->texture_names.size(); n++) {
+        for (size_t n = 0; n < ImGuiTexInspect::texture_names.size(); n++) {
             const bool is_selected = (_self->cache_selected_texture_index == n);
-            if (ImGui::Selectable(_self->texture_names[n].c_str(), is_selected))
+            if (ImGui::Selectable(ImGuiTexInspect::texture_names[n].c_str(), is_selected))
                 _self->cache_selected_texture_index = (int) n;
 
             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -415,6 +513,7 @@ void TextureActivity::RunUI(const LabViewInteraction&)
 
 void TextureActivity::Update()
 {
+    #if 0
     auto fdm = LabApp::instance()->fdm();
     auto tc = TextureCache::instance();
 
@@ -454,13 +553,14 @@ void TextureActivity::Update()
             } while(false);
         }
     }
+    #endif
 }
 
 
 void TextureActivity::Menu() {
     if (ImGui::BeginMenu("Textures")) {
         if (ImGui::MenuItem("Load Texture...")) {
-            _self->run_open_file = true;
+            _self->loadTextureModule.LoadTexture();
         }
 
         if (ImGui::MenuItem("Export Texture Cache")) {
