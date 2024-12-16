@@ -37,9 +37,6 @@ namespace lab {
             return;
     
         // draw the debugger
-        // set the initial size and position
-        ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
         static std::vector<std::string> debugStrings = PXR_NS::TfDebug::GetDebugSymbolNames();
         ImGui::Begin("TfDebugger", &_self->ui_visible);
         for (auto& s : debugStrings) {

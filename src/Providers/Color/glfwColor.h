@@ -1,5 +1,6 @@
 #ifndef PROVIDERS_COLOR_GLFWCOLOR_H
 #define PROVIDERS_COLOR_GLFWCOLOR_H
+#import <AppKit/AppKit.h>
 
 /*
     Sets the color space of the supplied GLFWwindow to the named color space.
@@ -47,5 +48,8 @@ class GLFWwindow;
 bool SetGLFWColorEnvironment(GLFWwindow* window,
                              const char* nanoColorNamedColorSpace,
                              ProviderFramebufferFormat format);
+bool SetNSWindowColorEnvironment(NSWindow* nsWindow,
+                                 const char* nanoColorNamedColorSpace,
+                                 ProviderFramebufferFormat format);
 
 #endif // PROVIDERS_COLOR_GLFWCOLOR_H

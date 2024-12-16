@@ -108,6 +108,12 @@ bool SetGLFWColorEnvironment(GLFWwindow* glfWindow,
                              const char* nanoColorNamedColorSpace,
                              ProviderFramebufferFormat format) {
     NSWindow* nsWindow = (NSWindow*)glfwGetCocoaWindow(glfWindow);
+    return SetNSWindowColorEnvironment(nsWindow, nanoColorNamedColorSpace, format);
+}
+
+bool SetNSWindowColorEnvironment(NSWindow* nsWindow,
+                             const char* nanoColorNamedColorSpace,
+                             ProviderFramebufferFormat format) {
     if (!nsWindow) {
         return false;
     }
