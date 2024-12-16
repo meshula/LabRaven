@@ -26,3 +26,6 @@
 [submodule "ext/libzmq"]
 	path = ext/libzmq
 	url = https://github.com/zeromq/libzmq
+[submodule "ext/LabMidi"]
+	path = ext/LabMidi
+	url = https://github.com/meshula/LabMidi.git

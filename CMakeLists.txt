@@ -72,6 +72,9 @@ if (HAVE_OPENUSD)
     find_package(OpenGL REQUIRED)
 endif()
 
+option(HAVE_MIDI "Enable MIDI support" ON)
+
+#---------------------------------------------------
 # add ext/libzmq as a subdirectory, with EXCLUDE_FROM_ALL.
 # note: EXCLUDE_FROM_ALL is used to indicate that only referenced components
 # should be built.
@@ -177,6 +180,8 @@ include_directories(
 
 GroupSourcesByFolder(${PROJECT_NAME})
 
+add_subdirectory("ext/LabMidi")
+
 set(OTIO_SHARED_LIBS OFF)
 set(BUILD_TESTING OFF)
 add_subdirectory("ext/opentimelineio")
@@ -214,6 +219,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     libzmq-static
     ${PXR_LIBRARIES}
 )
+
+if (HAVE_MIDI)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Lab::Midi)
+endif()
 
 if (APPLE)
     find_library(COREFOUNDATION_LIBRARY CoreFoundation)

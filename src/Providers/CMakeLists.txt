@@ -11,6 +11,9 @@ endif()
 if(HAVE_OPENUSD)
     add_subdirectory(OpenUSD)
 endif()
+if(HAVE_MIDI)
+    add_subdirectory(Midi)
+endif()
 
 # if PROVIDERS is empty, report that.
 get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
