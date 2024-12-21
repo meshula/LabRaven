@@ -29,3 +29,6 @@
 [submodule "ext/LabMidi"]
 	path = ext/LabMidi
 	url = https://github.com/meshula/LabMidi.git
+[submodule "ext/Tilengine"]
+	path = ext/Tilengine
+	url = https://github.com/meshula/Tilengine.git
