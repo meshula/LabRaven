@@ -4,6 +4,7 @@ add_subdirectory(Color)
 add_subdirectory(Selection)
 add_subdirectory(Sprite)
 add_subdirectory(Texture)
+add_subdirectory(Tilengine)
 
 if(APPLE)
     add_subdirectory(Metal)

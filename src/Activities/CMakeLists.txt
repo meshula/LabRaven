@@ -7,6 +7,7 @@ add_subdirectory(Preferences)
 add_subdirectory(Providers)
 add_subdirectory(Test)
 add_subdirectory(Texture)
+add_subdirectory(Tilengine)
 add_subdirectory(Timeline)
 
 if (HAVE_OPENUSD)

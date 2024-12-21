@@ -76,6 +76,9 @@ LMR_EXTERN
 int LabCreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels);
 
 LMR_EXTERN
+void LabUpdateRGBA8Texture(int texture, uint8_t* rgba_pixels);
+
+LMR_EXTERN
 int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels);
 
 LMR_EXTERN

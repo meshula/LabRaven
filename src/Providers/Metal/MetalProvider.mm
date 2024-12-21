@@ -388,6 +388,19 @@ int LabCreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels) {
 }
 
 extern "C"
+void LabUpdateRGBA8Texture(int texture, uint8_t* rgba_pixels) {
+    if (gLabMetalProvider) {
+        id<MTLTexture> txt = [gLabMetalProvider Texture:texture];
+        if (txt) {
+            [txt replaceRegion:MTLRegionMake2D(0, 0, txt.width, txt.height)
+                   mipmapLevel:0
+                     withBytes:rgba_pixels
+                   bytesPerRow:txt.width * 4];
+        }
+    }
+}
+
+extern "C"
 int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels) {
     if (gLabMetalProvider)
         return [gLabMetalProvider CreateRGBAf16Texture:width height:height rgba_pixels:rgba_pixels];
