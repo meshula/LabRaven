@@ -45,6 +45,10 @@ target_include_directories(openexr PUBLIC OpenEXR)
 
 ####################################
 
+add_subdirectory(Tilengine)
+
+####################################
+
 add_library(IMGUI STATIC)
 
 set_property(TARGET IMGUI PROPERTY CXX_STANDARD 14)

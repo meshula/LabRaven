@@ -132,13 +132,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ext
     ext/cppzmq
     ext/libzmq/include
+    ext/Tilengine/include
     Imath::Imath
     ${PXR_INCLUDE_DIRS})
 
 if (APPLE)
     set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/MacOS/plugins")
+    set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/Resources")
 else()
     set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/plugins")
+    set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources")
 endif()
 
 if (APPLE)
@@ -171,8 +174,12 @@ if (APPLE_MAKE_BUNDLE)
     )
 endif()
 
+set_property(GLOBAL PROPERTY RESOURCES_LIST "")
+
 add_subdirectory("src")
 add_subdirectory("ext")
+
+get_property(RESOURCES GLOBAL PROPERTY RESOURCES_LIST)
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/ext/nativefiledialog/src/include
@@ -217,6 +224,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     openexr
     sqlite3
     libzmq-static
+    Tilengine
     ${PXR_LIBRARIES}
 )
 
@@ -256,21 +264,19 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin)
 
 #---------------------------------------------------
-# Plugin support
+# Plugin and Resources support
 #---------------------------------------------------
 # Define paths based on the platform
 
 # Ensure the plugins directory exists
 file(MAKE_DIRECTORY ${PLUGINS_DIR})
+file(MAKE_DIRECTORY ${RESOURCES_DIR})
 
 # List of files to copy to the plugins directory
 set(PLUGIN_FILES
     # "${PROJECT_SOURCE_DIR}/README.md" nb. README is not executable content so it belongs in Resources.
     # Add more files as needed, like config.json, plugin_data.dat
 )
-
-# Ensure the plugins directory exists
-file(MAKE_DIRECTORY ${PLUGINS_DIR})
 
 # List to keep track of copied files
 set(COPIED_FILES)
@@ -287,6 +293,20 @@ foreach(file ${PLUGIN_FILES})
         COMMENT "Copying ${filename} to plugins directory"
     )
     list(APPEND COPIED_FILES "${PLUGINS_DIR}/${filename}")
+endforeach()
+
+# Loop over each file in RESOURCES to copy them
+foreach(file ${RESOURCES})
+    # Extract the filename from the path
+    get_filename_component(filename "${file}" NAME)
+    
+    add_custom_command(
+        OUTPUT "${RESOURCES_DIR}/${filename}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${RESOURCES_DIR}/${filename}"
+        DEPENDS "${file}"
+        COMMENT "Copying ${filename} to resources directory"
+    )
+    list(APPEND COPIED_FILES "${RESOURCES_DIR}/${filename}")
 endforeach()
 
 # Create a custom target that triggers the copy step
