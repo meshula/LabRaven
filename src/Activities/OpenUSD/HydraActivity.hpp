@@ -1,18 +1,18 @@
 //
-//  OpenUSDActivity.hpp
+//  HydraActivity.hpp
 //  LabExcelsior
 //
 //  Created by Domenico Porcino on 1/7/24.
 //  Copyright © 2024 Nick Porcino. All rights reserved.
 //
 
-#ifndef OpenUSDActivity_hpp
-#define OpenUSDActivity_hpp
+#ifndef HydraActivity_hpp
+#define HydraActivity_hpp
 
 #include "Lab/StudioCore.hpp"
 
 namespace lab {
-class OpenUSDActivity : public Activity
+class HydraActivity : public Activity
 {
     struct data;
     data* _self;
@@ -22,11 +22,11 @@ class OpenUSDActivity : public Activity
     void Menu();
 
 public:
-    OpenUSDActivity();
-    virtual ~OpenUSDActivity();
+    HydraActivity();
+    virtual ~HydraActivity();
     virtual const std::string Name() const override { return sname(); }
-    static constexpr const char* sname() { return "OpenUSD"; }
+    static constexpr const char* sname() { return "Hydra"; }
 };
 }
 
-#endif /* OpenUSDActivity_hpp */
+#endif /* HydraActivity_hpp */
