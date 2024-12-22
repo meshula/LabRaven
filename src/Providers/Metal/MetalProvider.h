@@ -54,6 +54,7 @@
 
 
 - (int)CreateRGBA8Texture:(int)width height:(int) height rgba_pixels:(uint8_t*) rgba_pixels;
+- (int)CreateBGRA8Texture:(int)width height:(int) height bgra_pixels:(uint8_t*) bgra_pixels;
 - (int)CreateRGBAf16Texture:(int)width height:(int) height rgba_pixels:(uint8_t*) rgba_pixels;
 - (int)CreateRGBAf32Texture:(int)width height:(int) height rgba_pixels:(uint8_t*) rgba_pixels;
 - (int)CreateYf32Texture:(int)width height:(int) height rgba_pixels:(uint8_t*) rgba_pixels;
@@ -76,7 +77,13 @@ LMR_EXTERN
 int LabCreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels);
 
 LMR_EXTERN
+int LabCreateBGRA8Texture(int width, int height, uint8_t* bgra_pixels);
+
+LMR_EXTERN
 void LabUpdateRGBA8Texture(int texture, uint8_t* rgba_pixels);
+
+LMR_EXTERN
+void LabUpdateBGRA8Texture(int texture, uint8_t* rgba_pixels);
 
 LMR_EXTERN
 int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels);

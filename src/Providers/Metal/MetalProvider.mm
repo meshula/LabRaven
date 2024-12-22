@@ -1,9 +1,10 @@
 
 #import "MetalProvider.h"
 
+
 id<MTLTexture> CreateRGBA8Texture(id<MTLDevice> device, int width, int height,
-                                  uint8_t* rgba8_pixels) {
-    if (!width || !height || !rgba8_pixels)
+                                  uint8_t* pixels) {
+    if (!width || !height || !pixels)
         return nil;
     
     MTLTextureDescriptor *descriptor =
@@ -21,10 +22,39 @@ id<MTLTexture> CreateRGBA8Texture(id<MTLDevice> device, int width, int height,
         return nil;
     }
     
-    if (rgba8_pixels) {
+    if (pixels) {
         [texture replaceRegion:MTLRegionMake2D(0, 0, width, height)
                    mipmapLevel:0
-                     withBytes:rgba8_pixels
+                     withBytes:pixels
+                   bytesPerRow:width * 4];
+    }
+    return texture;
+}
+
+id<MTLTexture> CreateBGRA8Texture(id<MTLDevice> device, int width, int height,
+                                  uint8_t* pixels) {
+    if (!width || !height || !pixels)
+        return nil;
+    
+    MTLTextureDescriptor *descriptor =
+            [MTLTextureDescriptor
+                     texture2DDescriptorWithPixelFormat:MTLPixelFormatBGRA8Unorm
+                     width:width
+                     height:height
+                     mipmapped:NO];
+    descriptor.storageMode = MTLStorageModeShared;
+    descriptor.usage = MTLTextureUsageUnknown;
+    
+    id<MTLTexture> texture = [device newTextureWithDescriptor:descriptor];
+    if (texture == nil) {
+        printf("Could not create a Metal texture of size %d x %d\n", width, height);
+        return nil;
+    }
+    
+    if (pixels) {
+        [texture replaceRegion:MTLRegionMake2D(0, 0, width, height)
+                   mipmapLevel:0
+                     withBytes:pixels
                    bytesPerRow:width * 4];
     }
     return texture;
@@ -271,8 +301,15 @@ static LabMetalProvider* gLabMetalProvider = nil;
     self.commandBuffer = nil;
 }
 
-- (int)CreateRGBA8Texture:(int) width height:(int) height rgba_pixels:(uint8_t*) rgba_pixels {
-    id<MTLTexture> txt = ::CreateRGBA8Texture(self.device, width, height, rgba_pixels);
+- (int)CreateRGBA8Texture:(int) width height:(int) height rgba_pixels:(uint8_t*) pixels {
+    id<MTLTexture> txt = ::CreateRGBA8Texture(self.device, width, height, pixels);
+    int newId = ++self->_idCounter;
+    self->_textures[@(newId)] = txt;
+    return newId;
+}
+
+- (int)CreateBGRA8Texture:(int) width height:(int) height bgra_pixels:(uint8_t*) pixels {
+    id<MTLTexture> txt = ::CreateBGRA8Texture(self.device, width, height, pixels);
     int newId = ++self->_idCounter;
     self->_textures[@(newId)] = txt;
     return newId;
@@ -381,23 +418,35 @@ void LabReleaseEncodedTexture(void* texture) {
 
 
 extern "C"
-int LabCreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels) {
+int LabCreateRGBA8Texture(int width, int height, uint8_t* pixels) {
     if (gLabMetalProvider)
-        return [gLabMetalProvider CreateRGBA8Texture:width height:height rgba_pixels:rgba_pixels];
+        return [gLabMetalProvider CreateRGBA8Texture:width height:height rgba_pixels:pixels];
     return 0;
 }
 
 extern "C"
-void LabUpdateRGBA8Texture(int texture, uint8_t* rgba_pixels) {
+int LabCreateBGRA8Texture(int width, int height, uint8_t* pixels) {
+    if (gLabMetalProvider)
+        return [gLabMetalProvider CreateBGRA8Texture:width height:height bgra_pixels:pixels];
+    return 0;
+}
+
+extern "C"
+void LabUpdateRGBA8Texture(int texture, uint8_t* pixels) {
     if (gLabMetalProvider) {
         id<MTLTexture> txt = [gLabMetalProvider Texture:texture];
         if (txt) {
             [txt replaceRegion:MTLRegionMake2D(0, 0, txt.width, txt.height)
                    mipmapLevel:0
-                     withBytes:rgba_pixels
+                     withBytes:pixels
                    bytesPerRow:txt.width * 4];
         }
     }
+}
+
+extern "C"
+void LabUpdateBGRA8Texture(int texture, uint8_t* pixels) {
+    LabUpdateRGBA8Texture(texture, pixels);
 }
 
 extern "C"
