@@ -29,19 +29,17 @@ struct OpenUSDActivity::data {
     data()
         : loadStageModule(engine)
         , exportStageModule(engine)
-        , referenceLayerModule(engine) {
+        , referenceLayerModule(engine)
+        , shotTemplateModule(engine) {
             engine.run();
         }
     ~data() = default;
 
-    bool run_shot_template_ui = false;
-    bool run_pick_template_folder = false;
-    int pending_template_dir = 0;
-    std::string constructShotName;
     std::weak_ptr<ConsoleActivity> console;
     LoadStageModule loadStageModule;
     ExportStageModule exportStageModule;
     ReferenceLayerModule referenceLayerModule;
+    ShotTemplateModule shotTemplateModule;
 };
 
 OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
@@ -57,6 +55,7 @@ OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
     _self->loadStageModule.Register();
     _self->exportStageModule.Register();
     _self->referenceLayerModule.Register();
+    _self->shotTemplateModule.Register();
 
     auto orchestrator = Orchestrator::Canonical();
     orchestrator->RegisterActivity<UsdOutlinerActivity>(
@@ -70,71 +69,7 @@ OpenUSDActivity::~OpenUSDActivity() {
 }
 
 void OpenUSDActivity::RunUI(const LabViewInteraction&) {
-    auto fdm = LabApp::instance()->fdm();
-    if (_self->run_pick_template_folder) {
-        if (!_self->pending_template_dir) {
-            const char* dir = lab_pref_for_key("LoadStageDir");
-            _self->pending_template_dir = fdm->RequestPickFolder(dir? dir: ".");
-        }
-        else {
-            do {
-                auto req = fdm->PopOpenedFile(_self->pending_template_dir);
-                if (req.status == FileDialogManager::FileReq::notReady)
-                    break;
-
-                if (req.status == FileDialogManager::FileReq::expired ||
-                    req.status == FileDialogManager::FileReq::canceled) {
-                    _self->pending_template_dir = 0;
-                    _self->run_pick_template_folder = false;
-                    _self->run_shot_template_ui = false;
-                    break;
-                }
-                std::string path(req.path.c_str());
-                auto mm = LabApp::instance()->mm();
-                auto console = mm->LockActivity(_self->console);
-                std::string sn = _self->constructShotName;
-                mm->EnqueueTransaction(Transaction{"Create Shot from Template", [this, mm, path, sn](){
-                    auto console = mm->LockActivity(_self->console);
-                    console->Info("Creating Shot from Template");
-
-                    std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
-                    if (usd)
-                        usd->CreateShotFromTemplate(path, sn);
-                }});
-
-                _self->pending_template_dir = 0;
-                _self->run_pick_template_folder = false;
-                _self->run_shot_template_ui = false;
-            } while(false);
-        }
-    }
-    else if (_self->run_shot_template_ui) {
-        // pop open a dialog box asking for the shot name.
-        // if the OK button is selected then continue by asking
-        // for the destination directory.
-
-        const char* popupName = "Create Shot from Template";
-
-        ImGui::OpenPopup(popupName);
-        if (ImGui::BeginPopupModal(popupName, NULL,
-                                   ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize |
-                                   ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
-            static char shotName[128] = "ShotName";
-            ImGui::InputText("Shot Name", shotName, IM_ARRAYSIZE(shotName));
-            if (ImGui::Button("OK###Shot", ImVec2(120, 0))) {
-                ImGui::CloseCurrentPopup();
-                _self->constructShotName.assign(shotName);
-                _self->run_shot_template_ui = false;
-                _self->run_pick_template_folder = true;
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Cancel###Shot", ImVec2(120, 0))) {
-                ImGui::CloseCurrentPopup();
-                _self->run_shot_template_ui = false;
-            }
-            ImGui::EndPopup();
-        }
-    }
+    _self->shotTemplateModule.update();
 }
 
 void OpenUSDActivity::Menu() {
@@ -152,7 +87,7 @@ void OpenUSDActivity::Menu() {
             }});
         }
         if (ImGui::MenuItem("Create Shot from Template...")) {
-            _self->run_shot_template_ui = true;
+            _self->shotTemplateModule.CreateShotFromTemplate();
         }
         if (ImGui::MenuItem("Export Stage ...")) {
             _self->exportStageModule.emit_event("file_export_request", 0);

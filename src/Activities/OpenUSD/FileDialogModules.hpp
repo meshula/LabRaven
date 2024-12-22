@@ -1,4 +1,3 @@
-
 #include "Activities/Console/ConsoleActivity.hpp"
 #include "Lab/App.h"
 #include "Lab/CSP.hpp"
@@ -292,5 +291,126 @@ private:
     }
 };
 
+class ShotTemplateModule : public CSP_Module {
+public:
+    ShotTemplateModule(CSP_Engine& engine)
+    : CSP_Module(engine, "ShotTemplateModule")
+    {
+    }
+
+    enum class Process : int {
+        NameRequest = 500,
+        PickFolder,
+        Error,
+        CreateShot,
+        Idle
+    };
+
+    static constexpr int toInt(Process p) { return static_cast<int>(p); }
+
+    void CreateShotFromTemplate() {
+        emit_event("name_request", toInt(Process::NameRequest));
+    }
+
+private:
+    int pendingDir = 0;
+    FileDialogManager::FileReq req;
+    std::string shotName;
+    bool showNameDialog = false;
+    static constexpr char popupName[] = "Create Shot from Template";
+
+    virtual void initialize_processes() override {
+        add_process({toInt(Process::NameRequest), "name_request",
+            [this]() {
+                printf("Entering name_request\n");
+                showNameDialog = true;
+                // Stay in this state until the dialog is completed
+                this->emit_event("name_request", toInt(Process::NameRequest));
+            }});
+
+        add_process({toInt(Process::PickFolder), "pick_folder",
+            [this]() {
+                printf("Entering pick_folder\n");
+                if (!pendingDir) {
+                    auto fdm = LabApp::instance()->fdm();
+                    const char* dir = lab_pref_for_key("LoadStageDir");
+                    pendingDir = fdm->RequestPickFolder(dir ? dir : ".");
+                }
+                auto fdm = LabApp::instance()->fdm();
+                req = fdm->PopOpenedFile(pendingDir);
+                switch (req.status) {
+                    case FileDialogManager::FileReq::notReady:
+                        this->emit_event("pick_folder", toInt(Process::PickFolder)); // continue polling
+                        break;
+                    case FileDialogManager::FileReq::expired:
+                    case FileDialogManager::FileReq::canceled:
+                        this->emit_event("folder_error", toInt(Process::Error));
+                        break;
+                    default:
+                        this->emit_event("folder_success", toInt(Process::CreateShot));
+                        break;
+                }
+            }});
+
+        add_process({toInt(Process::Error), "folder_error",
+            [this]() {
+                printf("Entering folder_error\n");
+                std::cout << "Error: Failed to pick folder. Returning to idle...\n";
+                pendingDir = 0;
+                this->emit_event("idle", toInt(Process::Idle));
+            }});
+
+        add_process({toInt(Process::CreateShot), "folder_success",
+            [this]() {
+                printf("Entering folder_success\n");
+                std::string path(req.path);
+                auto mm = LabApp::instance()->mm();
+                std::weak_ptr<ConsoleActivity> console;
+                auto con = mm->LockActivity(console);
+                std::string sn = shotName;
+                mm->EnqueueTransaction(Transaction{"Create Shot from Template", [mm, path, sn](){
+                    std::weak_ptr<ConsoleActivity> console;
+                    auto con = mm->LockActivity(console);
+                    con->Info("Creating Shot from Template");
+
+                    std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                    if (usd)
+                        usd->CreateShotFromTemplate(path, sn);
+                }});
+                pendingDir = 0;
+                this->emit_event("idle", toInt(Process::Idle));
+            }});
+
+        add_process({toInt(Process::Idle), "idle", []() {
+            printf("Entering idle\n");
+        }});
+    }
+
+public:
+    void update() {
+        if (showNameDialog) {
+            ImGui::OpenPopup(popupName);
+            if (ImGui::BeginPopupModal(popupName, NULL,
+                                     ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize |
+                                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
+                static char shotNameBuffer[128] = "ShotName";
+                ImGui::InputText("Shot Name", shotNameBuffer, IM_ARRAYSIZE(shotNameBuffer));
+                if (ImGui::Button("OK###Shot", ImVec2(120, 0))) {
+                    ImGui::CloseCurrentPopup();
+                    shotName = shotNameBuffer;
+                    showNameDialog = false;
+                    this->emit_event("pick_folder", toInt(Process::PickFolder));
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel###Shot", ImVec2(120, 0))) {
+                    ImGui::CloseCurrentPopup();
+                    showNameDialog = false;
+                    this->emit_event("idle", toInt(Process::Idle));
+                }
+                ImGui::EndPopup();
+            }
+        }
+    }
+};
 
 } // namespace lab
