@@ -5,6 +5,10 @@
 //  Created by Domenico Porcino on 8/4/24.
 //  Copyright © 2024 Nick Porcino. All rights reserved.
 //
+
+#ifndef LabFileDialogManager_hpp
+#define LabFileDialogManager_hpp
+
 #include <map>
 #include <mutex>
 #include <string>
@@ -40,3 +44,5 @@ private:
 };
 
 } // lab
+
+#endif

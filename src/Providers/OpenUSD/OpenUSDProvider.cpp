@@ -151,7 +151,6 @@ void OpenUSDProvider::ReleaseInstance()
     gInstance.reset();
 }
 
-
 pxr::SdfPath OpenUSDProvider::CreateCamera(const std::string& name) {
     pxr::UsdStageRefPtr stage = Stage();
     if (!stage)
