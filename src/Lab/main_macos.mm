@@ -1,4 +1,3 @@
-
 #include "App.h"
 #include "RegisterAllActivities.h"
 #include "Providers/Color/glfwColor.h"
@@ -143,8 +142,10 @@ int main(int argc, char** argv)
             ImGui_ImplGlfw_WaitForEvent();
 #else
             static int cooldown = 20;
+            bool noCoolDown = app->PowerSave && !app->PowerSave();
             if (cooldown <= 0) {
-                glfwWaitEvents();
+                if (!noCoolDown)
+                    glfwWaitEvents();
                 cooldown = 20;
             }
             else

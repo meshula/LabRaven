@@ -13,6 +13,8 @@ typedef struct App {
     void (*Cleanup)();
     void (*FileDrop)(int count, const char** paths);
     bool (*IsRunning)();
+    bool (*PowerSave)();
+    void (*SetPowerSave)(bool);
 } App;
 
 App* gApp();
@@ -32,6 +34,8 @@ class LabApp : public App {
     void UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dragging);
     static void RunUI();
     static bool AppIsRunning();
+    static bool GetPowerSave();
+    static void SetPowerSaveState(bool);
     
     static LabApp* _instance;
 public:
@@ -40,7 +44,10 @@ public:
     ~LabApp();
     
     static LabApp* instance();
-    
+
+    bool PowerSave() const;
+    void SetPowerSave(bool);
+
     FileDialogManager* fdm();
     Orchestrator* mm();
     

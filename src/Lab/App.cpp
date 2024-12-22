@@ -79,23 +79,26 @@ struct LabApp::data {
     LabViewInteraction _vi;
     int _model_generation = 0;
     bool should_terminate = false;
+    bool power_save = true;
 };
 
 LabApp::LabApp() {
     _instance = this;
     _self = new data();
 
-    Init = [](int argc, char** argv, int width, int height) {
+    App::Init = [](int argc, char** argv, int width, int height) {
         //MainInit(argc, argv, width, height);
     };
-    Gui = RunUI;
-    Cleanup = []() {
+    App::Gui = RunUI;
+    App::Cleanup = []() {
         //MainCleanup();
     };
-    FileDrop = [](int count, const char** paths) {
+    App::FileDrop = [](int count, const char** paths) {
         //FileDropCallback(count, paths);
     };
-    IsRunning = AppIsRunning;
+    App::IsRunning = AppIsRunning;
+    App::PowerSave = GetPowerSave;
+    App::SetPowerSave = SetPowerSaveState;
 }
 
 LabApp::~LabApp() {
@@ -107,6 +110,19 @@ LabApp* LabApp::instance() {
     if (!_instance)
         _instance = new LabApp();
     return _instance;
+}
+
+bool LabApp::PowerSave() const { return _self->power_save; }
+void LabApp::SetPowerSave(bool v) { _self->power_save = v; }
+
+//static
+bool LabApp::GetPowerSave() {
+    return _instance->PowerSave();
+}
+
+//static
+void LabApp::SetPowerSaveState(bool v) {
+    _instance->SetPowerSave(v);
 }
 
 //static
@@ -232,10 +248,10 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
     float view_sz_y =  centralNode->Size.y * io.DisplayFramebufferScale.y;
 
     /*   _   _ ___
-     | | | |_ _|
-     | | | || |
-     | |_| || |
-     \___/|___|  */
+        | | | |_ _|
+        | | | || |
+        | |_| || |
+         \___/|___|  */
 
     _self->_vi.view = {
         (float) viewport->Size.x, (float) viewport->Size.y,
