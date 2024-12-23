@@ -133,7 +133,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ext/cppzmq
     ext/libzmq/include
     ext/Tilengine/include
+    ext/ImGuiHydraEditor/src
     Imath::Imath
+    ImGuizmo::ImGuizmo
     ${PXR_INCLUDE_DIRS})
 
 if (APPLE)
@@ -218,6 +220,18 @@ endif()
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
 
+set(HAVE_OPENGL NO)
+if (HAVE_OPENGL)
+    find_package(OpenGL REQUIRED) # Note: Hydra has no way to opt out of Metal GL Interop on apple.
+    message(STATUS "Found OpenGL: ${OPENGL_LIBRARIES}")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        USE_GLINTEROP=1
+    )
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+        ${OPENGL_LIBRARIES}
+    )
+endif()
+
 target_link_libraries(${PROJECT_NAME} PUBLIC
     OTIO::opentimelineio
     IMGUI
@@ -225,6 +239,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     sqlite3
     libzmq-static
     Tilengine
+    ImGuizmo::ImGuizmo
     ${PXR_LIBRARIES}
 )
 

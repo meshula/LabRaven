@@ -15,8 +15,8 @@ class TilengineActivity : public Activity
     struct data;
     data* _self;
     void RunUI(const LabViewInteraction&);
-    virtual void _activate();
-    virtual void _deactivate();
+    virtual void _activate() override;
+    virtual void _deactivate() override;
 
 public:
     explicit TilengineActivity();

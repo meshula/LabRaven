@@ -44,9 +44,8 @@ target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
 target_include_directories(openexr PUBLIC OpenEXR)
 
 ####################################
-
 add_subdirectory(Tilengine)
-
+add_subdirectory(ImGuizmo)
 ####################################
 
 add_library(IMGUI STATIC)
@@ -123,6 +122,9 @@ target_include_directories(IMGUI
   PUBLIC ${IMPLOT_DIR}
   PUBLIC ${TEXTEDIT_DIR}
 )
+
+# add an alias library
+add_library(ImGui::ImGui ALIAS IMGUI)
 
 ####################################
 

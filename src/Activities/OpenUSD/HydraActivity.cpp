@@ -2,11 +2,15 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 
+#include "ImGuiHydraEditor/src/views/viewport.h"
+#include "Providers/OpenUSD/OpenUSDProvider.hpp"
+
 namespace lab {
 
 struct HydraActivity::data {
     data() = default;
     ~data() = default;
+    std::unique_ptr<pxr::Viewport> viewport;
 };
 
 HydraActivity::HydraActivity() : Activity(HydraActivity::sname()) {
@@ -25,12 +29,28 @@ HydraActivity::~HydraActivity() {
 }
 
 void HydraActivity::RunUI(const LabViewInteraction&) {
-    // make a window 800, 600
-    ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Hydra##Activity")) {
-        ImGui::Text("Hydra");
+    if (!_self->viewport) {
+        auto usd = OpenUSDProvider::instance();
+        auto model = usd->Model();
+        if (model) {
+            ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
+            _self->viewport = std::unique_ptr<pxr::Viewport>(
+                                     new pxr::Viewport(model, "Hydra Viewport##A1"));
+        }
     }
-    ImGui::End();
+
+    // make a window 800, 600
+    if (_self->viewport) {
+        _self->viewport->Update();
+    }
+    else {
+        ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("Hydra Viewport##A2")) {
+            ImGui::Text("No USD stage loaded.");
+        }
+        ImGui::End();
+
+    }
 }
 
 void HydraActivity::Menu() {

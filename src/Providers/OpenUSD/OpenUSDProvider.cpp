@@ -107,6 +107,10 @@ struct OpenUSDProvider::Self {
     }
 };
 
+pxr::Model* OpenUSDProvider::Model() {
+    return self->model.get();
+}
+
 OpenUSDProvider::OpenUSDProvider() : Provider(OpenUSDProvider::sname())
 , self(new Self)
 {
@@ -827,7 +831,7 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
             }
         }
 
-        self->model.reset(new Model());
+        self->model.reset(new pxr::Model());
         self->model->SetStage(stage);
         self->layer.reset(new UsdSessionLayer(self->model.get()));
         self->gridSceneIndex = GridSceneIndex::New();

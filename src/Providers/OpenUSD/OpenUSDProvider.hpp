@@ -7,6 +7,7 @@
 #include <pxr/base/gf/vec3d.h>
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/usd/stage.h>
+#include "ImGuiHydraEditor/src/models/model.h"
 
 namespace lab {
 
@@ -17,6 +18,8 @@ class OpenUSDProvider : public Provider {
 public:
     OpenUSDProvider();
     ~OpenUSDProvider();
+
+    pxr::Model* Model();
 
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "OpenUSD"; }
