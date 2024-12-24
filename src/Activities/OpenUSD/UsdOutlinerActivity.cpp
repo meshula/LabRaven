@@ -19,9 +19,12 @@
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include "Providers/OpenUSD/UsdUtils.hpp"
 #include "Providers/Sprite/SpriteProvider.hpp"
+#include "ImGuiHydraEditor/src/views/outliner.h"
+#include <pxr/usd/usd/stage.h>
+
 #include <vector>
 
-// on apple the LabCreateTextues come from the MetalProvider
+// on Apple the LabCreateTextues come from the MetalProvider
 #if defined(__APPLE__)
 #include "Providers/Metal/MetalProvider.h"
 #endif
@@ -32,99 +35,91 @@
 // opening tree nodes that are in the selection path
 // https://github.com/ocornut/imgui/issues/1131
 
-namespace lab {
+namespace {
+lab::SpriteProvider::Frame gGhost[2];
+void* gGhostTextures[2];
+}
 
-PXR_NAMESPACE_USING_DIRECTIVE
+PXR_NAMESPACE_OPEN_SCOPE
 
-struct UsdOutlinerActivity::data {
-    data() {
-        memset(&ghost, 0, sizeof(ghost));
-    }
-    SpriteProvider::Frame ghost[2];
-    void* ghost_textures[2];
+Outliner::Outliner(Model* model, const string label) : View(model, label) {}
+
+const string Outliner::GetViewType()
+{
+    return VIEW_TYPE;
 };
 
-UsdOutlinerActivity::UsdOutlinerActivity()
-: Activity(UsdOutlinerActivity::sname()) {
-    _self = new UsdOutlinerActivity::data();
-    activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
-        static_cast<UsdOutlinerActivity*>(instance)->RunUI(*vi);
-    };
+void Outliner::_Draw()
+{
+    SdfPath root = SdfPath::AbsoluteRootPath();
+    SdfPathVector paths = _sceneIndex->GetChildPrimPaths(root);
+    for (auto primPath : paths) _DrawPrimHierarchy(primPath);
 }
 
-UsdOutlinerActivity::~UsdOutlinerActivity() {
-    delete _self;
+// returns the node's rectangle
+ImRect Outliner::_DrawPrimHierarchy(SdfPath primPath)
+{
+    bool recurse = _DrawHierarchyNode(primPath);
+
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+       GetModel()->SetSelection({primPath});
+    }
+
+    const ImRect curItemRect =
+        ImRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+
+    if (recurse) {
+        // draw all children and store their rect position
+        vector<ImRect> rects;
+        SdfPathVector primPaths =
+            _sceneIndex->GetChildPrimPaths(primPath);
+
+        for (auto child : primPaths) {
+            ImRect childRect = _DrawPrimHierarchy(child.GetPrimPath());
+            rects.push_back(childRect);
+        }
+
+        if (rects.size() > 0) {
+            // draw hierarchy decoration for all children
+            _DrawChildrendHierarchyDecoration(curItemRect, rects);
+        }
+
+        ImGui::TreePop();
+    }
+    
+    return curItemRect;
 }
 
-ImGuiTreeNodeFlags UsdOutlinerActivity::ComputeDisplayFlags(pxr::UsdPrim prim)
+ImGuiTreeNodeFlags Outliner::_ComputeDisplayFlags(SdfPath primPath)
 {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
-    
+
     // set the flag if leaf or not
-    pxr::UsdPrimSiblingRange children = prim.GetChildren();
-    if (GetSize(children) == 0) {
+    SdfPathVector primPaths = _sceneIndex->GetChildPrimPaths(primPath);
+
+    if (primPaths.size() == 0) {
         flags |= ImGuiTreeNodeFlags_Leaf;
         flags |= ImGuiTreeNodeFlags_Bullet;
     }
     else flags = ImGuiTreeNodeFlags_OpenOnArrow;
-    
+
     // if selected prim, set highlight flag
-    auto selection = SelectionProvider::instance();
-    if (selection) {
-        auto sel = selection->GetSelectionPrims();
-        if (std::find(sel.begin(), sel.end(), prim) != sel.end()) {
-            flags |= ImGuiTreeNodeFlags_Selected;
-        }
-    }
+    bool isSelected = _IsInModelSelection(primPath);
+    if (isSelected) flags |= ImGuiTreeNodeFlags_Selected;
+
     return flags;
 }
 
-bool UsdOutlinerActivity::IsParentOfModelSelection(pxr::UsdPrim prim) const
-{
-    // check if prim is parent of selection
-    auto selection = SelectionProvider::instance();
-    if (selection) {
-        for (auto&& p : selection->GetSelectionPrims())
-            if (IsParentOf(prim, p))
-                return true;
-    }
-    return false;
-}
-
-bool UsdOutlinerActivity::IsSelected(pxr::UsdPrim prim) const {
-    // check if prim is parent of selection
-    auto selection = SelectionProvider::instance();
-    if (selection) {
-        for (auto&& p : selection->GetSelectionPrims())
-            if (prim == p)
-                return true;
-    }
-    return false;
-}
-
-void UsdOutlinerActivity::_activate() {
-    if (!_self->ghost[0].h) {
-        auto sprite = SpriteProvider::instance();
-        auto assets = AssetsProvider::instance();
-        std::string path = assets->resolve("$(LAB_BUNDLE)/ghost.aseprite");
-        sprite->cache_sprite(path.c_str(), "ghost");
-        _self->ghost[0] = sprite->frame("ghost", 0);
-        _self->ghost[1] = sprite->frame("ghost", 1);
-        int i = LabCreateRGBA8Texture(_self->ghost[0].w, _self->ghost[0].h, _self->ghost[0].pixels);
-        _self->ghost_textures[0] = LabTextureHardwareHandle(i);
-        i = LabCreateRGBA8Texture(_self->ghost[1].w, _self->ghost[1].h, _self->ghost[1].pixels);
-        _self->ghost_textures[1] = LabTextureHardwareHandle(i);
-    }
-}
-
-bool UsdOutlinerActivity::DrawHierarchyNode(pxr::UsdPrim prim, ImRect& curItemRect)
+bool Outliner::_DrawHierarchyNode(SdfPath primPath)
 {
     bool recurse = false;
-    const char* primName = prim.GetName().GetText();
-    ImGuiTreeNodeFlags flags = ComputeDisplayFlags(prim);
-    
+    const char* primName = primPath.GetName().c_str();
+    ImGuiTreeNodeFlags flags = _ComputeDisplayFlags(primPath);
+
+    ImRect curItemRect; // this is the size we really need
+
     // print node in blue if parent of selection
-    if (IsParentOfModelSelection(prim)) {
+    if (_IsParentOfModelSelection(primPath)) {
         ImU32 color = ImGui::GetColorU32(ImGuiCol_HeaderActive, 1.f);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
         recurse = ImGui::TreeNodeEx(primName, flags);
@@ -137,7 +132,7 @@ bool UsdOutlinerActivity::DrawHierarchyNode(pxr::UsdPrim prim, ImRect& curItemRe
         ImGui::TextUnformatted("\\O/");
 #endif
     }
-    else if (IsSelected(prim)) {
+    else if (_IsInModelSelection(primPath)) {
         ImU32 color = IM_COL32(255, 255, 0, 255);
         ImGui::PushStyleColor(ImGuiCol_Text, color);
         recurse = ImGui::TreeNodeEx(primName, flags);
@@ -149,6 +144,8 @@ bool UsdOutlinerActivity::DrawHierarchyNode(pxr::UsdPrim prim, ImRect& curItemRe
         bool isVisibilityInherited = true;
         bool visVaries = false;
         bool isInvisible = false;
+        auto stage = lab::OpenUSDProvider::instance()->Stage();
+        UsdPrim prim = stage->GetPrimAtPath(primPath);
         auto img = pxr::UsdGeomImageable(prim);
         if (img) {
             UsdAttributeQuery query(img.GetVisibilityAttr());
@@ -160,9 +157,12 @@ bool UsdOutlinerActivity::DrawHierarchyNode(pxr::UsdPrim prim, ImRect& curItemRe
         }
         
         int ghostIdx = isInvisible? 1 : 0;
-        if (ImGui::ImageButton("###outliner_ghost", (ImTextureID) _self->ghost_textures[ghostIdx],
-                    ImVec2(_self->ghost[ghostIdx].w, _self->ghost[ghostIdx].h),
+        if (ImGui::ImageButton("###outliner_ghost", (ImTextureID) gGhostTextures[ghostIdx],
+                    ImVec2(gGhost[ghostIdx].w, gGhost[ghostIdx].h),
                                ImVec2(0, 0), ImVec2(1, 1), bg_color)) {
+
+            /// @TODO This should be a transaction
+
             // hide/show
             if (isInvisible)
                 img.MakeVisible();
@@ -177,9 +177,29 @@ bool UsdOutlinerActivity::DrawHierarchyNode(pxr::UsdPrim prim, ImRect& curItemRe
     return recurse;
 }
 
+bool Outliner::IsParentOf(SdfPath primPath, SdfPath childPrimPath)
+{
+    return primPath.GetCommonPrefix(childPrimPath) == primPath;
+}
 
-void UsdOutlinerActivity::DrawChildrendHierarchyDecoration(ImRect parentRect,
-                                                std::vector<ImRect> childrenRects)
+bool Outliner::_IsParentOfModelSelection(SdfPath primPath)
+{
+    // check if primPath is parent of selection
+    for (auto&& p : GetModel()->GetSelection())
+        if (IsParentOf(primPath, p)) return true;
+
+    return false;
+}
+
+bool Outliner::_IsInModelSelection(SdfPath primPath)
+{
+    SdfPathVector sel = GetModel()->GetSelection();
+    // check if primPath in model selection
+    return find(sel.begin(), sel.end(), primPath) != sel.end();
+}
+
+void Outliner::_DrawChildrendHierarchyDecoration(ImRect parentRect,
+                                                 vector<ImRect> childrenRects)
 {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     const ImColor lineColor = ImGui::GetColorU32(ImGuiCol_Text, 0.25f);
@@ -207,53 +227,74 @@ void UsdOutlinerActivity::DrawChildrendHierarchyDecoration(ImRect parentRect,
     drawList->AddLine(lineStart, lineEnd, lineColor);
 }
 
-// returns the node's rectangle
-ImRect UsdOutlinerActivity::DrawPrimHierarchy(pxr::UsdPrim prim)
-{
-    ImRect curItemRect;
-    bool recurse = DrawHierarchyNode(prim, curItemRect);
+PXR_NAMESPACE_CLOSE_SCOPE
 
-    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
-        auto selection = SelectionProvider::instance();
-        UsdStageRefPtr stagePtr = OpenUSDProvider::instance()->Stage();
-        UsdStage* stage = stagePtr.operator->();
-        if (selection)
-            selection->SetSelectionPrims(stage, {prim});
+namespace lab {
+
+struct UsdOutlinerActivity::data {
+    data() {
+        memset(&gGhost, 0, sizeof(gGhost));
     }
-    
-    if (recurse) {
-        // draw all children and store their rect position
-        std::vector<ImRect> rects;
-        for (auto child : prim.GetChildren()) {
-            ImRect childRect = DrawPrimHierarchy(child);
-            rects.push_back(childRect);
-        }
-        
-        if (rects.size() > 0) {
-            // draw hierarchy decoration for all children
-            DrawChildrendHierarchyDecoration(curItemRect, rects);
-        }
-        
-        ImGui::TreePop();
-    }
-    
-    return curItemRect;
-}
+    std::unique_ptr<pxr::Outliner> outliner;
+};
 
 void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
     if (!IsActive())
         return;
 
-    ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Outliner");
     pxr::UsdStageRefPtr stage = OpenUSDProvider::instance()->Stage();
-    if (stage) {
-        for (auto prim : stage->GetPseudoRoot().GetChildren()) {
-            DrawPrimHierarchy(prim);
-        }
+    pxr::Model* model = OpenUSDProvider::instance()->Model();
+    if (!stage || !model) {
+        ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Outliner##A1");
+        ImGui::TextUnformatted("Outliner: No stage opened yet.");
+        ImGui::End();
     }
-    ImGui::End();
+    else {
+        if (!_self->outliner) {
+            _self->outliner = std::make_unique<pxr::Outliner>(model, "Outliner##A2");
+        }
+
+        ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
+#if 0
+        ImGui::Begin("Outliner");
+        pxr::UsdStageRefPtr stage = OpenUSDProvider::instance()->Stage();
+        if (stage) {
+            for (auto prim : stage->GetPseudoRoot().GetChildren()) {
+                DrawPrimHierarchy(prim);
+            }
+        }
+        ImGui::End();
+#endif
+        _self->outliner->Update();
+    }
 }
 
+void UsdOutlinerActivity::_activate() {
+    if (!gGhost[0].h) {
+        auto sprite = SpriteProvider::instance();
+        auto assets = AssetsProvider::instance();
+        std::string path = assets->resolve("$(LAB_BUNDLE)/ghost.aseprite");
+        sprite->cache_sprite(path.c_str(), "ghost");
+        gGhost[0] = sprite->frame("ghost", 0);
+        gGhost[1] = sprite->frame("ghost", 1);
+        int i = LabCreateRGBA8Texture(gGhost[0].w, gGhost[0].h, gGhost[0].pixels);
+        gGhostTextures[0] = LabTextureHardwareHandle(i);
+        i = LabCreateRGBA8Texture(gGhost[1].w, gGhost[1].h, gGhost[1].pixels);
+        gGhostTextures[1] = LabTextureHardwareHandle(i);
+    }
+}
+
+UsdOutlinerActivity::UsdOutlinerActivity()
+: Activity(UsdOutlinerActivity::sname()) {
+    _self = new UsdOutlinerActivity::data();
+    activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
+        static_cast<UsdOutlinerActivity*>(instance)->RunUI(*vi);
+    };
+}
+
+UsdOutlinerActivity::~UsdOutlinerActivity() {
+    delete _self;
+}
 
 } // lab

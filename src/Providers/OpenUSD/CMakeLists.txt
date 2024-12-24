@@ -15,6 +15,8 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdUtils.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.cpp
+    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/editor.h
+    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/editor.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.h

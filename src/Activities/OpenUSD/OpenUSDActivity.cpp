@@ -16,6 +16,7 @@
 #include "Activities/Console/ConsoleActivity.hpp"
 #include "UsdOutlinerActivity.hpp"
 #include "HydraActivity.hpp"
+#include "PropertiesActivity.hpp"
 #include "TfDebugActivity.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include <pxr/usd/usd/prim.h>
@@ -65,6 +66,8 @@ OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
         [](){ return std::make_shared<DebuggerActivity>(); });
     orchestrator->RegisterActivity<HydraActivity>(
         [](){ return std::make_shared<HydraActivity>(); });
+    orchestrator->RegisterActivity<PropertiesActivity>(
+        [](){ return std::make_shared<PropertiesActivity>(); });
 }
 
 OpenUSDActivity::~OpenUSDActivity() {

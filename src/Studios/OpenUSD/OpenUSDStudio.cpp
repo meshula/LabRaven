@@ -28,6 +28,7 @@ static const std::vector<std::string> activities = {
     "OpenUSD",
     "Outliner",
     "TfDebugger",
+    "UsdProperties",
 };
 
 const std::vector<std::string>& OpenUSDStudio::StudioConfiguration() const {

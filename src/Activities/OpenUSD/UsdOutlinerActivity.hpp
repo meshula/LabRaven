@@ -20,11 +20,7 @@ class UsdOutlinerActivity : public Activity
 {
     struct data;
     data* _self;
-    ImRect DrawPrimHierarchy(pxr::UsdPrim prim);
     bool DrawHierarchyNode(pxr::UsdPrim prim, ImRect& curItemRect);
-    void DrawChildrendHierarchyDecoration(ImRect parentRect,
-                                          std::vector<ImRect> childrenRects);
-    ImGuiTreeNodeFlags ComputeDisplayFlags(pxr::UsdPrim prim);
     bool IsParentOfModelSelection(pxr::UsdPrim prim) const;
     bool IsSelected(pxr::UsdPrim prim) const;
 

@@ -6,6 +6,7 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST
 target_sources(${PROJECT_NAME} PUBLIC 
     OpenUSDActivity.cpp OpenUSDActivity.hpp
     HydraActivity.cpp HydraActivity.hpp
+    PropertiesActivity.cpp PropertiesActivity.hpp
     UsdOutlinerActivity.cpp UsdOutlinerActivity.hpp
     TfDebugActivity.cpp TfDebugActivity.hpp
 )
