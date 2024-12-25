@@ -252,10 +252,12 @@ if (APPLE)
     find_library(METAL_LIBRARY Metal)
     find_library(METALKIT_LIBRARY MetalKit)
     find_library(QUARTZCORE_LIBRARY QuartzCore)
+    find_library(GAMECONTROLLER_LIBRARY GameController)
     target_link_libraries(${PROJECT_NAME} PUBLIC
         glfw
         nativefiledialog
         ${COREFOUNDATION_LIBRARY}
+        ${GAMECONTROLLER_LIBRARY}
         ${METAL_LIBRARY}
         ${METALKIT_LIBRARY}
         ${QUARTZCORE_LIBRARY}

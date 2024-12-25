@@ -13,6 +13,8 @@ target_sources(${PROJECT_NAME}
     Lab/ImguiExt.hpp Lab/ImguiExt.cpp
     Lab/imgui_stdlib.h Lab/imgui_stdlib.cpp
 
+    Lab/LabJoystick.h
+
     Lab/Landru.hpp Lab/Landru.cpp
     Lab/LabText.h Lab/LabText_odr.cpp
 
@@ -22,23 +24,24 @@ target_sources(${PROJECT_NAME}
 )
 
 if(APPLE)
-  target_sources(${PROJECT_NAME} PUBLIC 
-    Lab/main_macos.mm
-    Lab/LabFileDialogManager.mm
-  )
+    target_sources(${PROJECT_NAME} PUBLIC 
+        Lab/main_macos.mm
+        Lab/LabFileDialogManager.mm
+        Lab/LabJoystick.mm
+    )
 elseif(WIN32)
-  target_sources(${PROJECT_NAME} PUBLIC Lab/main_win32.cpp)
-  target_compile_definitions(${PROJECT_NAME} PRIVATE -DUNICODE -D_UNICODE)
+    target_sources(${PROJECT_NAME} PUBLIC Lab/main_win32.cpp)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE -DUNICODE -D_UNICODE)
 elseif(EMSCRIPTEN)
-  target_sources(${PROJECT_NAME} PUBLIC Lab/main_emscripten.cpp)
-  set(LIBS ${CMAKE_DL_LIBS} SDL2)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=1")
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s WASM=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -s FETCH -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=ccall,cwrap -Wl,--shared-memory,--no-check-features --shell-file ${CMAKE_CURRENT_LIST_DIR}/shell_minimal.html")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIMGUI_DISABLE_FILE_FUNCTIONS")
-  set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX .html)
-  target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
+    target_sources(${PROJECT_NAME} PUBLIC Lab/main_emscripten.cpp)
+    set(LIBS ${CMAKE_DL_LIBS} SDL2)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=1")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s WASM=1 -s NO_EXIT_RUNTIME=0 -s ASSERTIONS=1 -s FETCH -s USE_PTHREADS=1 -s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=ccall,cwrap -Wl,--shared-memory,--no-check-features --shell-file ${CMAKE_CURRENT_LIST_DIR}/shell_minimal.html")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIMGUI_DISABLE_FILE_FUNCTIONS")
+    set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX .html)
+    target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
 else()
-  target_sources(${PROJECT_NAME} PUBLIC Lab/main_glfw.cpp)
+    target_sources(${PROJECT_NAME} PUBLIC Lab/main_glfw.cpp)
 endif()
 
 # Set up to track the activities, for generating the registration code,

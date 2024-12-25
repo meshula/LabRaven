@@ -70,13 +70,19 @@ int main(int argc, char** argv)
     // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
     // - Read 'docs/FONTS.md' for more instructions and details.
     // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
+    //ImFont* defaultFont = io.Fonts->AddFontDefault();
     //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
+    //ImFont* cousineFont = io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+    //static const ImWchar ghostIconRanges[] = { `👻`, 0 };
+    //ImFontConfig iconConfig;
+    //iconConfig.MergeMode = true;
+    //iconConfig.PixelSnapH = true;
+    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/fontawesome-webfont.ttf", 16.0f, &iconConfig, ghostIconRanges);
 
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
