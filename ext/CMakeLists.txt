@@ -128,6 +128,24 @@ add_library(ImGui::ImGui ALIAS IMGUI)
 
 ####################################
 
+# create static library ImGuiTextEditor
+add_library(imguicolortextedit STATIC)
+set_property(TARGET imguicolortextedit PROPERTY CXX_STANDARD 14)
+set(IMGUI_TEXTEDITOR_SRCS 
+    ImGuiColorTextEdit/LanguageDefinitions.cpp 
+    ImGuiColorTextEdit/TextEditor.h ImGuiColorTextEdit/TextEditor.cpp)
+target_sources(imguicolortextedit PRIVATE ${IMGUI_TEXTEDITOR_SRCS})
+target_include_directories(imguicolortextedit PUBLIC ImGuiColorTextEdit)
+
+# link ImGuiTextEditor with ImGui
+target_link_libraries(imguicolortextedit PUBLIC ImGui::ImGui)
+
+# create alias
+add_library(ImGuiColorTextEdit::ImGuiColorTextEdit ALIAS imguicolortextedit)
+
+
+####################################
+
 if(NOT EMSCRIPTEN)
   # TODO: Figure out how to tell CMake to build binary_to_compressed_c
   # for the native platform, not cross-compile to WASM/JS with emscripten...
