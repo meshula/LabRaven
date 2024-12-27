@@ -26,11 +26,11 @@ bool TLN_GetInput(TLN_Input id) {
     if (joy.connected) {
         switch (id) {
             case INPUT_UP:
-                if (joy.leftStickY < -0.25f)
+                if (joy.leftStickY > 0.25f)
                     return true;
                  return joy.dpadUp;
             case INPUT_DOWN:   
-                if (joy.leftStickY > 0.25f)
+                if (joy.leftStickY < -0.25f)
                     return true;
                  return joy.dpadDown;
             case INPUT_LEFT:
