@@ -9,14 +9,14 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/OpenUSDProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdCreate.hpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdCreate.cpp
-    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdSessionLayer.hpp
-    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdSessionLayer.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdUtils.hpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdUtils.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/editor.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/editor.cpp
+    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/usdsessionlayer.h
+    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/usdsessionlayer.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.h

@@ -1,6 +1,5 @@
 
 #include "OpenUSDProvider.hpp"
-#include "UsdSessionLayer.hpp"
 #include "UsdUtils.hpp"
 #include "SpaceFillCurve.hpp"
 #include "CreateDemoText.hpp"
@@ -20,6 +19,7 @@
 #include "ImGuiHydraEditor/src/engine.h"
 #include "ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.h"
 #include "ImGuiHydraEditor/src/sceneindices/gridsceneindex.h"
+#include "ImGuiHydraEditor/src/views/usdsessionlayer.h"
 
 #include <pxr/base/plug/registry.h>
 #include <pxr/base/tf/fileUtils.h>
@@ -55,7 +55,7 @@ PXR_NAMESPACE_USING_DIRECTIVE
 struct OpenUSDProvider::Self {
     // things related to the stage and hydra
     std::unique_ptr<pxr::Model> model;
-    std::unique_ptr<UsdSessionLayer> layer;
+    std::unique_ptr<UsdSessionLayer> sessionLayer;
     std::unique_ptr<Engine> engine;
     pxr::XformFilterSceneIndexRefPtr xformSceneIndex;
     pxr::GridSceneIndexRefPtr gridSceneIndex;
@@ -96,13 +96,13 @@ struct OpenUSDProvider::Self {
 
     ~Self() {
         engine.reset();
-        layer.reset();
+        sessionLayer.reset();
         model.reset();
     }
 
     void SetEmptyStage() {
         engine.reset();
-        layer.reset();
+        sessionLayer.reset();
         model.reset();
     }
 };
@@ -819,6 +819,7 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
             stage->SetEditTarget(rootLayer);
         }
     }
+    
     if (stage) {
         self->stage_generation++;
         constexpr bool testLoad = false;
@@ -833,7 +834,7 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
 
         self->model.reset(new pxr::Model());
         self->model->SetStage(stage);
-        self->layer.reset(new UsdSessionLayer(self->model.get()));
+        self->sessionLayer.reset(new UsdSessionLayer(self->model.get()));
         self->gridSceneIndex = GridSceneIndex::New();
         self->model->AddSceneIndexBase(self->gridSceneIndex);
         auto editableSceneIndex = self->model->GetEditableSceneIndex();
@@ -911,8 +912,9 @@ void OpenUSDProvider::ExportStage(std::string const& path)
 }
 
 PXR_NS::SdfLayerRefPtr OpenUSDProvider::GetSessionLayer() {
-    if (self->layer)
-        return self->layer->GetSessionLayer();
+    if (self->sessionLayer) {
+        return self->sessionLayer->GetSessionLayer();
+    }
     return {};
 }
 

@@ -240,6 +240,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     libzmq-static
     Tilengine
     ImGuizmo::ImGuizmo
+    ImGuiColorTextEdit::ImGuiColorTextEdit
     ${PXR_LIBRARIES}
 )
 
