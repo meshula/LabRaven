@@ -18,7 +18,6 @@
 #include "ImGuiHydraEditor/src/models/model.h"
 #include "ImGuiHydraEditor/src/engine.h"
 #include "ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.h"
-#include "ImGuiHydraEditor/src/sceneindices/gridsceneindex.h"
 #include "ImGuiHydraEditor/src/views/usdsessionlayer.h"
 
 #include <pxr/base/plug/registry.h>
@@ -56,9 +55,6 @@ struct OpenUSDProvider::Self {
     // things related to the stage and hydra
     std::unique_ptr<pxr::Model> model;
     std::unique_ptr<UsdSessionLayer> sessionLayer;
-    std::unique_ptr<Engine> engine;
-    pxr::XformFilterSceneIndexRefPtr xformSceneIndex;
-    pxr::GridSceneIndexRefPtr gridSceneIndex;
 
     // things related to the templating utility
     pxr::UsdStageRefPtr templateStage;
@@ -92,16 +88,11 @@ struct OpenUSDProvider::Self {
                 curr += i.first.length() + 1;
             }
         }
+        model = std::unique_ptr<pxr::Model>(new pxr::Model());
+        sessionLayer = std::unique_ptr<UsdSessionLayer>(new UsdSessionLayer(model.get()));
     }
 
     ~Self() {
-        engine.reset();
-        sessionLayer.reset();
-        model.reset();
-    }
-
-    void SetEmptyStage() {
-        engine.reset();
         sessionLayer.reset();
         model.reset();
     }
@@ -129,11 +120,7 @@ UsdSessionLayer* OpenUSDProvider::GetSessionLayerManager() {
 
 void OpenUSDProvider::SetEmptyStage() {
     PXR_NS::TfDebug::SetDebugSymbolsByName("USD_STAGE_LIFETIMES", true);
-    self->SetEmptyStage();
-    LoadStage("");
-    auto stage = Stage();
-    pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
-    CreateCube({0,0,0});
+    self->sessionLayer->SetEmptyStage();
 }
 
 UsdStageRefPtr OpenUSDProvider::Stage() const {
@@ -142,16 +129,16 @@ UsdStageRefPtr OpenUSDProvider::Stage() const {
     return {};
 }
 
-
 namespace {
     std::shared_ptr<OpenUSDProvider> gInstance;
 }
+
 // static
-std::shared_ptr<OpenUSDProvider> OpenUSDProvider::instance()
+OpenUSDProvider* OpenUSDProvider::instance()
 {
     if (!gInstance)
         gInstance.reset(new OpenUSDProvider());
-    return gInstance;
+    return gInstance.get();
 }
 
 // static
@@ -832,17 +819,7 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
             }
         }
  
-        self->model.reset(new pxr::Model());
-        self->sessionLayer.reset(new UsdSessionLayer(self->model.get()));
         self->sessionLayer->SetStage(stage);
-
-        self->gridSceneIndex = GridSceneIndex::New();
-        self->model->AddSceneIndexBase(self->gridSceneIndex);
-        auto editableSceneIndex = self->model->GetEditableSceneIndex();
-        self->xformSceneIndex = XformFilterSceneIndex::New(editableSceneIndex);
-        self->model->SetEditableSceneIndex(self->xformSceneIndex);
-        TfToken plugin = Engine::GetDefaultRendererPlugin();
-        self->engine.reset(new Engine(self->model->GetFinalSceneIndex(), plugin));
     }
     else {
         fprintf(stderr, "Stage was not loaded at %s\n", filePath.c_str());

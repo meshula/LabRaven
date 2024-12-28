@@ -75,7 +75,7 @@ private:
         add_process({toInt(Process::OpenFile), "file_success",
             [this]() {
                          printf("Entering file_success\n");
-                         std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                         auto usd = OpenUSDProvider::instance();
                          if (usd) {
                              usd->LoadStage(req.path);
                              // get the directory of path and save it as the default
@@ -161,7 +161,7 @@ private:
         add_process({toInt(Process::OpenFile), "file_success",
             [this]() {
                          printf("Entering file_success\n");
-                         std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                         auto usd = OpenUSDProvider::instance();
                          if (usd) {
                              auto stage = usd->Stage();
                              if (stage) {
@@ -251,7 +251,7 @@ private:
         add_process({toInt(Process::ExportFile), "file_success",
             [this]() {
                          printf("Entering file_success\n");
-                         std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                         auto usd = OpenUSDProvider::instance();
                          if (usd) {
                              std::string path(req.path);
                              auto mm = LabApp::instance()->mm();
@@ -373,7 +373,7 @@ private:
                     auto con = mm->LockActivity(console);
                     con->Info("Creating Shot from Template");
 
-                    std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                    auto usd = OpenUSDProvider::instance();
                     if (usd)
                         usd->CreateShotFromTemplate(path, sn);
                 }});

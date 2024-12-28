@@ -90,7 +90,7 @@ void OpenUSDActivity::Menu() {
         }
         if (ImGui::MenuItem("New Stage")) {
             mm->EnqueueTransaction(Transaction{"New Stage", [](){
-                std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                auto usd = OpenUSDProvider::instance();
                 if (usd)
                     usd->SetEmptyStage();
             }});
@@ -103,12 +103,12 @@ void OpenUSDActivity::Menu() {
         }
         if (ImGui::MenuItem("Test referencing")) {
             mm->EnqueueTransaction(Transaction{"Test referencing", [this]() {
-                std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+                auto usd = OpenUSDProvider::instance();
                 if (usd)
                     usd->TestReferencing();
             }});
         }
-        std::shared_ptr<OpenUSDProvider> usd = OpenUSDProvider::instance();
+        auto usd = OpenUSDProvider::instance();
         auto stage = usd->Stage();
         if (!stage) {
             // Adjust alpha to make it look disabled

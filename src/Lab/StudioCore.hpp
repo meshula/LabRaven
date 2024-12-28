@@ -271,7 +271,7 @@ class Orchestrator
     void _deactivate_studio(const std::string& name);
     void _register_studio(const std::string& name, std::function< std::shared_ptr<Studio>() > fn);
     void _register_activity(const std::string& name, std::function< std::shared_ptr<Activity>() > fn);
-    void _register_provider(const std::string& name, std::function< std::shared_ptr<Provider>() > fn);
+    void _register_provider(const std::string& name, std::function< Provider*() > fn);
     void _set_activities();
 
 public:
@@ -304,7 +304,7 @@ public:
     }
 
     template <typename ProviderType>
-    void RegisterProvider(std::function< std::shared_ptr<Provider>() > fn)
+    void RegisterProvider(std::function< Provider* () > fn)
     {
         static_assert(std::is_base_of<Provider, ProviderType>::value, "must register Provider");
         _register_provider(ProviderType::sname(), fn);
@@ -333,7 +333,7 @@ public:
 
     std::shared_ptr<Studio> FindStudio(const std::string &);
     std::shared_ptr<Activity> FindActivity(const std::string &);
-    std::shared_ptr<Provider> FindProvider(const std::string &);
+    Provider* FindProvider(const std::string &);
 
     template <typename T>
     std::shared_ptr<T> FindStudio()

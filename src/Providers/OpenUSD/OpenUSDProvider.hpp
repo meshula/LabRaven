@@ -25,7 +25,7 @@ public:
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "OpenUSD"; }
 
-    static std::shared_ptr<OpenUSDProvider> instance();
+    static OpenUSDProvider* instance();
     static void ReleaseInstance();
 
     void LoadStage(std::string const& filePath);

@@ -13,7 +13,7 @@ struct ProvidersData {
 
 struct ProvidersActivity::data
 {
-    std::vector<std::shared_ptr<Provider>> providers;
+    std::vector<Provider*> providers;
     std::vector<std::string> providerNames;
     int selectedProvider = -1;
 };
@@ -62,7 +62,7 @@ void ProvidersActivity::RunUI(const LabViewInteraction& interaction) {
     if (_self->selectedProvider >= 0 && _self->selectedProvider < _self->providers.size()) {
         auto provider = _self->providers[_self->selectedProvider];
         if (provider->provider.Documentation) {
-            ImGui::TextUnformatted(provider->provider.Documentation((void*) provider.get()));
+            ImGui::TextUnformatted(provider->provider.Documentation((void*) provider));
         }
     }
     ImGui::EndGroup();
