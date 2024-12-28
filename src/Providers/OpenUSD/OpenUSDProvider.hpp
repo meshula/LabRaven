@@ -8,6 +8,7 @@
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/usd/stage.h>
 #include "ImGuiHydraEditor/src/models/model.h"
+#include "ImGuiHydraEditor/src/views/usdsessionlayer.h"
 
 namespace lab {
 
@@ -39,6 +40,8 @@ public:
 
     PXR_NS::UsdStageRefPtr Stage() const;
     PXR_NS::SdfLayerRefPtr GetSessionLayer();
+
+    pxr::UsdSessionLayer* GetSessionLayerManager();
 
     void ReferenceLayer(PXR_NS::UsdStageRefPtr stage,
                                     const std::string& layerFilePath,

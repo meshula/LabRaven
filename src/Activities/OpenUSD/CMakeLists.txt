@@ -7,6 +7,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     OpenUSDActivity.cpp OpenUSDActivity.hpp
     HydraActivity.cpp HydraActivity.hpp
     PropertiesActivity.cpp PropertiesActivity.hpp
-    UsdOutlinerActivity.cpp UsdOutlinerActivity.hpp
+    SessionActivity.cpp SessionActivity.hpp
     TfDebugActivity.cpp TfDebugActivity.hpp
+    UsdOutlinerActivity.cpp UsdOutlinerActivity.hpp
 )

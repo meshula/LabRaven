@@ -123,6 +123,10 @@ OpenUSDProvider::~OpenUSDProvider()
 {
 }
 
+UsdSessionLayer* OpenUSDProvider::GetSessionLayerManager() {
+    return self->sessionLayer.get();    
+}
+
 void OpenUSDProvider::SetEmptyStage() {
     PXR_NS::TfDebug::SetDebugSymbolsByName("USD_STAGE_LIFETIMES", true);
     self->SetEmptyStage();
@@ -811,17 +815,13 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
         stage = pxr::UsdStage::CreateInMemory();
         if (stage) {
             UsdGeomSetStageUpAxis(stage, pxr::UsdGeomTokens->y);
-
-            auto rootLayer = stage->GetRootLayer();
-
             UsdGeomScope labScope = UsdGeomScope::Define(stage, SdfPath("/Lab"));
-            stage->SetDefaultPrim(labScope.GetPrim());
-            stage->SetEditTarget(rootLayer);
         }
     }
     
     if (stage) {
         self->stage_generation++;
+
         constexpr bool testLoad = false;
         if (testLoad) {
             auto pseudoRoot = stage->GetPseudoRoot();
@@ -831,10 +831,11 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
                 printf("\tChild path: %s\n", c.GetPath().GetString().c_str());
             }
         }
-
+ 
         self->model.reset(new pxr::Model());
-        self->model->SetStage(stage);
         self->sessionLayer.reset(new UsdSessionLayer(self->model.get()));
+        self->sessionLayer->SetStage(stage);
+
         self->gridSceneIndex = GridSceneIndex::New();
         self->model->AddSceneIndexBase(self->gridSceneIndex);
         auto editableSceneIndex = self->model->GetEditableSceneIndex();
