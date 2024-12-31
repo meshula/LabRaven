@@ -35,10 +35,7 @@ void SessionActivity::RunUI(const LabViewInteraction&) {
     }
     else {
         ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-        if (ImGui::Begin("Session Editor##A3")) {
-            usd->GetSessionLayerManager()->Update();
-        }
-        ImGui::End();
+        usd->GetSessionLayerManager()->Update();
     }
 }
 

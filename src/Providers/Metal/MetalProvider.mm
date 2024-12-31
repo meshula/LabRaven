@@ -445,6 +445,20 @@ void LabUpdateRGBA8Texture(int texture, uint8_t* pixels) {
 }
 
 extern "C"
+void LabUpdateRGBAf16Texture(int texture, uint8_t* pixels) {
+    if (gLabMetalProvider) {
+        id<MTLTexture> txt = [gLabMetalProvider Texture:texture];
+        if (txt) {
+            [txt replaceRegion:MTLRegionMake2D(0, 0, txt.width, txt.height)
+                   mipmapLevel:0
+                     withBytes:pixels
+                   bytesPerRow:txt.width * 8];
+        }
+    }
+}
+
+
+extern "C"
 void LabUpdateBGRA8Texture(int texture, uint8_t* pixels) {
     LabUpdateRGBA8Texture(texture, pixels);
 }

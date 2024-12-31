@@ -41,6 +41,7 @@ void HydraActivity::RunUI(const LabViewInteraction&) {
 
     // make a window 800, 600
     if (_self->viewport) {
+        ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
         _self->viewport->Update();
     }
     else {

@@ -1,6 +1,16 @@
 get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
 set_property(GLOBAL PROPERTY PROVIDERS_LIST "${PROVIDERS};OpenUSD")
 
+if (APPLE)
+   set(OPENUSD_PLATFORM_SRCS
+       ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.mm
+   )
+else()
+    set(OPENUSD_PLATFORM_SRCS
+         ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.cpp
+    )
+endif()
+
 set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/CreateDemoText.hpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/CreateDemoText.cpp
@@ -20,7 +30,6 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/models/model.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/models/model.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/colorfiltersceneindex.h
@@ -46,4 +55,4 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/kazmath/vec4.c
 )
 
-target_sources(${PROJECT_NAME} PUBLIC ${OPENUSD_SRCS})
+target_sources(${PROJECT_NAME} PUBLIC ${OPENUSD_SRCS} ${OPENUSD_PLATFORM_SRCS})

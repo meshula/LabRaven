@@ -108,7 +108,7 @@ set(PROVIDER_REGISTRATION "")
 # List all providers
 foreach(provider ${PROVIDERS})
     string(APPEND PROVIDER_REGISTRATION 
-           "    orchestrator.RegisterProvider<${provider}Provider>([](){ return std::make_shared<${provider}Provider>(); });\n")
+           "    orchestrator.RegisterProvider<${provider}Provider>([](){ return ${provider}Provider::instance(); });\n")
 endforeach()
 
 set(PROVIDER_INCLUDES "")
