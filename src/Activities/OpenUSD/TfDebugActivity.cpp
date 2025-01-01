@@ -1,5 +1,5 @@
 //
-//  DebuggerActivity.cpp
+//  TfDebugActivity.cpp
 //  LabExcelsior
 //
 //  Created by Domenico Porcino on 24/02/09
@@ -11,58 +11,41 @@
 #include "imgui.h"
 
 namespace lab {
-    struct DebuggerActivity::data {
-        bool ui_visible = true;
+struct TfDebugActivity::data {
+};
+
+TfDebugActivity::TfDebugActivity() : Activity(TfDebugActivity::sname())
+{
+    _self = new TfDebugActivity::data();
+    activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
+        static_cast<TfDebugActivity*>(instance)->RunUI(*vi);
     };
+}
 
-    DebuggerActivity::DebuggerActivity() : Activity(DebuggerActivity::sname())
-    {
-        _self = new DebuggerActivity::data();
-        activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
-            static_cast<DebuggerActivity*>(instance)->RunUI(*vi);
-        };
-        activity.Menu = [](void* instance) {
-            static_cast<DebuggerActivity*>(instance)->Menu();
-        };
-    }
+TfDebugActivity::~TfDebugActivity()
+{
+    delete _self;
+}
 
-    DebuggerActivity::~DebuggerActivity()
-    {
-        delete _self;
-    }
-
-    void DebuggerActivity::RunUI(const LabViewInteraction&)
-    {
-        if (!_self->ui_visible)
-            return;
-    
-        // draw the debugger
-        static std::vector<std::string> debugStrings = PXR_NS::TfDebug::GetDebugSymbolNames();
-        ImGui::Begin("TfDebugger", &_self->ui_visible);
-        for (auto& s : debugStrings) {
-            bool enabled = PXR_NS::TfDebug::IsDebugSymbolNameEnabled(s);
-            if (ImGui::Checkbox(s.c_str(), &enabled)) {
-                PXR_NS::TfDebug::SetDebugSymbolsByName(s, enabled);
-            }
-            if (ImGui::BeginItemTooltip())
-            {
-                static std::string desc;
-                desc = PXR_NS::TfDebug::GetDebugSymbolDescription(s);
-                ImGui::TextUnformatted(desc.c_str());
-                ImGui::EndTooltip();
-            }
+void TfDebugActivity::RunUI(const LabViewInteraction&)
+{
+    // draw the debugger
+    static std::vector<std::string> debugStrings = PXR_NS::TfDebug::GetDebugSymbolNames();
+    ImGui::Begin("TfDebugger");
+    for (auto& s : debugStrings) {
+        bool enabled = PXR_NS::TfDebug::IsDebugSymbolNameEnabled(s);
+        if (ImGui::Checkbox(s.c_str(), &enabled)) {
+            PXR_NS::TfDebug::SetDebugSymbolsByName(s, enabled);
         }
-        ImGui::End();
-    }
-
-    void DebuggerActivity::Menu()
-    {
-        if (ImGui::BeginMenu("Modes")) {
-            if (ImGui::MenuItem("Debugger", nullptr, _self->ui_visible, true)) {
-                _self->ui_visible = !_self->ui_visible;
-            }
-            ImGui::EndMenu();
+        if (ImGui::BeginItemTooltip())
+        {
+            static std::string desc;
+            desc = PXR_NS::TfDebug::GetDebugSymbolDescription(s);
+            ImGui::TextUnformatted(desc.c_str());
+            ImGui::EndTooltip();
         }
     }
+    ImGui::End();
+}
 
 } // lab

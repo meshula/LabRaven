@@ -13,7 +13,7 @@
 #include <pxr/usd/sdf/path.h>
 
 namespace lab {
-class CreateActivity : public Activity
+class UsdCreateActivity : public Activity
 {
     struct data;
     data* _self;
@@ -23,10 +23,10 @@ class CreateActivity : public Activity
     void RunUI(const LabViewInteraction&);
     
 public:
-    CreateActivity();
-    virtual ~CreateActivity();
+    UsdCreateActivity();
+    virtual ~UsdCreateActivity();
     virtual const std::string Name() const override { return sname(); }
-    static constexpr const char* sname() { return "USD Create"; }
+    static constexpr const char* sname() { return "UsdCreate"; }
 };
 
 }

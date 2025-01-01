@@ -52,8 +52,9 @@ const string Outliner::GetViewType()
 void Outliner::_Draw()
 {
     SdfPath root = SdfPath::AbsoluteRootPath();
-    SdfPathVector paths = _sceneIndex->GetChildPrimPaths(root);
-    for (auto primPath : paths) _DrawPrimHierarchy(primPath);
+    SdfPathVector paths = GetModel()->GetFinalSceneIndex()->GetChildPrimPaths(root);
+    for (auto primPath : paths)
+        _DrawPrimHierarchy(primPath);
 }
 
 // returns the node's rectangle
@@ -72,7 +73,7 @@ ImRect Outliner::_DrawPrimHierarchy(SdfPath primPath)
         // draw all children and store their rect position
         vector<ImRect> rects;
         SdfPathVector primPaths =
-            _sceneIndex->GetChildPrimPaths(primPath);
+            GetModel()->GetFinalSceneIndex()->GetChildPrimPaths(primPath);
 
         for (auto child : primPaths) {
             ImRect childRect = _DrawPrimHierarchy(child.GetPrimPath());
@@ -95,7 +96,7 @@ ImGuiTreeNodeFlags Outliner::_ComputeDisplayFlags(SdfPath primPath)
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
 
     // set the flag if leaf or not
-    SdfPathVector primPaths = _sceneIndex->GetChildPrimPaths(primPath);
+    SdfPathVector primPaths = GetModel()->GetFinalSceneIndex()->GetChildPrimPaths(primPath);
 
     if (primPaths.size() == 0) {
         flags |= ImGuiTreeNodeFlags_Leaf;

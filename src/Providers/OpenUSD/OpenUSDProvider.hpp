@@ -53,7 +53,9 @@ public:
 
     void TestReferencing();
 
-    std::string GetNextAvailableIndexedPath(std::string primPath);
+    std::string GetNextAvailableIndexedPath(std::string const& primPath);
+
+    void CreateDefaultPrimIfNeeded(std::string const& primPath);
 
     PXR_NS::SdfPath CreateCamera(const std::string& name);
     PXR_NS::SdfPath CreateCapsule(PXR_NS::GfVec3d pos);

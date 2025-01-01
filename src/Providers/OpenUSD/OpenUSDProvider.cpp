@@ -125,7 +125,7 @@ UsdSessionLayer* OpenUSDProvider::GetSessionLayerManager() {
 }
 
 void OpenUSDProvider::SetEmptyStage() {
-    PXR_NS::TfDebug::SetDebugSymbolsByName("USD_STAGE_LIFETIMES", true);
+    //PXR_NS::TfDebug::SetDebugSymbolsByName("USD_STAGE_LIFETIMES", true);
     self->sessionLayer->SetEmptyStage();
 }
 
@@ -158,6 +158,7 @@ pxr::SdfPath OpenUSDProvider::CreateCamera(const std::string& name) {
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Cameras"));
     primPath = primPath.AppendChild(TfToken(name));
@@ -181,6 +182,7 @@ pxr::SdfPath OpenUSDProvider::CreateCapsule(PXR_NS::GfVec3d pos)
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("capsule"));
@@ -191,6 +193,8 @@ pxr::SdfPath OpenUSDProvider::CreateCapsule(PXR_NS::GfVec3d pos)
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
+
+    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -206,6 +210,7 @@ pxr::SdfPath OpenUSDProvider::CreateCone(PXR_NS::GfVec3d pos)
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("cone"));
@@ -216,6 +221,8 @@ pxr::SdfPath OpenUSDProvider::CreateCone(PXR_NS::GfVec3d pos)
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
+
+    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -230,6 +237,7 @@ pxr::SdfPath OpenUSDProvider::CreateCube(PXR_NS::GfVec3d pos) {
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("cube"));
@@ -240,6 +248,8 @@ pxr::SdfPath OpenUSDProvider::CreateCube(PXR_NS::GfVec3d pos) {
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
+
+    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -279,6 +289,7 @@ PXR_NS::SdfPath OpenUSDProvider::CreateHilbertCurve(int iterations, PXR_NS::GfVe
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("hilbert_curve"));
@@ -312,6 +323,8 @@ PXR_NS::SdfPath OpenUSDProvider::CreateHilbertCurve(int iterations, PXR_NS::GfVe
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
 
+    self->sessionLayer->UpdateStageSceneIndex();
+
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Hilbert Curve: " + r.GetString();
@@ -325,6 +338,7 @@ pxr::SdfPath OpenUSDProvider::CreateMaterial() {
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Materials"));
     primPath = primPath.AppendChild(TfToken("material"));
@@ -356,6 +370,7 @@ pxr::SdfPath OpenUSDProvider::CreateTestData() {
     cubeRed.GetPrim().ApplyAPI<UsdShadeMaterialBindingAPI>();
     auto redBinding = UsdShadeMaterialBindingAPI(cubeRed);
     redBinding.Bind(material);
+    self->sessionLayer->UpdateStageSceneIndex();
     return SdfPath("/CubeRed");
 }
 
@@ -370,6 +385,7 @@ pxr::SdfPath OpenUSDProvider::CreateMacbethChart(const std::string& chipsColorsp
     auto console = mm->LockActivity(cap);
     std::string chartName = "Chart_" + chipsColorspace;
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken(chartName));
@@ -382,6 +398,7 @@ pxr::SdfPath OpenUSDProvider::CreateMacbethChart(const std::string& chipsColorsp
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath materialPath = stage->GetDefaultPrim().GetPath();
     materialPath = materialPath.AppendChild(TfToken("Materials"));
     materialPath = materialPath.AppendChild(TfToken(chartName));
@@ -443,13 +460,17 @@ pxr::SdfPath OpenUSDProvider::CreateMacbethChart(const std::string& chipsColorsp
         xformable.AddTranslateOp().Set(GfVec3d(x + 1.0, y + 1.0, z + 1.0));
     }
 
+    self->sessionLayer->UpdateStageSceneIndex();
+
     std::string msg = "Created Macbeth Chart: " + r.GetString();
     console->Info(msg);
     return r;
 }
 
 pxr::SdfPath OpenUSDProvider::CreateDemoText(const std::string& text, PXR_NS::GfVec3d pos) {
-    return CreateC64DemoText(*this, text, pos);
+    auto path = CreateC64DemoText(*this, text, pos);
+    self->sessionLayer->UpdateStageSceneIndex();
+    return path;
 }
 
 pxr::SdfPath OpenUSDProvider::CreateCylinder(PXR_NS::GfVec3d pos)
@@ -459,6 +480,7 @@ pxr::SdfPath OpenUSDProvider::CreateCylinder(PXR_NS::GfVec3d pos)
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("cylinder"));
@@ -469,6 +491,8 @@ pxr::SdfPath OpenUSDProvider::CreateCylinder(PXR_NS::GfVec3d pos)
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
+
+    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -487,6 +511,7 @@ PXR_NS::SdfPath OpenUSDProvider::CreateGroundGrid(PXR_NS::GfVec3d pos, int x, in
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("plane"));
@@ -541,6 +566,8 @@ PXR_NS::SdfPath OpenUSDProvider::CreateGroundGrid(PXR_NS::GfVec3d pos, int x, in
         }
     }
 
+    self->sessionLayer->UpdateStageSceneIndex();
+
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Ground Grid: " + r.GetString();
@@ -555,6 +582,7 @@ pxr::SdfPath OpenUSDProvider::CreatePlane(PXR_NS::GfVec3d pos)
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("plane"));
@@ -565,6 +593,8 @@ pxr::SdfPath OpenUSDProvider::CreatePlane(PXR_NS::GfVec3d pos)
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
+
+    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -580,18 +610,21 @@ pxr::SdfPath OpenUSDProvider::CreateSphere(PXR_NS::GfVec3d pos, float radius)
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("sphere"));
     string primPathStr = GetNextAvailableIndexedPath(primPath.GetString());
     pxr::SdfPath r(primPathStr);
     auto sphere = pxr::UsdGeomSphere::Define(stage, r);
+    sphere.GetRadiusAttr().Set((double)radius);
 
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(sphere, m, UsdTimeCode::Default());
 
-    sphere.GetRadiusAttr().Set((double)radius);
+    self->sessionLayer->UpdateStageSceneIndex();
+
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Sphere: " + r.GetString();
@@ -669,6 +702,7 @@ pxr::SdfPath OpenUSDProvider::CreateParGeometry(const std::string& shape,
     }
 
     // create a USD prim for the mesh
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken(shape));
@@ -734,6 +768,8 @@ pxr::SdfPath OpenUSDProvider::CreateParGeometry(const std::string& shape,
 
     // free the mesh
     par_shapes_free_mesh(mesh);
+
+    self->sessionLayer->UpdateStageSceneIndex();
 
     auto mm = lab::Orchestrator::Canonical();
     std::weak_ptr<ConsoleActivity> cap;
@@ -801,6 +837,7 @@ pxr::SdfPath OpenUSDProvider::CreateParHeightfield(PXR_NS::GfVec3d pos) {
     heman_image* filmstrip = heman_ops_stitch_horizontal(frames, 5);
 
     // create a USD prim for the mesh
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken("Heightfield"));
@@ -884,6 +921,8 @@ pxr::SdfPath OpenUSDProvider::CreateParHeightfield(PXR_NS::GfVec3d pos) {
     heman_image_destroy(albedo);
     heman_image_destroy(final);
 
+    self->sessionLayer->UpdateStageSceneIndex();
+
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Par Heightfield: " + r.GetString();
@@ -898,6 +937,7 @@ pxr::SdfPath OpenUSDProvider::CreatePrimShape(const std::string& shape,
     if (!stage)
         return {};
 
+    CreateDefaultPrimIfNeeded("/Lab");
     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
     primPath = primPath.AppendChild(TfToken("Shapes"));
     primPath = primPath.AppendChild(TfToken(shape));
@@ -924,6 +964,8 @@ pxr::SdfPath OpenUSDProvider::CreatePrimShape(const std::string& shape,
     else {
         return {};
     }
+
+    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -1083,6 +1125,8 @@ void OpenUSDProvider::CreateShotFromTemplate(const std::string& directory_,
 
     UsdPrim prim = self->templater->GetTemplatePrim("/Shot");
     self->templater->InstantiateTemplate(100, td, prim, prim);
+
+    self->sessionLayer->UpdateStageSceneIndex();
 }
 
 
@@ -1098,6 +1142,7 @@ void OpenUSDProvider::CreateCard(const std::string& scope,
     td.dict["IMAGE_FILE"] = VtValue(imagePath);
     td.stage = Stage();
     self->templater->InstantiateTemplate(100, td, prim, prim);
+    self->sessionLayer->UpdateStageSceneIndex();
 }
 
 void OpenUSDProvider::TestReferencing() {
@@ -1255,9 +1300,11 @@ void OpenUSDProvider::ReferenceLayer(PXR_NS::UsdStageRefPtr stage,
             std::cout << "Inserted rotation to make the referenced layer, " << name << " Y-up." << std::endl;
         }
     }
+
+    self->sessionLayer->UpdateStageSceneIndex();
 }
 
-string OpenUSDProvider::GetNextAvailableIndexedPath(string primPath) {
+string OpenUSDProvider::GetNextAvailableIndexedPath(string const& primPath) {
     pxr::UsdStageRefPtr stage = Stage();
     pxr::UsdPrim prim;
     int i = -1;
@@ -1269,6 +1316,18 @@ string OpenUSDProvider::GetNextAvailableIndexedPath(string primPath) {
         prim = stage->GetPrimAtPath(pxr::SdfPath(newPath));
     } while (prim.IsValid());
     return newPath;
+}
+
+void OpenUSDProvider::CreateDefaultPrimIfNeeded(std::string const& primPath) {
+    pxr::UsdStageRefPtr stage = Stage();
+    if (!stage)
+        return;
+
+    pxr::UsdPrim prim = stage->GetPrimAtPath(pxr::SdfPath(primPath));
+    if (!prim) {
+        UsdGeomScope scope = UsdGeomScope::Define(stage, SdfPath(primPath));
+        stage->SetDefaultPrim(scope.GetPrim());
+    }
 }
 
 } // lab

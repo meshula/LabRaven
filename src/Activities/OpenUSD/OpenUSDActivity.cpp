@@ -60,20 +60,6 @@ OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
     _self->exportStageModule.Register();
     _self->referenceLayerModule.Register();
     _self->shotTemplateModule.Register();
-
-    auto orchestrator = Orchestrator::Canonical();
-    orchestrator->RegisterActivity<UsdOutlinerActivity>(
-        [](){ return std::make_shared<UsdOutlinerActivity>(); });
-    orchestrator->RegisterActivity<CreateActivity>(
-        [](){ return std::make_shared<CreateActivity>(); });
-    orchestrator->RegisterActivity<DebuggerActivity>(
-        [](){ return std::make_shared<DebuggerActivity>(); });
-    orchestrator->RegisterActivity<HydraActivity>(
-        [](){ return std::make_shared<HydraActivity>(); });
-    orchestrator->RegisterActivity<PropertiesActivity>(
-        [](){ return std::make_shared<PropertiesActivity>(); });
-    orchestrator->RegisterActivity<SessionActivity>(
-        [](){ return std::make_shared<SessionActivity>(); });
 }
 
 OpenUSDActivity::~OpenUSDActivity() {

@@ -92,16 +92,27 @@ if (NOT STUDIOS)
     message(FATAL_ERROR "Lab: No studios found")
 endif()
 
-set(ACTIVITY_INCLUDES "")
 foreach(activity ${ACTIVITIES})
-    string(APPEND ACTIVITY_INCLUDES "#include \"Activities/${activity}/${activity}Activity.hpp\"\n")
-endforeach()
+    # Trim whitespace from the activity name
+    string(STRIP "${activity}" activity)
+    
+    # Extract the directory and class name
+    string(FIND "${activity}" "/" DELIMITER_POS)
+    if(DELIMITER_POS GREATER_EQUAL 0)
+        string(SUBSTRING "${activity}" 0 ${DELIMITER_POS} DIRECTORY)
+        string(SUBSTRING "${activity}" ${DELIMITER_POS} -1 CLASS_NAME)
+        string(REPLACE "/" "" CLASS_NAME "${CLASS_NAME}") # Remove any slashes
+    else()
+        set(DIRECTORY "${activity}")
+        set(CLASS_NAME "${activity}")
+    endif()
 
-set(ACTIVITY_REGISTRATION "")
-# List all activities
-foreach(activity ${ACTIVITIES})
+    # Generate include paths
+    string(APPEND ACTIVITY_INCLUDES "#include \"Activities/${DIRECTORY}/${CLASS_NAME}Activity.hpp\"\n")
+
+    # Generate activity registration code
     string(APPEND ACTIVITY_REGISTRATION 
-           "    orchestrator.RegisterActivity<${activity}Activity>([](){ return std::make_shared<${activity}Activity>(); });\n")
+           "    orchestrator.RegisterActivity<${CLASS_NAME}Activity>([](){ return std::make_shared<${CLASS_NAME}Activity>(); });\n")
 endforeach()
 
 set(PROVIDER_REGISTRATION "")

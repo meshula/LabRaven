@@ -1,5 +1,5 @@
 //
-//  CreateActivity.cpp
+//  UsdCreateActivity.cpp
 //  LabExcelsior
 //
 //  Created by Domenico Porcino on 12/1/23.
@@ -46,7 +46,7 @@ namespace lab {
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
-struct CreateActivity::data {
+struct UsdCreateActivity::data {
     bool runCreateColorChecker = false;
     bool runCreateUsdPrim = false;
     bool runCreateCard = false;
@@ -92,23 +92,23 @@ struct CreateActivity::data {
     }
 };
 
-CreateActivity::CreateActivity()
-: Activity(CreateActivity::sname()) {
-    _self = new CreateActivity::data;
-    
+UsdCreateActivity::UsdCreateActivity()
+: Activity(UsdCreateActivity::sname()) {
+    _self = new UsdCreateActivity::data;
+
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
-        static_cast<CreateActivity*>(instance)->RunUI(*vi);
+        static_cast<UsdCreateActivity*>(instance)->RunUI(*vi);
     };
     activity.Menu = [](void* instance) {
-        static_cast<CreateActivity*>(instance)->Menu();
+        static_cast<UsdCreateActivity*>(instance)->Menu();
     };
 }
 
-CreateActivity::~CreateActivity() {
+UsdCreateActivity::~UsdCreateActivity() {
     delete _self;
 }
 
-void CreateActivity::Menu() {
+void UsdCreateActivity::Menu() {
     auto usd = OpenUSDProvider::instance();
     if (!usd)
         return;
@@ -193,7 +193,7 @@ void CreateActivity::Menu() {
     }
 }
 
-void CreateActivity::RunUI(const LabViewInteraction&) {
+void UsdCreateActivity::RunUI(const LabViewInteraction&) {
     auto usd = OpenUSDProvider::instance();
     if (!usd)
         return;

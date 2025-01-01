@@ -12,20 +12,19 @@
 #include "Lab/StudioCore.hpp"
 
 namespace lab {
-    class DebuggerActivity : public Activity
+    class TfDebugActivity : public Activity
     {
         struct data;
         data* _self;
         
-        // activites
+        // activities
         void RunUI(const LabViewInteraction&);
-        void Menu();
 
     public:
-        explicit DebuggerActivity();
-        virtual ~DebuggerActivity();
+        explicit TfDebugActivity();
+        virtual ~TfDebugActivity();
         virtual const std::string Name() const override { return sname(); }
-        static constexpr const char* sname() { return "TfDebugger"; }
+        static constexpr const char* sname() { return "TfDebug"; }
     };
 }
 
