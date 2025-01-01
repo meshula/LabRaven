@@ -32,3 +32,6 @@
 [submodule "ext/Tilengine"]
 	path = ext/Tilengine
 	url = https://github.com/meshula/Tilengine.git
+[submodule "ext/usdtweak"]
+	path = ext/usdtweak
+	url = https://github.com/cpichard/usdtweak.git
