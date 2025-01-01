@@ -22,6 +22,8 @@
 #include "ImGuiHydraEditor/src/views/outliner.h"
 #include <pxr/usd/usd/stage.h>
 
+#include "widgets/StageOutliner.h"
+
 #include <vector>
 
 // on Apple the LabCreateTextues come from the MetalProvider
@@ -268,6 +270,12 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
         ImGui::End();
 #endif
         _self->outliner->Update();
+
+        ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
+        ImGui::Begin("usdtweak Outliner");
+        Selection selection;
+        DrawStageOutliner(stage, selection);
+        ImGui::End();
     }
 }
 

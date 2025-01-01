@@ -32,6 +32,30 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/gridsceneindex.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/AttributeCommands.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/EditorCommands.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/CommandsImpl.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/CommandsImpl.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/CommandStack.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/CommandStack.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfCommandGroup.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfCommandGroup.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfCommandGroupRecorder.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfCommandGroupRecorder.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfLayerInstructions.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfLayerInstructions.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfUndoRedoRecorder.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/SdfUndoRedoRecorder.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/UndoLayerStateDelegate.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands/UndoLayerStateDelegate.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/EditorSettings.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/EditorSettings.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/ImGuiHelpers.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/ImGuiHelpers.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/Selection.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/Selection.cpp
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/widgets/StageOutliner.h
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/widgets/StageOutliner.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/src/color.c
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/src/draw.c
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/src/distance.c
@@ -48,5 +72,14 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/kazmath/vec3.c
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/kazmath/vec4.c
 )
+
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/commands
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/resources
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/viewport
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/3rdparty/iconfontcppheaders
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/3rdparty/wildcards
+    ${CMAKE_SOURCE_DIR}/ext/usdtweak/src/3rdparty/fontawesome)
 
 target_sources(${PROJECT_NAME} PUBLIC ${OPENUSD_SRCS})

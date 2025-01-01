@@ -64,6 +64,7 @@ target_sources(IMGUI
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
     ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/misc/cpp/imgui_stdlib.cpp
 
     # add-ons
     ${IMPLOT_DIR}/implot.cpp
@@ -110,18 +111,24 @@ else()
   )
   find_package(OpenGL REQUIRED)
   target_link_libraries(IMGUI OpenGL::GL ${CMAKE_DL_LIBS})
-  target_compile_definitions(IMGUI PUBLIC -DIMGUI_IMPL_OPENGL_LOADER_GL3W)
+  target_compile_definitions(IMGUI PUBLIC 
+        IMGUI_IMPL_OPENGL_LOADER_GL3W
+        IMGUI_DEFINE_MATH_OPERATORS)
 endif()
 
 target_include_directories(IMGUI
   SYSTEM
   PUBLIC ${IMGUI_DIR}
   PUBLIC ${IMGUI_DIR}/backends
+  PUBLIC ${IMGUI_DIR}/misc/cpp
   PUBLIC gl3w
   PUBLIC glfw/include
   PUBLIC ${IMPLOT_DIR}
   PUBLIC ${TEXTEDIT_DIR}
 )
+
+target_compile_definitions(IMGUI PUBLIC 
+    IMGUI_DEFINE_MATH_OPERATORS)
 
 # add an alias library
 add_library(ImGui::ImGui ALIAS IMGUI)

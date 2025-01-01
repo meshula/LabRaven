@@ -234,7 +234,7 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
     OTIO::opentimelineio
-    IMGUI
+    ImGui::ImGui
     openexr
     sqlite3
     libzmq-static
@@ -242,6 +242,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ImGuizmo::ImGuizmo
     ImGuiColorTextEdit::ImGuiColorTextEdit
     ${PXR_LIBRARIES}
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    IMGUI_DEFINE_MATH_OPERATORS
 )
 
 if (HAVE_MIDI)
@@ -318,20 +322,21 @@ foreach(file ${RESOURCES})
     # Extract the filename from the path
     get_filename_component(filename "${file}" NAME)
     
+    set(dest_file "${RESOURCES_DIR}/${filename}")
     add_custom_command(
         OUTPUT "${RESOURCES_DIR}/${filename}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${RESOURCES_DIR}/${filename}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${dest_file}"
         DEPENDS "${file}"
         COMMENT "Copying ${filename} to resources directory"
     )
-    list(APPEND COPIED_FILES "${RESOURCES_DIR}/${filename}")
+    list(APPEND COPIED_FILES "${dest_file}")
 endforeach()
 
 # Create a custom target that triggers the copy step
 add_custom_target(copy_plugins ALL DEPENDS ${COPIED_FILES})
 
 if (APPLE)
-    # Set the path to your entitlements file
+    # Set the path to the entitlements file
     set(ENTITLEMENTS_PATH "${CMAKE_SOURCE_DIR}/src/Lab.entitlements")
     set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_PATH}")
     
@@ -339,6 +344,10 @@ if (APPLE)
     #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual")
 endif()
 
-
-# Ensure your plugin build depends on the copy and sign steps
+# Ensure the plugin build depends on the copy and sign steps
 add_dependencies(${PROJECT_NAME} copy_plugins)
+
+
+get_target_property(DEFINITIONS ${PROJECT_NAME} COMPILE_DEFINITIONS)
+message(STATUS "Definitions for ${PROJECT_NAME}: ${DEFINITIONS}")
+
