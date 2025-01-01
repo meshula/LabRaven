@@ -1,0 +1,431 @@
+#usda 1.0
+(
+    endTimeCode = 241
+    framesPerSecond = 24
+    metersPerUnit = 1
+    startTimeCode = 101
+    timeCodesPerSecond = 24
+    upAxis = "Y"
+)
+
+def Scope "Templates" ( kind = "group" ) 
+{
+    def Xform "Card2" (
+        kind = "component"
+        customData = {
+            string templateKind = "create"
+            string[] recipe = [ 
+              """
+                (print 'Creating a card for' ${IMAGE_FILE} `\n`)
+
+                # material.CreateSurfaceOutput().ConnectToSource(pbrShader.ConnectableAPI(), "surface")
+                (connectMaterial ${SCOPE}/cardMaterial ${SCOPE}/cardMaterial/PBRShader)
+
+                #billboard.GetPrim().ApplyAPI(UsdShade.MaterialBindingAPI)
+                #UsdShade.MaterialBindingAPI(billboard).Bind(material)
+                (bindMaterial ${SCOPE}/cardMesh ${SCOPE}/cardMaterial)
+
+                #pbrShader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).ConnectToSource(diffuseTextureSampler.ConnectableAPI(), 'rgb')
+                #color3f inputs:diffuseColor.connect = </Card/cardMaterial/diffuseTexture.outputs:rgb>
+                (connect ${SCOPE}/cardMaterial/PBRShader diffuseColor ${SCOPE}/cardMaterial/diffuseTexture rgb c3)
+
+                #diffuseTextureSampler.CreateInput("st", Sdf.ValueTypeNames.Float2).ConnectToSource(stReader.ConnectableAPI(), 'result')
+                (connect ${SCOPE}/cardMaterial/diffuseTexture st ${SCOPE}/cardMaterial/stReader result f2)
+
+                #token inputs:varname.connect = </Card/cardMaterial.inputs:frame:stPrimvarName>
+                (connect ${SCOPE}/cardMaterial/stReader varname ${SCOPE}/cardMaterial frame:stPrimvarName token)
+
+                #diffuseTextureSampler.CreateInput('file', Sdf.ValueTypeNames.Asset).Set("USDLogoLrg.png")
+                (setShaderInput ${SCOPE}/cardMaterial/diffuseTexture file ${IMAGE_FILE})
+
+                (createImageQuad ${SCOPE}/cardMesh ${IMAGE_FILE})
+                (computeExtent ${SCOPE}/cardMesh)
+              """
+            ]
+        }
+    )
+    {
+        def Mesh "cardMesh" (
+            apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            #rel material:binding = </PRIM/cardMaterial>
+
+            float3[] extent = [(-430, -145, 0), (430, 145, 0)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            point3f[] points = [(-430, -145, 0), (430, -145, 0), (430, 145, 0), (-430, 145, 0)]
+            texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+                interpolation = "varying"
+            )
+        }
+
+        def Material "cardMaterial"
+        {
+            token inputs:frame:stPrimvarName = "st"
+            #token outputs:surface.connect = </Card/cardMaterial/PBRShader.outputs:surface>
+
+            def Shader "PBRShader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                #color3f inputs:diffuseColor.connect = </Card/cardMaterial/diffuseTexture.outputs:rgb>
+                float inputs:metallic = 0
+                float inputs:roughness = 0.4
+                token outputs:surface
+            }
+
+            def Shader "stReader"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                #token inputs:varname.connect = </Card/cardMaterial.inputs:frame:stPrimvarName>
+                float2 outputs:result
+            }
+
+            def Shader "diffuseTexture"
+            {
+                uniform token info:id = "UsdUVTexture"
+                #asset inputs:file = @IMAGE_FILE@
+                #float2 inputs:st.connect = </Card/cardMaterial/stReader.outputs:result>
+                float3 outputs:rgb
+            }
+        }
+    }
+    def Xform "Card" (
+        kind = "component"
+        customData = {
+            string templateKind = "create"
+            string[] recipe = [
+                """
+                (print 'Creating a card for' ${IMAGE_FILE} `\n`)
+                (connectMaterial ${SCOPE}/cardMaterial ${SCOPE}/cardMaterial/PBRShader)
+                (bindMaterial ${SCOPE}/cardMesh ${SCOPE}/cardMaterial)
+                (connect ${SCOPE}/cardMaterial/PBRShader diffuseColor ${SCOPE}/cardMaterial/diffuseTexture rgb c3)
+                (connect ${SCOPE}/cardMaterial/diffuseTexture st ${SCOPE}/cardMaterial/stReader result f2)
+                (connect ${SCOPE}/cardMaterial/stReader varname ${SCOPE}/cardMaterial frame:stPrimvarName token)
+                (setShaderInput ${SCOPE}/cardMaterial/diffuseTexture file ${IMAGE_FILE})
+                (createImageQuad ${SCOPE}/cardMesh ${IMAGE_FILE})
+                (computeExtent ${SCOPE}/cardMesh)
+                """
+            ]
+        }
+    )
+    {
+        def Mesh "cardMesh" (
+            apiSchemas = ["MaterialBindingAPI"]
+        )
+        {
+            float3[] extent = [(-430, -145, 0), (430, 145, 0)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            point3f[] points = [(-430, -145, 0), (430, -145, 0), (430, 145, 0), (-430, 145, 0)]
+            texCoord2f[] primvars:st = [(0, 0), (1, 0), (1, 1), (0, 1)] (
+                interpolation = "varying"
+            )
+        }
+
+        def Material "cardMaterial"
+        {
+            token inputs:frame:stPrimvarName = "st"
+
+            def Shader "PBRShader"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                float inputs:metallic = 0
+                float inputs:roughness = 0.4
+                token outputs:surface
+            }
+
+            def Shader "stReader"
+            {
+                uniform token info:id = "UsdPrimvarReader_float2"
+                float2 outputs:result
+            }
+
+            def Shader "diffuseTexture"
+            {
+                uniform token info:id = "UsdUVTexture"
+                float3 outputs:rgb
+            }
+        }
+    }
+}
+
+def Scope "library" (
+    kind = "assembly")
+{
+    def Scope "Actors" (
+        kind = "group"
+    )
+    {
+    }
+
+    def Scope "Audio" (
+        kind = "group"
+    )
+    {
+    }
+
+    def Scope "Cards" (
+        kind = "group"
+    )
+    {
+    }
+
+    def Scope "Cameras" (
+        kind = "group"
+    )
+    {
+    }
+
+    def Scope "Lights" (
+        kind = "group"
+    )
+    {
+    }
+
+    def Scope "Materials" (
+        kind = "group"
+    )
+    {
+    }
+
+    def Scope "Props" (
+        kind = "group"
+    )
+    {
+    }
+
+    def Scope "Set" (
+        kind = "group"
+    )
+    {
+    }
+
+    def PhysicsScene "Simulation" (
+        kind = "group"
+    )
+    {
+    }
+
+}
+
+def Scope "Shot" (
+    kind = "assembly"
+    doc  = """The root of the shot. """
+    customData = {
+        string templateKind = "layer"
+        string[] templateSubLayers = [
+            "Departments.usda",
+        ]
+        string[] recipe = [
+            "(print 'Creating Shot\n')",
+            "(print (add 3 (sub 2 1)) '\n')",
+        ]
+        dictionary AllHail = {
+            bool autoToggleSceneMaterials = 0
+            bool showGuide = 1
+            bool showHighlight = 1
+            bool showProxy = 0
+            bool showRender = 1
+            bool showSceneLights = 1
+            bool showSceneMaterials = 1
+            bool showSkyDome = 0
+            string skyDomePath = ""
+            bool useCameraLight = 1
+            bool useCameraLights = 0
+            bool useDomeLight = 1
+        }
+    }
+)
+{
+    def Scope "Departments_usda" (
+        kind = "assembly"
+        doc = """Hierarchy of departments contributing to the scene.
+            This scope contains sublayers representing different departments
+            involved in creating the scene. Each sublayer contributes specific
+            elements or modifications to the scene, such as lighting, animation,
+            cameras, and layout. """
+        customData = {
+            string templateKind = "layer"
+            string[] templateSubLayers = [
+                "shot/interactivity.usda",
+                "shot/sound.usda",
+                "shot/lighting.usda",
+                "shot/simulation.usda",
+                "shot/animation.usda",
+                "shot/look.usda",
+                "shot/diegeticSound.usda",
+                "shot/camera.usda",
+                "shot/layout.usda",
+            ]
+        }
+    )
+    {
+        def Scope "shot" {
+            def Scope "interactivity_usda" (
+                kind = "group"
+                doc = """Layer containing interactivity elements.
+                    This layer contains elements that define the interactive behavior
+                    of the scene, such as user interface elements, interactive objects,
+                    and event triggers. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "sound_usda" (
+                kind = "group"
+                doc = """Layer containing sound elements.
+                    This layer contains elements that define the sound effects and
+                    music for the scene. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "lighting_usda" (
+                kind = "group"
+                doc = """Layer containing lighting elements.
+                    This layer contains elements that define the lighting setup for
+                    the scene, such as lights, light rigs, and light settings. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "simulation_usda" (
+                kind = "group"
+                doc = """Layer containing simulation elements.
+                    This layer contains elements that define the simulation setup for
+                    the scene, such as physics, particles, and dynamics. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "animation_usda" (
+                kind = "group"
+                doc = """Layer containing animation elements.
+                    This layer contains elements that define the animation setup for
+                    the scene, such as keyframes, animation curves, and animation
+                    controllers. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "look_usda" (
+                kind = "group"
+                doc = """Layer containing look elements.
+                    This layer contains elements that define the look of the scene,
+                    such as materials, textures, shaders, and rendering settings. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "diegeticSound_usda" (
+                kind = "group"
+                doc = """Layer containing diegetic sound elements.
+                    This layer contains elements that define the diegetic sound effects
+                    for the scene, such as sound effects that are part of the scene
+                    environment. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "camera_usda" (
+                kind = "group"
+                doc = """Layer containing camera elements.
+                    This layer contains elements that define the camera setup for the
+                    scene, such as cameras, camera rigs, and camera settings. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+
+            def Scope "layout_usda" (
+                kind = "group"
+                doc = """Layer containing layout elements.
+                    This layer contains elements that define the layout of the scene,
+                    such as sets, props, characters, and environments. """
+                customData = {
+                    string templateDirectory= "shot"
+                    string templateKind = "layer"
+                }
+            )
+            {
+            }
+        }
+    }
+
+}
+
+
+//def Scope "Shot010"
+//
+//
+//   def Scope "library"
+//   {
+//       def Xform "cup" (references = @../Models.usda@</Model.cup>)
+//       {
+//           bool visibility = 0  # Set visibility to invisible by default
+//       }
+//   }
+//
+//   def Scope "selects"
+//   (
+//       customData = {
+//           string info = "This Scope references interesting cameras";
+//       }
+//   )
+//   {
+//       def Xform "likedCamera1" (references = @./cameras/Camera1@)
+//       def Xform "likedCamera2" (references = @./cameras/Camera2@)
+//       def Xform "likedCamera3" (references = @./cameras/Camera3@)
+//       def Xform "likedCamera4" (references = @./cameras/Camera4@)
+//       def Xform "likedCamera5" (references = @./cameras/Camera5@)
+//   }
+//
+//   def Scope "layout"
+//   {
+//       def Scope "kitchen"
+//       {
+//           def Scope "table"
+//           {
+//               def Xform "teacupInstance1" (references = @./cup)
+//               def Xform "teacupInstance2" (references = @./cup)
+//               def Xform "teacupInstance3" (references = @./cup)
+//               {
+//                   visibility = 1  # Set visibility to visible for these instances
+//               }
+//           }
+//       }
+//   }
+//
+//
