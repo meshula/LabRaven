@@ -34,6 +34,6 @@ public:
     void Error(std::string_view);
     void Info(std::string_view);
 };
-}
+} // lab
 
 #endif /* ConsoleActivity_hpp */

@@ -14,8 +14,9 @@
 #include "Lab/LabFileDialogManager.hpp"
 #include "Lab/LabDirectories.h"
 #include "Activities/Console/ConsoleActivity.hpp"
-#include "UsdOutlinerActivity.hpp"
 #include "HydraActivity.hpp"
+#include "UsdCreateActivity.hpp"
+#include "UsdOutlinerActivity.hpp"
 #include "PropertiesActivity.hpp"
 #include "SessionActivity.hpp"
 #include "TfDebugActivity.hpp"
@@ -63,6 +64,8 @@ OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
     auto orchestrator = Orchestrator::Canonical();
     orchestrator->RegisterActivity<UsdOutlinerActivity>(
         [](){ return std::make_shared<UsdOutlinerActivity>(); });
+    orchestrator->RegisterActivity<CreateActivity>(
+        [](){ return std::make_shared<CreateActivity>(); });
     orchestrator->RegisterActivity<DebuggerActivity>(
         [](){ return std::make_shared<DebuggerActivity>(); });
     orchestrator->RegisterActivity<HydraActivity>(

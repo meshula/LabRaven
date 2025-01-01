@@ -9,5 +9,6 @@ target_sources(${PROJECT_NAME} PUBLIC
     PropertiesActivity.cpp PropertiesActivity.hpp
     SessionActivity.cpp SessionActivity.hpp
     TfDebugActivity.cpp TfDebugActivity.hpp
+    UsdCreateActivity.cpp UsdCreateActivity.hpp
     UsdOutlinerActivity.cpp UsdOutlinerActivity.hpp
 )

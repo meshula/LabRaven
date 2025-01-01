@@ -38,6 +38,9 @@ public:
     void CreateShotFromTemplate(const std::string& dst, 
                                 const std::string& shotname);
 
+    void CreateCard(const std::string& scope,
+                    const std::string& filePath);
+
     PXR_NS::UsdStageRefPtr Stage() const;
     PXR_NS::SdfLayerRefPtr GetSessionLayer();
 
@@ -64,10 +67,10 @@ public:
     PXR_NS::SdfPath CreateHilbertCurve(int iterations, PXR_NS::GfVec3d pos);
     PXR_NS::SdfPath CreateMacbethChart(const std::string& csName, PXR_NS::GfVec3d pos);
     PXR_NS::SdfPath CreateDemoText(const std::string& text, PXR_NS::GfVec3d pos);
-    PXR_NS::SdfPath CreateTestData();
     PXR_NS::SdfPath CreatePrimShape(const std::string& shape, PXR_NS::GfVec3d pos, float radius);
     PXR_NS::SdfPath CreateParGeometry(const std::string& shape, PXR_NS::GfVec3d pos);
     PXR_NS::SdfPath CreateParHeightfield(PXR_NS::GfVec3d pos);
+    PXR_NS::SdfPath CreateTestData();
 };
 
 } // lab

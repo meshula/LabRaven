@@ -3,6 +3,7 @@
 #include "UsdUtils.hpp"
 #include "SpaceFillCurve.hpp"
 #include "CreateDemoText.hpp"
+#include "UsdTemplater.hpp"
 
 #include "Lab/App.h"
 #include "Lab/LabDirectories.h"
@@ -65,6 +66,8 @@ struct OpenUSDProvider::Self {
     std::map<std::string, TfType> primTypes;
     char* primTypesMenuData = nullptr;
 
+    UsdTemplater* templater = nullptr;
+
     Self() {
         const TfType baseType = TfType::Find<UsdTyped>();
         PlugRegistry::GetAllDerivedTypes(baseType, &schemaTypes);
@@ -95,14 +98,17 @@ struct OpenUSDProvider::Self {
     ~Self() {
         sessionLayer.reset();
         model.reset();
+        delete templater;
     }
+
 };
 
 pxr::Model* OpenUSDProvider::Model() {
     return self->model.get();
 }
 
-OpenUSDProvider::OpenUSDProvider() : Provider(OpenUSDProvider::sname())
+OpenUSDProvider::OpenUSDProvider()
+: Provider(OpenUSDProvider::sname())
 , self(new Self)
 {
     provider.Documentation = [](void* instance) -> const char* {
@@ -594,6 +600,149 @@ pxr::SdfPath OpenUSDProvider::CreateSphere(PXR_NS::GfVec3d pos, float radius)
 }
 
 
+pxr::SdfPath OpenUSDProvider::CreateParGeometry(const std::string& shape,
+                                                PXR_NS::GfVec3d pos) {
+    pxr::UsdStageRefPtr stage = Stage();
+    if (!stage)
+        return {};
+
+    par_shapes_mesh* mesh = nullptr;
+    if (shape == "Cylinder") {
+        mesh = par_shapes_create_cylinder(32, 32);
+    }
+    else if (shape == "Cone") {
+        mesh = par_shapes_create_cone(32, 32);
+    }
+    else if (shape == "Disk") {
+        mesh = par_shapes_create_parametric_disk(32, 32);
+    }
+    else if (shape == "Torus") {
+        mesh = par_shapes_create_torus(32, 32, 0.5f);
+    }
+    else if (shape == "Sphere") {
+        mesh = par_shapes_create_parametric_sphere(32, 32);
+    }
+    else if (shape == "Subdivided Sphere") {
+        mesh = par_shapes_create_subdivided_sphere(1);
+    }
+    else if (shape == "Klein Bottle") {
+        mesh = par_shapes_create_klein_bottle(32, 32);
+    }
+    else if (shape == "Trefoil Knot") {
+        mesh = par_shapes_create_trefoil_knot(32, 32, 0.5f);
+    }
+    else if (shape == "Hemisphere") {
+        mesh = par_shapes_create_hemisphere(32, 32);
+    }
+    else if (shape == "Plane") {
+        mesh = par_shapes_create_plane(32, 32);
+    }
+    else if (shape == "Icosahedron") {
+        mesh = par_shapes_create_icosahedron();
+    }
+    else if (shape == "Dodecahedron") {
+        mesh = par_shapes_create_dodecahedron();
+    }
+    else if (shape == "Octahedron") {
+        mesh = par_shapes_create_octahedron();
+    }
+    else if (shape == "Tetrahedron") {
+        mesh = par_shapes_create_tetrahedron();
+    }
+    else if (shape == "Cube") {
+        mesh = par_shapes_create_cube();
+    }
+    else if (shape == "Disk") {
+        mesh = par_shapes_create_disk(1.f, 32, GfVec3f(0,0,0).data(), GfVec3f(0,0,1).data());
+    }
+    else if (shape == "Empty") {
+        mesh = par_shapes_create_empty();
+    }
+    else if (shape == "Rock") {
+        mesh = par_shapes_create_rock(0, 1);
+    }
+    else if (shape == "L-System") {
+        mesh = par_shapes_create_lsystem("F[+F]F[-F]F", 32, 1);
+    }
+    else {
+        return {};
+    }
+
+    // create a USD prim for the mesh
+    pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
+    primPath = primPath.AppendChild(TfToken("Shapes"));
+    primPath = primPath.AppendChild(TfToken(shape));
+    string primPathStr = GetNextAvailableIndexedPath(primPath.GetString());
+    pxr::SdfPath r(primPathStr);
+    auto prim = pxr::UsdGeomMesh::Define(stage, r);
+    GfMatrix4d m;
+    m.SetTranslate(pos);
+    SetTransformMatrix(prim, m, UsdTimeCode::Default());
+
+    // create the mesh
+    if (!mesh->normals) {
+        // the platonic solids from par haven't got normals, so create face normals
+        // (as opposed to smoothed normals)
+        par_shapes_unweld(mesh, true);
+        par_shapes_compute_face_normals(mesh);
+    }
+
+    // first populate the points attr with the points from the mesh
+    pxr::UsdAttribute pointsAttr = prim.GetPointsAttr();
+    pxr::VtArray<GfVec3f> points;
+    for (int i = 0; i < mesh->npoints; ++i) {
+        points.push_back(GfVec3f(mesh->points[i*3], mesh->points[i*3+1], mesh->points[i*3+2]));
+    }
+    pointsAttr.Set(points);
+
+    pxr::UsdAttribute normalsAttr = prim.GetNormalsAttr();
+    pxr::VtArray<GfVec3f> normals;
+    if (mesh->normals) {
+        // then the normals
+        for (int i = 0; i < mesh->npoints; ++i) {
+            normals.push_back(GfVec3f(mesh->normals[i*3], mesh->normals[i*3+1], mesh->normals[i*3+2]));
+        }
+    }
+    /*
+    // the texture coordinates
+    pxr::UsdAttribute uvAttr = prim.GetPrim().CreateAttribute(TfToken("primvars:st"), SdfValueTypeNames->TexCoord2fArray, false, pxr::UsdGeomTokens->varying);
+    pxr::VtArray<GfVec2f> uv;
+    for (int i = 0; i < mesh->npoints; ++i) {
+        uv.push_back(GfVec2f(mesh->tcoords[i*2], mesh->tcoords[i*2+1]));
+    }
+*/
+    // the face vertex counts
+    pxr::UsdAttribute faceVertexCountsAttr = prim.GetFaceVertexCountsAttr();
+    pxr::VtArray<int> faceVertexCounts;
+    for (int i = 0; i < mesh->ntriangles; ++i) {
+        faceVertexCounts.push_back(3);
+    }
+
+    // the face vertex indices
+    pxr::UsdAttribute faceVertexIndicesAttr = prim.GetFaceVertexIndicesAttr();
+    pxr::VtArray<int> faceVertexIndices;
+    for (int i = 0; i < mesh->ntriangles*3; ++i) {
+        faceVertexIndices.push_back(mesh->triangles[i]);
+    }
+
+    // set the attributes
+    if (mesh->normals)
+        normalsAttr.Set(normals);
+    //uvAttr.Set(uv);
+    faceVertexCountsAttr.Set(faceVertexCounts);
+    faceVertexIndicesAttr.Set(faceVertexIndices);
+
+    // free the mesh
+    par_shapes_free_mesh(mesh);
+
+    auto mm = lab::Orchestrator::Canonical();
+    std::weak_ptr<ConsoleActivity> cap;
+    auto console = mm->LockActivity(cap);
+    std::string msg = "Created Par shape " + shape + ": " + r.GetString();
+    console->Info(msg);
+    return r;
+}
+
 pxr::SdfPath OpenUSDProvider::CreateParHeightfield(PXR_NS::GfVec3d pos) {
     auto mm = lab::Orchestrator::Canonical();
     pxr::UsdStageRefPtr stage = Stage();
@@ -903,21 +1052,52 @@ void OpenUSDProvider::ExportSessionLayer(std::string const& path) {
     }
 }
 
-void OpenUSDProvider::CreateShotFromTemplate(const std::string& dst, 
-                                            const std::string& shotname) {
-    if (!self->templateStage) {
-      /*   ___         _          _                  _      _
-          / __|__ _ __| |_  ___  | |_ ___ _ __  _ __| |__ _| |_ ___
-         | (__/ _` / _| ' \/ -_) |  _/ -_) '  \| '_ \ / _` |  _/ -_)
-          \___\__,_\__|_||_\___|  \__\___|_|_|_| .__/_\__,_|\__\___|
-                                               |_|*/
-        auto resource_path = std::string(lab_application_resource_path(nullptr, nullptr));
-        std::string path = resource_path + "/LabSceneTemplate.usda";
-        self->templateStage = pxr::UsdStage::Open(path);
-        if (!self->templateStage) {
-            printf("Failed to open the Scene Template\n");
-        }
+void OpenUSDProvider::CreateShotFromTemplate(const std::string& directory_,
+                                              const std::string& shotname) {
+    if (!self->templater) {
+        self->templater = new UsdTemplater();
     }
+
+    /*   ___              _            _        _        _
+        / __|_ _ ___ __ _| |_ ___   __| |_  ___| |_   __| |_ __ _ __ _ ___
+       | (__| '_/ -_) _` |  _/ -_) (_-< ' \/ _ \  _| (_-<  _/ _` / _` / -_)
+        \___|_| \___\__,_|\__\___| /__/_||_\___/\__| /__/\__\__,_\__, \___|
+                                                                |___/*/
+
+    auto directory = TfNormPath(directory_ + "/" + shotname);
+
+    if (!TfMakeDirs(directory, 0700, true)) {
+        throw std::runtime_error("Failed to create shot directory: " + directory);
+    }
+
+    UsdTemplater::TemplateData td = {
+        directory, shotname,
+        self->templater->GetTemplateStageMetadata(),
+        {} };
+
+    /*   ___             _   _          _                  _      _
+        | _ \_  _ _ _   | |_| |_  ___  | |_ ___ _ __  _ __| |__ _| |_ ___
+        |   / || | ' \  |  _| ' \/ -_) |  _/ -_) '  \| '_ \ / _` |  _/ -_)
+        |_|_\\_,_|_||_|  \__|_||_\___|  \__\___|_|_|_| .__/_\__,_|\__\___|
+                                                     |_|*/
+
+    UsdPrim prim = self->templater->GetTemplatePrim("/Shot");
+    self->templater->InstantiateTemplate(100, td, prim, prim);
+}
+
+
+void OpenUSDProvider::CreateCard(const std::string& scope,
+                                 const std::string& imagePath) {
+    if (!self->templater) {
+        self->templater = new UsdTemplater();
+    }
+
+    UsdPrim prim = self->templater->GetTemplatePrim("/Templates/Card");
+    UsdTemplater::TemplateData td {};
+    td.dict["SCOPE"] = VtValue(scope);
+    td.dict["IMAGE_FILE"] = VtValue(imagePath);
+    td.stage = Stage();
+    self->templater->InstantiateTemplate(100, td, prim, prim);
 }
 
 void OpenUSDProvider::TestReferencing() {
@@ -1003,7 +1183,8 @@ void createScopeIfNeeded(UsdStageRefPtr stage, const SdfPath& scopePath) {
     UsdGeomScope existingScope = UsdGeomScope::Define(stage, scopePath);
     if (existingScope) {
         std::cout << "Scope already exists at path: " << scopePath.GetString() << std::endl;
-    } else {
+    }
+    else {
         // Create the scope if it doesn't exist
         UsdGeomScope newScope = UsdGeomScope::Define(stage, scopePath);
         if (newScope) {

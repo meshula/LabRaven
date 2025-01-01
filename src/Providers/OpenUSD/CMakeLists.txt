@@ -9,8 +9,11 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/OpenUSDProvider.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdCreate.hpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdCreate.cpp
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdTemplater.hpp
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdTemplater.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdUtils.hpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdUtils.cpp
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdTemplater.hpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/editor.h
