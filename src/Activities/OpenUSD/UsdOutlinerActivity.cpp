@@ -22,7 +22,8 @@
 #include "ImGuiHydraEditor/src/views/outliner.h"
 #include <pxr/usd/usd/stage.h>
 
-#include "widgets/StageOutliner.h"
+#include "usdtweak/src/Selection.h"
+#include "usdtweak/src/widgets/StageOutliner.h"
 
 #include <vector>
 
@@ -249,13 +250,13 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
     pxr::Model* model = OpenUSDProvider::instance()->Model();
     if (!stage || !model) {
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Outliner##A1");
-        ImGui::TextUnformatted("Outliner: No stage opened yet.");
+        ImGui::Begin("Hydra Outliner##A1");
+        ImGui::TextUnformatted("Hydra Outliner: No stage opened yet.");
         ImGui::End();
     }
     else {
         if (!_self->outliner) {
-            _self->outliner = std::make_unique<pxr::Outliner>(model, "Outliner##A2");
+            _self->outliner = std::make_unique<pxr::Outliner>(model, "Hydra Outliner##A2");
         }
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
@@ -272,7 +273,7 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
         _self->outliner->Update();
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
-        ImGui::Begin("usdtweak Outliner");
+        ImGui::Begin("Stage Outliner");
         Selection selection;
         DrawStageOutliner(stage, selection);
         ImGui::End();

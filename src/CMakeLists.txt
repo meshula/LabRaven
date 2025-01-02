@@ -154,3 +154,20 @@ ${STUDIO_REGISTRATION}
 ")
 
 target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_BINARY_DIR}/RegisterAllActivities.cpp")
+
+
+# From usdtweak:
+# Default ini file is also embedded
+set(default_ini_file ${CMAKE_CURRENT_SOURCE_DIR}/ini/imgui.ini)
+set(default_ini_header ${CMAKE_CURRENT_SOURCE_DIR}/DefaultImGuiIni.h)
+add_custom_command(
+    OUTPUT "${default_ini_header}"
+    DEPENDS "${default_ini_file}"
+    COMMAND "${CMAKE_COMMAND}"
+            "-DSOURCE_FILE=${default_ini_file}"
+            "-DDESTINATION_FILE=${default_ini_header}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/embed_text.cmake"
+    COMMENT "Embedding ${default_ini_file}"
+)
+# not really necessary, but useful in the IDE
+target_sources(${PROJECT_NAME} PRIVATE ${default_ini_header})

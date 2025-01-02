@@ -293,7 +293,6 @@ App* gApp() {
     static std::once_flag _app_once_flag;
     std::call_once(_app_once_flag, []() {
         _app.reset(new lab::LabApp());
-        ApplyAppStyle();
     });
     return _app.get();
 }

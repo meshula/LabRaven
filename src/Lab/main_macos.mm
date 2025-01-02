@@ -7,7 +7,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_metal.h"
 #include "implot.h"
-#include <stdio.h>
+
+#include "usdtweak/src/resources/ResourcesLoader.h"
+
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -16,6 +18,8 @@
 
 #import <Metal/Metal.h>
 #import <QuartzCore/QuartzCore.h>
+
+#include <stdio.h>
 
 App* app = nullptr;
 
@@ -33,9 +37,25 @@ static void glfw_error_callback(int error, const char* description)
 
 int main(int argc, char** argv)
 {
+    // Setup window
+    glfwSetErrorCallback(glfw_error_callback);
+    if (!glfwInit())
+        return 1;
+
+    // Create window with graphics context
+    int initial_width = 1280;
+    int initial_height = 768;
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    GLFWwindow* window = glfwCreateWindow(initial_width, initial_height, "Raven", NULL, NULL);
+    if (window == NULL)
+        return 1;
+
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+
+    // ResourceLoader will load the settings/fonts/textures and create an imgui context (which is not ideal)
+    ResourcesLoader* loader = new ResourcesLoader();
+    //ImGui::CreateContext();
     ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
@@ -51,16 +71,16 @@ int main(int argc, char** argv)
     RegisterAllActivities(*orch);
 
     // Setup style
-    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsDark();
     //ImGui::StyleColorsLight();
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
+    //ImGuiStyle& style = ImGui::GetStyle();
+    //if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    //{
+    //    style.WindowRounding = 0.0f;
+    //    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    //}
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -84,18 +104,7 @@ int main(int argc, char** argv)
     //iconConfig.PixelSnapH = true;
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/fontawesome-webfont.ttf", 16.0f, &iconConfig, ghostIconRanges);
 
-    // Setup window
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
-        return 1;
 
-    // Create window with graphics context
-    int initial_width = 1280;
-    int initial_height = 768;
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(initial_width, initial_height, "Raven", NULL, NULL);
-    if (window == NULL)
-        return 1;
 
     id <MTLDevice> device = MTLCreateSystemDefaultDevice();
 
@@ -131,6 +140,7 @@ int main(int argc, char** argv)
 
     // Set the drop callback
     glfwSetDropCallback(window, file_drop_callback);
+
 
     // Main loop
     while (!glfwWindowShouldClose(window) && app && app->IsRunning())
@@ -208,6 +218,7 @@ int main(int argc, char** argv)
         }
     }
 
+
     if (app && app->Cleanup) {
         app->Cleanup();
     }
@@ -216,7 +227,9 @@ int main(int argc, char** argv)
     ImGui_ImplMetal_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImPlot::DestroyContext();
-    ImGui::DestroyContext();
+
+    delete resourceLoader; // write the ImGui settings before terminating ImGui.
+    //ImGui::DestroyContext(); // resource loader destructor calls DestroyContext (not ideal)
 
     glfwDestroyWindow(window);
     glfwTerminate();

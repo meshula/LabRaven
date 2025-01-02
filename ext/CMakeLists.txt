@@ -109,11 +109,12 @@ else()
       ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
       gl3w/GL/gl3w.c
   )
+  target_include_directories(IMGUI 
+    PUBLIC gl3w)
   find_package(OpenGL REQUIRED)
   target_link_libraries(IMGUI OpenGL::GL ${CMAKE_DL_LIBS})
   target_compile_definitions(IMGUI PUBLIC 
-        IMGUI_IMPL_OPENGL_LOADER_GL3W
-        IMGUI_DEFINE_MATH_OPERATORS)
+        IMGUI_IMPL_OPENGL_LOADER_GL3W)
 endif()
 
 target_include_directories(IMGUI
@@ -121,7 +122,6 @@ target_include_directories(IMGUI
   PUBLIC ${IMGUI_DIR}
   PUBLIC ${IMGUI_DIR}/backends
   PUBLIC ${IMGUI_DIR}/misc/cpp
-  PUBLIC gl3w
   PUBLIC glfw/include
   PUBLIC ${IMPLOT_DIR}
   PUBLIC ${TEXTEDIT_DIR}
