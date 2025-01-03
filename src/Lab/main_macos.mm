@@ -197,6 +197,13 @@ int main(int argc, char** argv)
                 app->Gui();
             }
 
+            if (ImGui::BeginMenu("Window")) {
+                if (ImGui::MenuItem("Reset Window Layout")) {
+                    ResourcesLoader::ResetWindowPositions();
+                }
+                ImGui::EndMenu();
+            }
+
             // Rendering
             ImGui::Render();
             ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), commandBuffer, renderEncoder);

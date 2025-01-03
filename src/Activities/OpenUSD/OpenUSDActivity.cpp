@@ -6,7 +6,9 @@
 //  Copyright © 2024 Nick Porcino. All rights reserved.
 //
 #include "OpenUSDActivity.hpp"
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "imgui.h"
 #include "FileDialogModules.hpp"
 #include "Lab/App.h"

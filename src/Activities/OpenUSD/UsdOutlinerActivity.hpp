@@ -10,7 +10,9 @@
 #define UsdOutlinerActivity_hpp
 
 #include "Lab/StudioCore.hpp"
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "imgui.h"
 #include "imgui_internal.h"
 #include <pxr/usd/usd/stage.h>

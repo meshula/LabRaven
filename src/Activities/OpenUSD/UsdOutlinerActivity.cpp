@@ -11,7 +11,9 @@
 
 #include "UsdOutlinerActivity.hpp"
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "imgui.h"
 #include "Lab/ImguiExt.hpp"
 #include "Providers/Assets/AssetsProvider.hpp"
