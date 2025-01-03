@@ -73,3 +73,6 @@ bool AreNearlyEquals(pxr::GfMatrix4f mat1, pxr::GfMatrix4f mat2,
  * @return int the number of UsdPrims contained in the 'range'
  */
 int GetSize(pxr::UsdPrimSiblingRange range);
+
+
+pxr::GfBBox3d ComputeWorldBounds(pxr::UsdStageRefPtr, pxr::UsdTimeCode timeCode, pxr::SdfPathVector& prims);

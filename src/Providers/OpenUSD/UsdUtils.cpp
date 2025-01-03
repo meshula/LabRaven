@@ -1,4 +1,5 @@
 #include "UsdUtils.hpp"
+#include <pxr/usd/usdGeom/bboxCache.h>
 
 using namespace PXR_NS;
 
@@ -64,4 +65,14 @@ bool AreNearlyEquals(GfMatrix4f mat1, GfMatrix4f mat2,
 int GetSize(UsdPrimSiblingRange range)
 {
     return (int) std::distance(range.begin(), range.end());
+}
+
+pxr::GfBBox3d ComputeWorldBounds(UsdStageRefPtr stage, UsdTimeCode timeCode, pxr::SdfPathVector& prims) {
+    UsdGeomBBoxCache bboxcache(timeCode, UsdGeomImageable::GetOrderedPurposeTokens());
+    GfBBox3d bbox;
+    for (const auto &primPath : prims) {
+        auto prim = stage->GetPrimAtPath(primPath);
+        bbox = GfBBox3d::Combine(bboxcache.ComputeWorldBound(prim), bbox);
+    }
+    return bbox;
 }

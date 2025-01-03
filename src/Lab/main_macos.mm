@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     IMGUI_CHECKVERSION();
 
     // ResourceLoader will load the settings/fonts/textures and create an imgui context (which is not ideal)
-    ResourcesLoader* loader = new ResourcesLoader();
+    ResourcesLoader* resourcesLoader = new ResourcesLoader();
     //ImGui::CreateContext();
     ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
     ImGui_ImplGlfw_Shutdown();
     ImPlot::DestroyContext();
 
-    delete resourceLoader; // write the ImGui settings before terminating ImGui.
+    delete resourcesLoader; // write the ImGui settings before terminating ImGui.
     //ImGui::DestroyContext(); // resource loader destructor calls DestroyContext (not ideal)
 
     glfwDestroyWindow(window);

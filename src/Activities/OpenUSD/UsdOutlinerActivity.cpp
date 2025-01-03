@@ -274,7 +274,7 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin("Stage Outliner");
-        Selection selection;
+        static Selection selection;
         DrawStageOutliner(stage, selection);
         ImGui::End();
     }

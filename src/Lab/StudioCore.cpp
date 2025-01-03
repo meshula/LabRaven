@@ -7,6 +7,7 @@
 //
 
 #include "StudioCore.hpp"
+#include "usdtweak/src/commands/CommandStack.h"
 #include <iostream>
 #include <set>
 #include <thread>
@@ -300,6 +301,9 @@ void Orchestrator::ServiceTransactionsAndActivities() {
         _activity_pending.clear();
         _set_activities();
     }
+
+    // service any work originating from usdtweak
+    CommandStack::GetInstance().ExecuteCommands();
 
     for (auto i : _self->update_activities)
         i->activity.Update(i);
