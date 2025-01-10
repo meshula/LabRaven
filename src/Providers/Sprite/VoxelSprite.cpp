@@ -144,7 +144,6 @@ void VoxelRender::MarchVoxels(const VoxelSprite& sprite, const GfMatrix4f& proje
                 GfVec4f voxelPosition(swz[0] + 0.5f, swz[1] + 0.5f, swz[2] + 0.5f, 1.f);
                 voxelPosition *= 2.f * scale;
                 voxelPosition -= GfVec4f(scale, scale, scale, 0.f);
-                voxelPosition[2] -= 20.f;
                 voxelPosition[3] = 1.f;
 
                 GfVec4f projected = voxelPosition * projectionMatrix;

@@ -34,6 +34,7 @@ void SpriteActivity::RunUI(const LabViewInteraction&) {
     static int width = 0, height = 0, depth = 0;
 
     static int texture = 0;
+    static VoxelSprite* sprite = nullptr;
 
     if (ImGui::Button("Load")) {
         do {
@@ -65,46 +66,11 @@ void SpriteActivity::RunUI(const LabViewInteraction&) {
                 fread(data, 1, size, file);
                 fclose(file);
 
-                auto sprite = new VoxelSprite(16, 16, 16);
+                sprite = new VoxelSprite(16, 16, 16);
                 sprite->LoadMagicavoxelFile(data, size);
                 width = sprite->GetWidth();
                 height = sprite->GetHeight();
                 depth = sprite->GetDepth();
-
-                const int rw = 64, rh = 64;
-                VoxelRender render(rw, rh);
-                pxr::GfMatrix4d proj;
-                pxr::GfFrustum frustum;
-                frustum.SetProjectionType(pxr::GfFrustum::ProjectionType::Perspective);
-                double targetAspect = 1.0;//double(vd.ww) / double(vd.wh);
-                double fov = (180.0 * 0.5f)/M_PI;
-                float znear = 0.01f;
-                float zfar = 100000.f;
-                frustum.SetPerspective(fov, targetAspect, znear, zfar);
-                pxr::GfVec3f lightDir(0, 0, 1);
-                proj = frustum.ComputeProjectionMatrix();
-                pxr::GfMatrix4f projf(proj);
-                render.Render(*sprite, projf, lightDir);
-
-                static uint8_t copyPixels[rw*rh*4];
-                int count = 2;
-                GfVec3f* pixels = render.Pixels();
-                float* pixelsf = (float*) pixels;
-                for (int i = 0; i < rw * rh; ++i) {
-                    float r = pixelsf[i*3];
-                    float g = pixelsf[i*3+1];
-                    float b = pixelsf[i*3+2];
-                    copyPixels[i*4] = (uint8_t) (r * 255.f);
-                    copyPixels[i*4+1] = (uint8_t) (g * 255.f);
-                    copyPixels[i*4+2] = (uint8_t) (b * 255.f);
-                    copyPixels[i*4+3] = (r+g+b) > 0 ? 255 : 0;
-                }
-                if (!texture) {
-                    texture = LabCreateRGBA8Texture(rw, rh, copyPixels);
-                }
-                else {
-                    LabUpdateRGBA8Texture(texture, copyPixels);
-                }
             }
             break;
         } while (false);
@@ -114,7 +80,53 @@ void SpriteActivity::RunUI(const LabViewInteraction&) {
     ImGui::Text("Height: %d", height);
     ImGui::Text("Depth: %d", depth);
 
-    if (texture) {
+    const int rw = 64, rh = 64;
+    static VoxelRender render(rw, rh);
+
+    if (sprite) {
+        // numeric slider ranging from 2 to 100
+        static float zpos = 20;
+        ImGui::SliderFloat("Z Pos", &zpos, 0, 100);
+
+        pxr::GfMatrix4d proj;
+        pxr::GfFrustum frustum;
+        frustum.SetProjectionType(pxr::GfFrustum::ProjectionType::Perspective);
+        double targetAspect = 1.0;//double(vd.ww) / double(vd.wh);
+        double fov = (180.0 * 0.5f)/M_PI;
+        float znear = 0.01f;
+        float zfar = 100000.f;
+        frustum.SetPerspective(fov, targetAspect, znear, zfar);
+        pxr::GfVec3f lightDir(0, 0, 1);
+        proj = frustum.ComputeProjectionMatrix();
+        pxr::GfMatrix4f projf(proj);
+
+        pxr::GfMatrix4f mv(1);
+        mv.SetTranslate(pxr::GfVec3f(0, 0, -zpos));
+
+        pxr::GfMatrix4f projmv = mv * projf;
+
+        render.Render(*sprite, projmv, lightDir);
+
+        static uint8_t copyPixels[rw*rh*4];
+        int count = 2;
+        GfVec3f* pixels = render.Pixels();
+        float* pixelsf = (float*) pixels;
+        for (int i = 0; i < rw * rh; ++i) {
+            float r = pixelsf[i*3];
+            float g = pixelsf[i*3+1];
+            float b = pixelsf[i*3+2];
+            copyPixels[i*4] = (uint8_t) (r * 255.f);
+            copyPixels[i*4+1] = (uint8_t) (g * 255.f);
+            copyPixels[i*4+2] = (uint8_t) (b * 255.f);
+            copyPixels[i*4+3] = (r+g+b) > 0 ? 255 : 0;
+        }
+        if (!texture) {
+            texture = LabCreateRGBA8Texture(rw, rh, copyPixels);
+        }
+        else {
+            LabUpdateRGBA8Texture(texture, copyPixels);
+        }
+
         void* t = LabGetEncodedTexture(texture);
         ImGui::Image((ImTextureID) t, ImVec2(128,128));
     }
