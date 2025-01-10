@@ -1,4 +1,5 @@
 
+add_subdirectory(App)
 add_subdirectory(Color)
 add_subdirectory(Console)
 add_subdirectory(Joystick)

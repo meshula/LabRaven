@@ -48,6 +48,8 @@ public:
     bool PowerSave() const;
     void SetPowerSave(bool);
 
+    void ResetWindowPositions();
+
     FileDialogManager* fdm();
     Orchestrator* mm();
     

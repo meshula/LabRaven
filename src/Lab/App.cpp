@@ -6,6 +6,7 @@
 #include "StudioCore.hpp"
 #include "Lab/LabFileDialogManager.hpp"
 #include "Lab/AppTheme.h"
+#include "usdtweak/src/resources/ResourcesLoader.h"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
@@ -80,6 +81,7 @@ struct LabApp::data {
     int _model_generation = 0;
     bool should_terminate = false;
     bool power_save = true;
+    bool reset_window_positions = false;
 };
 
 LabApp::LabApp() {
@@ -136,6 +138,10 @@ bool LabApp::AppIsRunning() {
     return !_instance->_self->should_terminate;
 }
 
+void LabApp::ResetWindowPositions() {
+    _self->reset_window_positions = true;
+}
+
 
 FileDialogManager* LabApp::fdm() { return &_self->_fdm; }
 Orchestrator* LabApp::mm() { return &_self->_mm; }
@@ -161,6 +167,11 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
     auto currStudio = mm.CurrentStudio();
     static auto studioNames = mm.StudioNames();
     auto activityNames = mm.ActivityNames();
+
+    if (_self->reset_window_positions) {
+        ResourcesLoader::ResetWindowPositions();
+        _self->reset_window_positions = false;
+    }
 
     if (ImGui::BeginMainMenuBar()) {
         std::string curr = "Welcome";

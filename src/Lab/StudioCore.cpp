@@ -489,7 +489,6 @@ void Orchestrator::RunMainMenu() {
             i->activity.Menu(i);
 }
 
-
 const std::map< std::string, std::shared_ptr<Activity> > Orchestrator::Activities() const {
     return _self->activities;
 }
