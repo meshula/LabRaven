@@ -12,7 +12,9 @@
 #import <Metal/Metal.h>
 #import <simd/simd.h>
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "imgui.h"
 #include "imgui_tex_inspect/imgui_tex_inspect.h"
 

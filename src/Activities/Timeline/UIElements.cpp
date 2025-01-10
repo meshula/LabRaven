@@ -1,5 +1,7 @@
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "UIElements.hpp"
 #include "TimelineProvider.hpp"
 #include "Utilities.hpp"

@@ -15,7 +15,9 @@
 #include "Providers/Color/nanocolorUtils.h"
 #include "Providers/Texture/TextureCache.hpp"
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "imgui.h"
 #include "imgui_tex_inspect/imgui_tex_inspect.h"
 

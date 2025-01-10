@@ -3,7 +3,9 @@
 #include "Lab/App.h"
 
 #include "Lab/LabJoystick.h"
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "imgui.h"
 
 namespace lab {
