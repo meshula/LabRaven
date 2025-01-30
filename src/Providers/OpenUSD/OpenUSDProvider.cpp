@@ -27,6 +27,7 @@
 #include <pxr/base/tf/fileUtils.h>
 #include <pxr/base/tf/pathUtils.h>
 #include <pxr/usd/sdf/types.h>
+#include <pxr/usd/kind/registry.h>
 #include <pxr/usd/usd/attribute.h>
 #include <pxr/usd/usd/debugCodes.h>
 #include <pxr/usd/usdGeom/basisCurves.h>
@@ -71,6 +72,7 @@ struct OpenUSDProvider::Self {
     UsdTemplater* templater = nullptr;
 
     Self() {
+        auto& kr = KindRegistry::GetInstance();
         const TfType baseType = TfType::Find<UsdTyped>();
         PlugRegistry::GetAllDerivedTypes(baseType, &schemaTypes);
         TF_FOR_ALL (type, schemaTypes) {

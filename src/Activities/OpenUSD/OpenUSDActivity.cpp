@@ -23,6 +23,7 @@
 #include "SessionActivity.hpp"
 #include "TfDebugActivity.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
+#include "Providers/OpenUSD/ProfilePrototype.hpp"
 #include <pxr/usd/usd/prim.h>
 
 namespace lab {
@@ -76,7 +77,7 @@ void OpenUSDActivity::Menu() {
     Orchestrator* mm = Orchestrator::Canonical();
     if (ImGui::BeginMenu("Stage")) {
         if (ImGui::MenuItem("Load Stage ...")) {
-            _self->engine.test();
+            //_self->engine.test();
             _self->loadStageModule.LoadStage();
         }
         if (ImGui::MenuItem("New Stage")) {
@@ -85,6 +86,9 @@ void OpenUSDActivity::Menu() {
                 if (usd)
                     usd->SetEmptyStage();
             }});
+        }
+        if (ImGui::MenuItem("Test Profiles")) {
+            testProfiles();
         }
         if (ImGui::MenuItem("Create Shot from Template...")) {
             _self->shotTemplateModule.CreateShotFromTemplate();
@@ -99,6 +103,9 @@ void OpenUSDActivity::Menu() {
                     usd->TestReferencing();
             }});
         }
+        if (ImGui::MenuItem("Test sublayer")) {
+            _self->loadStageModule.InsertSubLayer();
+        }
         auto usd = OpenUSDProvider::instance();
         auto stage = usd->Stage();
         if (!stage) {
@@ -107,12 +114,10 @@ void OpenUSDActivity::Menu() {
         }
         static bool at_hit_point = true;
         if (ImGui::MenuItem("Reference a Layer ...")) {
-            _self->referenceLayerModule.instance = false;
-            _self->referenceLayerModule.emit_event("layer_reference_request", 0);
+            _self->referenceLayerModule.ReferenceLayer();
         }
         if (ImGui::MenuItem("Instance a Layer ...")) {
-            _self->referenceLayerModule.instance = true;
-            _self->referenceLayerModule.emit_event("layer_reference_request", 0);
+            _self->referenceLayerModule.InstanceLayer();
         }
 
         ImGui::Indent(60);

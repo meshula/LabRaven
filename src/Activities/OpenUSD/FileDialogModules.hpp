@@ -28,12 +28,19 @@ public:
     static constexpr int toInt(Process p) { return static_cast<int>(p); }
 
     void LoadStage() {
+        insertSubLayer = false;
+        emit_event("file_open_request", toInt(Process::OpenRequest));
+    }
+
+    void InsertSubLayer() {
+        insertSubLayer = true;
         emit_event("file_open_request", toInt(Process::OpenRequest));
     }
 
 private:
     int pendingFile = 0;
     FileDialogManager::FileReq req;
+    bool insertSubLayer = false;
 
     virtual void initialize_processes() override {
         add_process({toInt(Process::OpenRequest), "file_open_request",
@@ -77,11 +84,29 @@ private:
                          printf("Entering file_success\n");
                          auto usd = OpenUSDProvider::instance();
                          if (usd) {
-                             usd->LoadStage(req.path);
-                             // get the directory of path and save it as the default
-                             // directory for the next time the user loads a stage
-                             std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
-                             lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                             if (insertSubLayer) {
+                                 auto stage = usd->Stage();
+                                 auto rootLayer = stage->GetRootLayer();
+                                 if (!rootLayer) {
+                                     std::cerr << "Failed to retrieve root layer." << std::endl;
+                                 }
+                                 else {
+                                     // insert this USDZ as the top subLayer
+                                     rootLayer->InsertSubLayerPath(req.path, 0);
+
+                                     // get the directory of path and save it as the default
+                                     // directory for the next time the user loads a stage
+                                     std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
+                                     lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                                 }
+                             }
+                             else {
+                                 usd->LoadStage(req.path);
+                                 // get the directory of path and save it as the default
+                                 // directory for the next time the user loads a stage
+                                 std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
+                                 lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                             }
                          }
                 this->emit_event("idle", toInt(Process::Idle));
                      }});
@@ -112,8 +137,13 @@ public:
 
     static constexpr int toInt(Process p) { return static_cast<int>(p); }
 
+    void InstanceLayer() {
+        instance = true;
+        emit_event("layer_reference_request", toInt(Process::OpenRequest));
+    }
     void ReferenceLayer() {
-        emit_event("file_open_request", toInt(Process::OpenRequest));
+        instance = false;
+        emit_event("layer_reference_request", toInt(Process::OpenRequest));
     }
 
 private:
@@ -170,13 +200,20 @@ private:
                                  pxr::GfVec3d pos(0,0,0);// = cameraMode->HitPoint();
                                  mm->EnqueueTransaction(Transaction{"Reference a layer", [this, usd, pos, stage](){
                                      std::string path(req.path);
-                                     pxr::SdfPath primPath = stage->GetDefaultPrim().GetPath();
-                                     primPath = primPath.AppendChild(TfToken("Models"));
-                                     usd->ReferenceLayer(stage, path, primPath, true, pos, instance);
-                                     // get the directory of path and save it as the default
-                                     // directory for the next time the user loads a stage
-                                     std::string dir = path.substr(0, path.find_last_of("/\\"));
-                                     lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                                     usd->CreateDefaultPrimIfNeeded("/Lab");
+                                     auto defaultPrim = stage->GetDefaultPrim();
+                                     if (!defaultPrim) {
+                                         std::cerr << "No default prim on stage\n";
+                                     }
+                                     else {
+                                         pxr::SdfPath primPath = defaultPrim.GetPath();
+                                         primPath = primPath.AppendChild(TfToken("Models"));
+                                         usd->ReferenceLayer(stage, path, primPath, true, pos, instance);
+                                         // get the directory of path and save it as the default
+                                         // directory for the next time the user loads a stage
+                                         std::string dir = path.substr(0, path.find_last_of("/\\"));
+                                         lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                                     }
                                  }});
                              }
                          }

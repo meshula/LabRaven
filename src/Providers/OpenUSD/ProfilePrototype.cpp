@@ -1,11 +1,16 @@
-#include <Tf/hashmap.h>
-#include <Tf/hashset.h>
-#include <Tf/Token.h>
+#include "ProfilePrototype.hpp"
+
+#include <pxr/base/tf/hashmap.h>
+#include <pxr/base/tf/hashset.h>
+#include <pxr/base/tf/Token.h>
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <queue>
 #include <unordered_map>
 #include <unordered_set>
+
+PXR_NAMESPACE_USING_DIRECTIVE
 
 using TfToken = pxr::TfToken;
 using TokenSet = TfHashSet<TfToken, TfToken::HashFunctor>;
@@ -21,6 +26,176 @@ class DagParser {
 public:
     DagParser() {}
 
+    void PrintTree() const {
+        // Find root nodes (nodes with no ancestors)
+        std::vector<TfToken> roots;
+        for (const auto& [node, ancestors] : adjacencyList) {
+            if (ancestors.empty()) {
+                roots.push_back(node);
+            }
+        }
+
+        // Print tree starting from each root
+        for (const auto& root : roots) {
+            PrintNode(root, 0);
+        }
+    }
+
+    void PrintDAG() const {
+        // Build a reverse adjacency list (children -> parents)
+        std::unordered_map<TfToken, std::vector<TfToken>, TfToken::HashFunctor> reverseAdjList;
+        std::unordered_map<TfToken, size_t, TfToken::HashFunctor> inDegree;
+        
+        for (const auto& [node, ancestors] : adjacencyList) {
+            auto nodeIt = reverseAdjList.find(node);
+            if (nodeIt == reverseAdjList.end()) {
+                nodeIt = reverseAdjList.insert({node, std::vector<TfToken>()}).first;
+            }
+            for (const auto& ancestor : ancestors) {
+                auto ancestorIt = reverseAdjList.find(ancestor);
+                if (ancestorIt == reverseAdjList.end()) {
+                    ancestorIt = reverseAdjList.insert({ancestor, std::vector<TfToken>()}).first;
+                }
+                ancestorIt->second.push_back(node);
+                inDegree[node]++;
+            }
+        }
+
+        // Perform topological sort (modified to put leaves first)
+        std::vector<TfToken> sortedNodes;
+        std::queue<TfToken> queue;
+
+        // Find initial leaves (nodes with no children)
+        for (const auto& [node, children] : reverseAdjList) {
+            if (children.empty()) {
+                queue.push(node);
+            }
+        }
+
+        while (!queue.empty()) {
+            TfToken current = queue.front();
+            queue.pop();
+            sortedNodes.push_back(current);
+
+            // Process ancestors
+            auto currentIt = adjacencyList.find(current);
+            if (currentIt != adjacencyList.end()) {
+                for (const auto& ancestor : currentIt->second) {
+                    auto ancestorIt = reverseAdjList.find(ancestor);
+                    if (ancestorIt != reverseAdjList.end()) {
+                        bool allChildrenProcessed = true;
+                        for (const auto& child : ancestorIt->second) {
+                            if (std::find(sortedNodes.begin(), sortedNodes.end(), child) == sortedNodes.end()) {
+                                allChildrenProcessed = false;
+                                break;
+                            }
+                        }
+                        if (allChildrenProcessed && std::find(sortedNodes.begin(), sortedNodes.end(), ancestor) == sortedNodes.end()) {
+                            queue.push(ancestor);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Create the visualization
+        const int maxWidth = 80;  // Width for the ASCII art area
+        const int nodeSpacing = 3;  // Vertical spacing between nodes
+        std::vector<std::string> grid;
+        std::unordered_map<TfToken, size_t, TfToken::HashFunctor> nodeToRow;
+
+        // Initialize grid with empty space
+        for (size_t i = 0; i < sortedNodes.size() * nodeSpacing; ++i) {
+            grid.push_back(std::string(maxWidth, ' '));
+        }
+
+        // First pass: Place nodes and record their positions
+        for (size_t i = 0; i < sortedNodes.size(); ++i) {
+            const auto& node = sortedNodes[i];
+            size_t row = i * nodeSpacing;
+            nodeToRow.insert({node, row});
+
+            // Place node marker
+            grid[row][0] = '*';
+
+            // Add node name
+            std::string label = " " + node.GetString();
+            if (finalNodes.find(node) != finalNodes.end()) {
+                label += " (final)";
+            }
+            grid[row] += label;
+        }
+
+        // Second pass: Draw connections
+        for (size_t i = 0; i < sortedNodes.size(); ++i) {
+            const auto& node = sortedNodes[i];
+            size_t nodeRow = nodeToRow[node];
+            auto nodeIt = adjacencyList.find(node);
+            if (nodeIt != adjacencyList.end() && !nodeIt->second.empty()) {
+                const auto& ancestors = nodeIt->second;
+                // Sort ancestors by their row number to minimize crossing lines
+                std::vector<std::pair<size_t, TfToken>> sortedAncestors;
+                for (const auto& ancestor : ancestors) {
+                    auto ancestorRowIt = nodeToRow.find(ancestor);
+                    if (ancestorRowIt != nodeToRow.end()) {
+                        sortedAncestors.push_back({ancestorRowIt->second, ancestor});
+                    }
+                }
+                std::sort(sortedAncestors.begin(), sortedAncestors.end());
+
+                // Draw connections for each ancestor
+                for (size_t j = 0; j < sortedAncestors.size(); ++j) {
+                    const auto& [ancestorRow, ancestor] = sortedAncestors[j];
+                    int col = 2 + j * 3;  // Space out connections horizontally
+
+                    // Draw vertical lines and connections
+                    if (nodeRow < ancestorRow) {
+                        // Connection going up
+                        grid[nodeRow][col] = '/';
+                        if (ancestorRow > nodeRow + nodeSpacing) {
+                            grid[ancestorRow][col] = '/';
+                            // Draw vertical line
+                            for (size_t row = nodeRow + 1; row < ancestorRow; ++row) {
+                                if (grid[row][col] == ' ') {
+                                    grid[row][col] = '|';
+                                }
+                            }
+                        }
+                    } else {
+                        // Connection going down
+                        grid[nodeRow][col] = '\\';
+                        if (ancestorRow < nodeRow - nodeSpacing) {
+                            grid[ancestorRow][col] = '\\';
+                            // Draw vertical line
+                            for (size_t row = ancestorRow + 1; row < nodeRow; ++row) {
+                                if (grid[row][col] == ' ') {
+                                    grid[row][col] = '|';
+                                }
+                            }
+                        }
+                    }
+
+                    // Add horizontal connectors
+                    if (j > 0) {
+                        for (int k = col - 2; k < col; ++k) {
+                            if (grid[nodeRow][k] == ' ') {
+                                grid[nodeRow][k] = '-';
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Print the grid in reverse order (bottom to top)
+        for (auto it = grid.rbegin(); it != grid.rend(); ++it) {
+            // Skip empty lines (lines with only spaces)
+            if (it->find_first_not_of(' ') != std::string::npos) {
+                std::cout << *it << '\n';
+            }
+        }
+    }
+
     ParseResult Parse(const std::string& input) {
         ParseResult result;
         std::istringstream stream(input);
@@ -34,6 +209,28 @@ public:
     }
 
 private:
+    void PrintNode(const TfToken& node, int depth) const {
+        // Print current node with proper indentation
+        std::string indent(depth * 2, ' ');
+        std::cout << indent << node.GetString();
+        
+        // Add "final" marker if applicable
+        if (finalNodes.find(node) != finalNodes.end()) {
+            std::cout << " (final)";
+        }
+        std::cout << "\n";
+
+        // Find all nodes that have this node as an ancestor
+        for (const auto& [child, ancestors] : adjacencyList) {
+            for (const auto& ancestor : ancestors) {
+                if (ancestor == node) {
+                    PrintNode(child, depth + 1);
+                    break;
+                }
+            }
+        }
+    }
+
     TokenMap adjacencyList;
     TokenSet declaredNodes;
     TokenSet unresolvedNodes;
@@ -48,7 +245,10 @@ private:
         TfToken nodeName(token);
 
         declaredNodes.insert(nodeName);
-        adjacencyList[nodeName]; // Ensure the node is registered in the map
+        // Ensure node exists in adjacency list with empty vector
+        if (adjacencyList.find(nodeName) == adjacencyList.end()) {
+            adjacencyList.insert({nodeName, std::vector<TfToken>()});
+        }
 
         // Extract ancestor tokens within brackets
         std::getline(lineStream, token, '[');
@@ -59,7 +259,10 @@ private:
             while (std::getline(ancestorsStream, ancestor, ',')) {
                 if (!ancestor.empty()) {
                     TfToken ancestorToken(Trim(ancestor));
-                    adjacencyList[nodeName].push_back(ancestorToken);
+                    auto nodeIt = adjacencyList.find(nodeName);
+                    if (nodeIt != adjacencyList.end()) {
+                        nodeIt->second.push_back(ancestorToken);
+                    }
                     unresolvedNodes.insert(ancestorToken);
                 }
             }
@@ -98,14 +301,17 @@ private:
         visited.insert(node);
         recursionStack.insert(node);
 
-        for (const auto& ancestor : adjacencyList[node]) {
-            if (recursionStack.find(ancestor) != recursionStack.end()) {
-                result.cyclePath.push_back(ancestor);
-                return true;
-            }
-            if (visited.find(ancestor) == visited.end() && DetectCycle(ancestor, visited, recursionStack, result)) {
-                result.cyclePath.push_back(node);
-                return true;
+        auto nodeIt = adjacencyList.find(node);
+        if (nodeIt != adjacencyList.end()) {
+            for (const auto& ancestor : nodeIt->second) {
+                if (recursionStack.find(ancestor) != recursionStack.end()) {
+                    result.cyclePath.push_back(ancestor);
+                    return true;
+                }
+                if (visited.find(ancestor) == visited.end() && DetectCycle(ancestor, visited, recursionStack, result)) {
+                    result.cyclePath.push_back(node);
+                    return true;
+                }
             }
         }
 
@@ -120,7 +326,7 @@ private:
     }
 };
 
-int main() {
+int testProfiles() {
     const std::string input = R"(
 root []
 usd [root]
@@ -143,10 +349,10 @@ apple [root]
 apple.realityKit [usd.physics, usd.imaging, usd.geom.skel]
 apple.format.realityKit [apple.realityKit, usd.format.usdz] final
 
-matx [root]
-usd.format.matx, [matx, usd.format, usd.geom, usd.shadeMaterial]
-usd.format.matx, 1.38 [matx, usd.format, usd.geom, usd.shadeMaterial]
-usd.format.matx, 1.39 [matx, usd.format, usd.geom, usd.shadeMaterial]
+mtlx [root]
+usd.format.mtlx, [mtlx, usd.format, usd.geom, usd.shadeMaterial]
+usd.format.mtlx, 1.38 [mtlx, usd.format, usd.geom, usd.shadeMaterial]
+usd.format.mtlx, 1.39 [mtlx, usd.format, usd.geom, usd.shadeMaterial]
 
 usd.format.gltf-read [usd.format, usd.geom, usd.shadeMaterial]
 usd.format.gltf-write [usd.format, usd.geom, usd.shadeMaterial]
@@ -176,8 +382,13 @@ hd.hio.png-read [hd.hio]
             std::cout << token.GetString() << " ";
         }
         std::cout << std::endl;
-    } else {
+    } 
+    else {
         std::cout << "No cycles detected." << std::endl;
+        std::cout << "\nTree view:\n";
+        parser.PrintTree();
+        std::cout << "\nDAG view:\n";
+        parser.PrintDAG();
     }
     return 0;
 }

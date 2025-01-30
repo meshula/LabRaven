@@ -46,6 +46,8 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdCreate.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdTemplater.hpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdTemplater.cpp
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/ProfilePrototype.hpp
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/ProfilePrototype.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdUtils.hpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdUtils.cpp
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/UsdTemplater.hpp

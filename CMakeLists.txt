@@ -6,6 +6,13 @@ if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
       "CMake generation is not allowed within the source directory!")
 endif()
 
+
+#---------------------------------------------------
+set(PROJECT_NAME raven)
+project(${PROJECT_NAME} VERSION 1.0)
+#---------------------------------------------------
+
+
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
 include(CheckLanguage)
 include(MetalShaderSupport)
@@ -45,12 +52,6 @@ function(GroupSourcesByFolder target)
   endif()
 endfunction()
 
-#---------------------------------------------------
-
-# set the project name in a variable
-set(PROJECT_NAME raven)
-
-project(${PROJECT_NAME} VERSION 1.0)
 
 #---------------------------------------------------
 # options
