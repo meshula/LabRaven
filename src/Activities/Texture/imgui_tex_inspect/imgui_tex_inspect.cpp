@@ -3,7 +3,6 @@
 //-------------------------------------------------------------------------
 // [SECTION] INCLUDES
 //-------------------------------------------------------------------------
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_tex_inspect.h"
 
 #include "imgui.h"

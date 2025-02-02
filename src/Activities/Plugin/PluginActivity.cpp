@@ -4,7 +4,6 @@
 #include "Lab/LabDirectories.h"
 #include "Lab/App.h"
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 
 #define CR_NO_ROLLBACK

@@ -2,7 +2,6 @@
 #ifndef AppTheme_h
 #define AppTheme_h
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 
 enum AppThemeCol_ {

@@ -1,5 +1,4 @@
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "TimelineActivity.hpp"
 #include "UIElements.hpp"
 #include "imgui.h"

@@ -146,7 +146,7 @@ public:
                 // Draw connections for each ancestor
                 for (size_t j = 0; j < sortedAncestors.size(); ++j) {
                     const auto& [ancestorRow, ancestor] = sortedAncestors[j];
-                    int col = 2 + j * 3;  // Space out connections horizontally
+                    size_t col = 2 + j * 3;  // Space out connections horizontally
 
                     // Draw vertical lines and connections
                     if (nodeRow < ancestorRow) {

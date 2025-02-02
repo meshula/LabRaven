@@ -1,7 +1,6 @@
 #ifndef UIElements_hpp
 #define UIElements_hpp
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include <opentime/rationalTime.h>
 #include <opentime/timeRange.h>

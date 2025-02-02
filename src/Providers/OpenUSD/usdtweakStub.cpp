@@ -1,5 +1,4 @@
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "ImGuiHelpers.h"
 #include "Constants.h"
 #include "Editor.h"

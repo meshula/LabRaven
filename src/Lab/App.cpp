@@ -8,7 +8,6 @@
 #include "Lab/AppTheme.h"
 #include "usdtweak/src/resources/ResourcesLoader.h"
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h" // for DockBuilderGetCentralNode
 

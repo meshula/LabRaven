@@ -12,7 +12,6 @@
 #include "Providers/Color/nanocolorUtils.h"
 #include "Providers/Color/WavelengthToRGB.h"
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "implot.h"
 //#include "LabGL.h"

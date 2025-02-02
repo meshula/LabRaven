@@ -10,7 +10,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include "imgui.h"
-#include "FileDialogModules.hpp"
+#include "UsdFileDialogModules.hpp"
 #include "Lab/App.h"
 #include "Lab/CSP.hpp"
 #include "Lab/LabFileDialogManager.hpp"
@@ -34,18 +34,16 @@ PXR_NAMESPACE_USING_DIRECTIVE
 struct OpenUSDActivity::data {
     CSP_Engine engine;
     data()
-        : loadStageModule(engine)
+        : loadLayerModule(engine)
         , exportStageModule(engine)
-        , referenceLayerModule(engine)
         , shotTemplateModule(engine) {
             engine.run();
         }
     ~data() = default;
 
     std::weak_ptr<ConsoleActivity> console;
-    LoadStageModule loadStageModule;
+    LoadLayerModule loadLayerModule;
     ExportStageModule exportStageModule;
-    ReferenceLayerModule referenceLayerModule;
     ShotTemplateModule shotTemplateModule;
 };
 
@@ -59,9 +57,8 @@ OpenUSDActivity::OpenUSDActivity() : Activity(OpenUSDActivity::sname()) {
         static_cast<OpenUSDActivity*>(instance)->Menu();
     };
 
-    _self->loadStageModule.Register();
+    _self->loadLayerModule.Register();
     _self->exportStageModule.Register();
-    _self->referenceLayerModule.Register();
     _self->shotTemplateModule.Register();
 }
 
@@ -78,7 +75,7 @@ void OpenUSDActivity::Menu() {
     if (ImGui::BeginMenu("Stage")) {
         if (ImGui::MenuItem("Load Stage ...")) {
             //_self->engine.test();
-            _self->loadStageModule.LoadStage();
+            _self->loadLayerModule.LoadStage();
         }
         if (ImGui::MenuItem("New Stage")) {
             mm->EnqueueTransaction(Transaction{"New Stage", [](){
@@ -104,7 +101,7 @@ void OpenUSDActivity::Menu() {
             }});
         }
         if (ImGui::MenuItem("Test sublayer")) {
-            _self->loadStageModule.InsertSubLayer();
+            _self->loadLayerModule.InsertSubLayer();
         }
         auto usd = OpenUSDProvider::instance();
         auto stage = usd->Stage();
@@ -114,10 +111,10 @@ void OpenUSDActivity::Menu() {
         }
         static bool at_hit_point = true;
         if (ImGui::MenuItem("Reference a Layer ...")) {
-            _self->referenceLayerModule.ReferenceLayer();
+            _self->loadLayerModule.ReferenceLayer();
         }
         if (ImGui::MenuItem("Instance a Layer ...")) {
-            _self->referenceLayerModule.InstanceLayer();
+            _self->loadLayerModule.InstanceLayer();
         }
 
         ImGui::Indent(60);

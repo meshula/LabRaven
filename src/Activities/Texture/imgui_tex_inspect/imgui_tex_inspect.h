@@ -319,8 +319,6 @@ void DrawAnnotations(T drawer, ImU64 maxAnnotatedTexels)
 
 // ImGuiTexInspect, a texture inspector widget for dear imgui
 
-#pragma once
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_tex_inspect.h"

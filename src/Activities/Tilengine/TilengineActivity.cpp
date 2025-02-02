@@ -7,7 +7,6 @@
 #include "Tilengine.h"
 #include "Providers/Metal/MetalProvider.h"
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 
 extern "C" void ShooterInit(const char* resourceRoot);
