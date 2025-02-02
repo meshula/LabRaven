@@ -9,11 +9,10 @@ namespace lab {
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
-
-class LoadStageModule : public CSP_Module {
+class LoadLayerModule : public CSP_Module {
 public:
-    LoadStageModule(CSP_Engine& engine)
-    : CSP_Module(engine, "LoadStageModule")
+    LoadLayerModule(CSP_Engine& engine)
+    : CSP_Module(engine, "LoadLayerModule")
     {
     }
 
@@ -25,204 +24,192 @@ public:
         Idle
     };
 
+    enum class LoadType {
+        InsertSubLayer,
+        LoadStage,
+        InstanceLayer,
+        ReferenceLayer
+    };
+    LoadType loadType = LoadType::LoadStage;
+
     static constexpr int toInt(Process p) { return static_cast<int>(p); }
 
     void LoadStage() {
-        insertSubLayer = false;
+        if (pendingFile) {
+            std::cerr << "LoadStage: pendingFile is not zero\n";
+            return;
+        }
+        loadType = LoadType::LoadStage;
         emit_event("file_open_request", toInt(Process::OpenRequest));
     }
 
     void InsertSubLayer() {
-        insertSubLayer = true;
+        if (pendingFile) {
+            std::cerr << "InsertSubLayer: pendingFile is not zero\n";
+            return;
+        }
+        loadType = LoadType::InsertSubLayer;
+        emit_event("file_open_request", toInt(Process::OpenRequest));
+    }
+
+    void InstanceLayer() {
+        if (pendingFile) {
+            std::cerr << "InstanceLayer: pendingFile is not zero\n";
+            return;
+        }
+        loadType = LoadType::InstanceLayer;
+        emit_event("file_open_request", toInt(Process::OpenRequest));
+    }
+
+    void ReferenceLayer() {
+        if (pendingFile) {
+            std::cerr << "ReferenceLayer: pendingFile is not zero\n";
+            return;
+        }
+        loadType = LoadType::ReferenceLayer;
         emit_event("file_open_request", toInt(Process::OpenRequest));
     }
 
 private:
     int pendingFile = 0;
     FileDialogManager::FileReq req;
-    bool insertSubLayer = false;
 
     virtual void initialize_processes() override {
         add_process({toInt(Process::OpenRequest), "file_open_request",
-                     [this]() {
-                         printf("Entering file_open_request\n");
-                         auto fdm = LabApp::instance()->fdm();
-                         const char* dir = lab_pref_for_key("LoadStageDir");
-                         pendingFile = fdm->RequestOpenFile(
-                                                            {"usd","usda","usdc","usdz"},
-                                                              dir? dir: ".");
-                         this->emit_event("opening", toInt(Process::Opening));
-                     }});
-
-        add_process({toInt(Process::Opening), "opening",
             [this]() {
-                        auto fdm = LabApp::instance()->fdm();
-                        req = fdm->PopOpenedFile(pendingFile);
-                        switch (req.status) {
-                            case FileDialogManager::FileReq::notReady:
-                                this->emit_event("opening", toInt(Process::Opening)); // continue polling
-                                break;
-                            case FileDialogManager::FileReq::expired:
-                            case FileDialogManager::FileReq::canceled:
-                                this->emit_event("file_error", toInt(Process::Error));
-                                break;
-                            default:
-                                this->emit_event("file_open_success", toInt(Process::OpenFile));
-                                break;
-                        }
-                     }});
-
-        add_process({toInt(Process::Error), "file_error",
-                     [this]() {
-                         printf("Entering file_error\n");
-                         std::cout << "Error: Failed to open file. Returning to Ready...\n";
-                         this->emit_event("idle", toInt(Process::Idle));
-                     }});
-
-        add_process({toInt(Process::OpenFile), "file_success",
-            [this]() {
-                         printf("Entering file_success\n");
-                         auto usd = OpenUSDProvider::instance();
-                         if (usd) {
-                             if (insertSubLayer) {
-                                 auto stage = usd->Stage();
-                                 auto rootLayer = stage->GetRootLayer();
-                                 if (!rootLayer) {
-                                     std::cerr << "Failed to retrieve root layer." << std::endl;
-                                 }
-                                 else {
-                                     // insert this USDZ as the top subLayer
-                                     rootLayer->InsertSubLayerPath(req.path, 0);
-
-                                     // get the directory of path and save it as the default
-                                     // directory for the next time the user loads a stage
-                                     std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
-                                     lab_set_pref_for_key("LoadStageDir", dir.c_str());
-                                 }
-                             }
-                             else {
-                                 usd->LoadStage(req.path);
-                                 // get the directory of path and save it as the default
-                                 // directory for the next time the user loads a stage
-                                 std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
-                                 lab_set_pref_for_key("LoadStageDir", dir.c_str());
-                             }
-                         }
-                this->emit_event("idle", toInt(Process::Idle));
-                     }});
-
-        add_process({toInt(Process::Idle), "idle", []() {
-            printf("Entering idle\n");
-        }});
-    }
-};
-
-
-class ReferenceLayerModule : public CSP_Module {
-public:
-    ReferenceLayerModule(CSP_Engine& engine)
-    : CSP_Module(engine, "ReferenceLayerModule")
-    {
-    }
-
-    bool instance = false;
-
-    enum class Process : int {
-        OpenRequest = 300,
-        Opening,
-        Error,
-        OpenFile,
-        Idle
-    };
-
-    static constexpr int toInt(Process p) { return static_cast<int>(p); }
-
-    void InstanceLayer() {
-        instance = true;
-        emit_event("layer_reference_request", toInt(Process::OpenRequest));
-    }
-    void ReferenceLayer() {
-        instance = false;
-        emit_event("layer_reference_request", toInt(Process::OpenRequest));
-    }
-
-private:
-    int pendingFile = 0;
-    FileDialogManager::FileReq req;
-
-    virtual void initialize_processes() override {
-        add_process({toInt(Process::OpenRequest), "layer_reference_request",
-            [this]() {
-                         printf("Entering layer_reference_request\n");
-                         auto fdm = LabApp::instance()->fdm();
-                         const char* dir = lab_pref_for_key("LoadStageDir");
-                         pendingFile = fdm->RequestOpenFile(
-                                                            {"usd","usda","usdc","usdz"},
-                                                              dir? dir: ".");
+                printf("Entering file_open_request\n");
+                auto fdm = LabApp::instance()->fdm();
+                const char* dir = lab_pref_for_key("LoadStageDir");
+                pendingFile = fdm->RequestOpenFile({"usd","usda","usdc","usdz"},
+                                                   dir? dir: ".");
                 this->emit_event("opening", toInt(Process::Opening));
-                     }});
+            }});
 
         add_process({toInt(Process::Opening), "opening",
             [this]() {
-                        printf("Entering opening\n");
-                        auto fdm = LabApp::instance()->fdm();
-                        req = fdm->PopOpenedFile(pendingFile);
-                        switch (req.status) {
-                            case FileDialogManager::FileReq::notReady:
-                                this->emit_event("opening", toInt(Process::Opening)); // continue polling
-                                break;
-                            case FileDialogManager::FileReq::expired:
-                            case FileDialogManager::FileReq::canceled:
-                                this->emit_event("file_error", toInt(Process::Error));
-                                break;
-                            default:
-                                this->emit_event("file_open_success", toInt(Process::OpenFile));
-                                break;
-                        }
-                     }});
+                if (!pendingFile) {
+                    this->emit_event("file_error", toInt(Process::Error));
+                    return;
+                }
+                auto fdm = LabApp::instance()->fdm();
+                req = fdm->PopOpenedFile(pendingFile);
+                switch (req.status) {
+                    case FileDialogManager::FileReq::notReady:
+                        this->emit_event("opening", toInt(Process::Opening)); // continue polling
+                        break;
+                    case FileDialogManager::FileReq::expired:
+                    case FileDialogManager::FileReq::canceled:
+                        this->emit_event("file_open_error", toInt(Process::Error));
+                        break;
+                    default:
+                        this->emit_event("file_open_success", toInt(Process::OpenFile));
+                        break;
+                }
+            }});
 
-        add_process({toInt(Process::Error), "file_error",
-                     [this]() {
-                         printf("Entering file_error\n");
-                         std::cout << "Error: Failed to open file. Returning to Ready...\n";
-                         this->emit_event("idle", toInt(Process::Idle));
-                     }});
-
-        add_process({toInt(Process::OpenFile), "file_success",
+        add_process({toInt(Process::Error), "file_open_error",
             [this]() {
-                         printf("Entering file_success\n");
-                         auto usd = OpenUSDProvider::instance();
-                         if (usd) {
-                             auto stage = usd->Stage();
-                             if (stage) {
-                                 auto mm = LabApp::instance()->mm();
-                                 //auto cameraMode = mm->LockActivity(_self->cameraMode);
-                                 pxr::GfVec3d pos(0,0,0);// = cameraMode->HitPoint();
-                                 mm->EnqueueTransaction(Transaction{"Reference a layer", [this, usd, pos, stage](){
-                                     std::string path(req.path);
-                                     usd->CreateDefaultPrimIfNeeded("/Lab");
-                                     auto defaultPrim = stage->GetDefaultPrim();
-                                     if (!defaultPrim) {
-                                         std::cerr << "No default prim on stage\n";
-                                     }
-                                     else {
-                                         pxr::SdfPath primPath = defaultPrim.GetPath();
-                                         primPath = primPath.AppendChild(TfToken("Models"));
-                                         usd->ReferenceLayer(stage, path, primPath, true, pos, instance);
-                                         // get the directory of path and save it as the default
-                                         // directory for the next time the user loads a stage
-                                         std::string dir = path.substr(0, path.find_last_of("/\\"));
-                                         lab_set_pref_for_key("LoadStageDir", dir.c_str());
-                                     }
-                                 }});
-                             }
-                         }
+                printf("Entering file_error\n");
+                std::cout << "Error: Failed to open file. Returning to Ready...\n";
                 this->emit_event("idle", toInt(Process::Idle));
-                     }});
+            }});
 
-        add_process({toInt(Process::Idle), "idle", []() {
-                        printf("Entering idle\n");
-                    }});
+        add_process({toInt(Process::OpenFile), "file_open_success",
+            [this]() {
+                printf("Entering file_open_success\n");
+                auto usd = OpenUSDProvider::instance();
+                if (usd) {
+                    switch (loadType) {
+                        case LoadType::InsertSubLayer: {
+                            auto stage = usd->Stage();
+                            auto rootLayer = stage->GetRootLayer();
+                            if (!rootLayer) {
+                                std::cerr << "Failed to retrieve root layer." << std::endl;
+                            }
+                            else {
+                                // insert this USDZ as the top subLayer
+                                rootLayer->InsertSubLayerPath(req.path, 0);
+
+                                // get the directory of path and save it as the default
+                                // directory for the next time the user loads a stage
+                                std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
+                                lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                            }
+                            break;
+                        }
+                        case LoadType::LoadStage: {
+                            usd->LoadStage(req.path);
+                            // get the directory of path and save it as the default
+                            // directory for the next time the user loads a stage
+                            std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
+                            lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                            break;
+                        }
+
+                        case LoadType::InstanceLayer: {
+                            auto stage = usd->Stage();
+                            if (stage) {
+                                auto mm = LabApp::instance()->mm();
+                                //auto cameraMode = mm->LockActivity(_self->cameraMode);
+                                pxr::GfVec3d pos(0,0,0);// = cameraMode->HitPoint();
+                                mm->EnqueueTransaction(Transaction{"Reference a layer", [this, usd, pos, stage]() {
+                                    std::string path(req.path);
+                                    usd->CreateDefaultPrimIfNeeded("/Lab");
+                                    auto defaultPrim = stage->GetDefaultPrim();
+                                    if (!defaultPrim) {
+                                        std::cerr << "No default prim on stage\n";
+                                    }
+                                    else {
+                                        pxr::SdfPath primPath = defaultPrim.GetPath();
+                                        primPath = primPath.AppendChild(TfToken("Models"));
+                                        const bool instanceLayer = true;
+                                        usd->ReferenceLayer(stage, path, primPath, true, pos, instanceLayer);
+                                        // get the directory of path and save it as the default
+                                        // directory for the next time the user loads a stage
+                                        std::string dir = path.substr(0, path.find_last_of("/\\"));
+                                        lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                                    }
+                                }});
+                            }
+                            break;
+                        }
+
+                        case LoadType::ReferenceLayer: {
+                            auto stage = usd->Stage();
+                            if (stage) {
+                                auto mm = LabApp::instance()->mm();
+                                //auto cameraMode = mm->LockActivity(_self->cameraMode);
+                                pxr::GfVec3d pos(0,0,0);// = cameraMode->HitPoint();
+                                mm->EnqueueTransaction(Transaction{"Reference a layer", [this, usd, pos, stage]() {
+                                    std::string path(req.path);
+                                    usd->CreateDefaultPrimIfNeeded("/Lab");
+                                    auto defaultPrim = stage->GetDefaultPrim();
+                                    if (!defaultPrim) {
+                                        std::cerr << "No default prim on stage\n";
+                                    }
+                                    else {
+                                        pxr::SdfPath primPath = defaultPrim.GetPath();
+                                        primPath = primPath.AppendChild(TfToken("Models"));
+                                        const bool instanceLayer = false;
+                                        usd->ReferenceLayer(stage, path, primPath, true, pos, instanceLayer);
+                                        // get the directory of path and save it as the default
+                                        // directory for the next time the user loads a stage
+                                        std::string dir = path.substr(0, path.find_last_of("/\\"));
+                                        lab_set_pref_for_key("LoadStageDir", dir.c_str());
+                                    }
+                                }});
+                            }
+                            break;
+                        }
+                    } // switch
+                }
+            this->emit_event("idle", toInt(Process::Idle));
+        }});
+
+        add_process({toInt(Process::Idle), "idle", [this]() {
+            printf("Entering idle\n");
+            pendingFile = 0;
+        }});
     }
 };
 
@@ -242,7 +229,6 @@ public:
     };
 
     static constexpr int toInt(Process p) { return static_cast<int>(p); }
-
 
 private:
     int pendingFile = 0;
