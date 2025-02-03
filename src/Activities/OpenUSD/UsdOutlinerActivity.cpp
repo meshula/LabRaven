@@ -21,9 +21,9 @@
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include "Providers/OpenUSD/UsdUtils.hpp"
 #include "Providers/Sprite/SpriteProvider.hpp"
-#include "ImGuiHydraEditor/src/views/outliner.h"
 #include <pxr/usd/usd/stage.h>
 
+#include "ImGuiHydraEditor/src/views/outliner.h"
 #include "usdtweak/src/Selection.h"
 #include "usdtweak/src/widgets/StageOutliner.h"
 
@@ -41,8 +41,8 @@
 // https://github.com/ocornut/imgui/issues/1131
 
 namespace {
-lab::SpriteProvider::Frame gGhost[2];
-void* gGhostTextures[2];
+    lab::SpriteProvider::Frame gGhost[2];
+    void* gGhostTextures[2];
 }
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -276,8 +276,20 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin("Stage Outliner");
-        static Selection selection;
+
+        SelectionHash sh = 0;
+        Selection selection;
+        SdfPathVector sel = model->GetSelection();
+        selection.Clear(stage);
+        for (auto& s : sel) {
+            selection.AddSelected(stage, s);
+        }
+        selection.UpdateSelectionHash(stage, sh);
         DrawStageOutliner(stage, selection);
+        if (selection.UpdateSelectionHash(stage, sh)) {
+            model->SetSelection(selection.GetSelectedPaths(stage));
+        }
+
         ImGui::End();
     }
 }

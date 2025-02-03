@@ -73,10 +73,6 @@ void OpenUSDActivity::RunUI(const LabViewInteraction&) {
 void OpenUSDActivity::Menu() {
     Orchestrator* mm = Orchestrator::Canonical();
     if (ImGui::BeginMenu("Stage")) {
-        if (ImGui::MenuItem("Load Stage ...")) {
-            //_self->engine.test();
-            _self->loadLayerModule.LoadStage();
-        }
         if (ImGui::MenuItem("New Stage")) {
             mm->EnqueueTransaction(Transaction{"New Stage", [](){
                 auto usd = OpenUSDProvider::instance();
@@ -84,8 +80,9 @@ void OpenUSDActivity::Menu() {
                     usd->SetEmptyStage();
             }});
         }
-        if (ImGui::MenuItem("Test Profiles")) {
-            testProfiles();
+        if (ImGui::MenuItem("Load Stage ...")) {
+            //_self->engine.test();
+            _self->loadLayerModule.LoadStage();
         }
         if (ImGui::MenuItem("Create Shot from Template...")) {
             _self->shotTemplateModule.CreateShotFromTemplate();
@@ -93,14 +90,7 @@ void OpenUSDActivity::Menu() {
         if (ImGui::MenuItem("Export Stage ...")) {
             _self->exportStageModule.emit_event("file_export_request", 0);
         }
-        if (ImGui::MenuItem("Test referencing")) {
-            mm->EnqueueTransaction(Transaction{"Test referencing", [this]() {
-                auto usd = OpenUSDProvider::instance();
-                if (usd)
-                    usd->TestReferencing();
-            }});
-        }
-        if (ImGui::MenuItem("Test sublayer")) {
+        if (ImGui::MenuItem("Add a Sublayer...")) {
             _self->loadLayerModule.InsertSubLayer();
         }
         auto usd = OpenUSDProvider::instance();
@@ -126,6 +116,21 @@ void OpenUSDActivity::Menu() {
         }
         ImGui::EndMenu();
     }
+    if (ImGui::BeginMenu("Tests")) {
+        if (ImGui::MenuItem("Usd: Test Profiles")) {
+            testProfiles();
+        }
+
+        if (ImGui::MenuItem("Usd: Test Referencing")) {
+            mm->EnqueueTransaction(Transaction{"Test referencing", [this]() {
+                auto usd = OpenUSDProvider::instance();
+                if (usd)
+                    usd->TestReferencing();
+            }});
+        }
+        ImGui::EndMenu();
+    }
+
 }
 
 } // lab
