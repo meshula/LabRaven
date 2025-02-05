@@ -47,6 +47,7 @@ public:
 
     bool PowerSave() const;
     void SetPowerSave(bool);
+    void SuspendPowerSave(int frames);
 
     void ResetWindowPositions();
 

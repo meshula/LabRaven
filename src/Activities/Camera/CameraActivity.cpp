@@ -23,7 +23,7 @@
 
 namespace lab {
 
-using namespace PXR_NS;
+PXR_NAMESPACE_USING_DIRECTIVE
 
 struct CameraActivity::data {
     bool navigator_visible = true;
@@ -123,10 +123,8 @@ PXR_NS::GfCamera CameraActivity::GetGfCamera() const {
 
     ret.SetFStop(_self->camera.optics.fStop);
     ret.SetFocusDistance(_self->camera.optics.focus_distance.m * metersToStage);
-
     return ret;
 }
-
 
 PXR_NS::GfMatrix4f CameraActivity::GetViewMatrix() const {
     auto m = lc_mount_gl_view_transform(&_self->camera.mount);
@@ -167,7 +165,6 @@ PXR_NS::GfVec3d CameraActivity::GetPosition() const {
 void CameraActivity::SetPosition(const PXR_NS::GfVec3d t) {
     _self->camera.mount.transform.position = {(float)t[0], (float)t[1], (float)t[2]};
 }
-
 
 void CameraActivity::SetViewMatrix(const GfMatrix4d& m) {
     GfMatrix4d o = m.GetOrthonormalized();

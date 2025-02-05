@@ -81,6 +81,7 @@ struct LabApp::data {
     bool should_terminate = false;
     bool power_save = true;
     bool reset_window_positions = false;
+    int suspend_power_save = 0;
 };
 
 LabApp::LabApp() {
@@ -113,8 +114,9 @@ LabApp* LabApp::instance() {
     return _instance;
 }
 
-bool LabApp::PowerSave() const { return _self->power_save; }
+bool LabApp::PowerSave() const { return _self->power_save && !_self->suspend_power_save; }
 void LabApp::SetPowerSave(bool v) { _self->power_save = v; }
+void LabApp::SuspendPowerSave(int frames) { _self->suspend_power_save = frames; }
 
 //static
 bool LabApp::GetPowerSave() {
@@ -128,6 +130,9 @@ void LabApp::SetPowerSaveState(bool v) {
 
 //static
 void LabApp::RunUI() {
+    if (_instance->_self->suspend_power_save > 0) {
+        --_instance->_self->suspend_power_save;
+    }
     _instance->UpdateMainWindow(_instance->_self->_vi.dt,
                                 ImGui::IsWindowHovered(), ImGui::IsWindowFocused());
 }

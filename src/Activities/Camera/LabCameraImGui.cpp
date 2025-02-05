@@ -572,13 +572,15 @@ run_navigator_panel(LCNav_Panel* navigator_panel_, lc_camera* camera, float dt)
         
         auto m = lc_rt_matrix(&camera->mount.transform);
         auto m0 = m;
+        float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+#if 0
         ImGuizmo::SetDrawlist();
         ImGuizmo::ViewManipulate(
                      (float*)&m, // view matrix
                      orbit_distance,        // camera distance constraint
                      ImVec2(winPos.x + 12, winPos.y + 142), // position
                      ImVec2(128, 128), IM_COL32_BLACK_TRANS);
-        float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+#endif
         ImGuizmo::DecomposeMatrixToComponents((float*)&m,
                                               matrixTranslation,
                                               matrixRotation, 
