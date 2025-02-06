@@ -1,6 +1,7 @@
 
 add_subdirectory(Assets)
 add_subdirectory(Color)
+add_subdirectory(Animation)
 add_subdirectory(Selection)
 add_subdirectory(Sprite)
 add_subdirectory(Texture)
@@ -21,4 +22,3 @@ get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
 if (NOT PROVIDERS)
     message(FATAL_ERROR "Labs: No providers found")
 endif()
-

@@ -48,6 +48,22 @@ add_subdirectory(Tilengine)
 add_subdirectory(ImGuizmo)
 ####################################
 
+# Configure ozz-animation options - disable everything except core library
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build ozz as shared libraries" FORCE)
+set(ozz_build_tools OFF CACHE BOOL "Build tools" FORCE)
+set(ozz_build_fbx OFF CACHE BOOL "Build Fbx pipeline" FORCE)
+set(ozz_build_gltf OFF CACHE BOOL "Build glTF importer" FORCE)
+set(ozz_build_data OFF CACHE BOOL "Build data on code change" FORCE)
+set(ozz_build_samples OFF CACHE BOOL "Build samples" FORCE)
+set(ozz_build_howtos OFF CACHE BOOL "Build howtos" FORCE)
+set(ozz_build_tests OFF CACHE BOOL "Build unit tests" FORCE)
+set(ozz_build_simd_ref OFF CACHE BOOL "Force SIMD math reference implementation" FORCE)
+set(ozz_build_postfix OFF CACHE BOOL "Use per config postfix name" FORCE)
+set(ozz_build_msvc_rt_dll OFF CACHE BOOL "Select msvc DLL runtime library" FORCE)
+
+add_subdirectory(ozz-animation)
+####################################
+
 add_library(IMGUI STATIC)
 
 set_property(TARGET IMGUI PROPERTY CXX_STANDARD 14)
