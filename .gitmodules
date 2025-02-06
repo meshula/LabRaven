@@ -35,3 +35,6 @@
 [submodule "ext/usdtweak"]
 	path = ext/usdtweak
 	url = https://github.com/meshula/usdtweak.git
+[submodule "ext/ozz-animation"]
+	path = ext/ozz-animation
+	url = https://github.com/guillaumeblanc/ozz-animation.git
