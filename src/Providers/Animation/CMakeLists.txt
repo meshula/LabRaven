@@ -8,15 +8,5 @@ set(ANIMATION_SRCS
 
 target_sources(${PROJECT_NAME} PUBLIC ${ANIMATION_SRCS})
 
-# Link with ozz-animation libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    ozz_animation
-    ozz_animation_offline
-    ozz_base
-)
-
-# Add include directories for ozz-animation
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/ext/ozz-animation/include
-    ${CMAKE_SOURCE_DIR}/ext/ozz-animation/include/ozz
-)
+# Link ozz-animation libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE ozz_animation_offline ozz_animation ozz_base)

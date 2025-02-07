@@ -61,7 +61,7 @@ set(ozz_build_simd_ref OFF CACHE BOOL "Force SIMD math reference implementation"
 set(ozz_build_postfix OFF CACHE BOOL "Use per config postfix name" FORCE)
 set(ozz_build_msvc_rt_dll OFF CACHE BOOL "Select msvc DLL runtime library" FORCE)
 
-add_subdirectory(ozz-animation)
+add_subdirectory(ozz-animation EXCLUDE_FROM_ALL)
 ####################################
 
 add_library(IMGUI STATIC)

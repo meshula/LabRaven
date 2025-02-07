@@ -24,29 +24,51 @@ public:
     static constexpr const char* sname() { return "Animation"; }
 
     // Skeleton management
-    bool LoadSkeleton(const char* filename);
-    bool LoadSkeletonFromBVH(const char* filename);
-    void UnloadSkeleton();
-    bool HasSkeleton() const;
+    bool LoadSkeleton(const char* name, const char* filename);
+    bool LoadSkeletonFromBVH(const char* name, const char* filename);
+    void UnloadSkeleton(const char* name);
+    void UnloadAllSkeletons();
+    bool HasSkeleton(const char* name) const;
+    const ozz::animation::Skeleton* GetSkeleton(const char* name) const;
+    std::vector<std::string> GetSkeletonNames() const;
 
     // Animation management
-    bool LoadAnimation(const char* filename);
-    bool LoadAnimationFromBVH(const char* filename);
-    void UnloadAnimation();
-    bool HasAnimation() const;
+    bool LoadAnimation(const char* name, const char* filename);
+    bool LoadAnimationFromBVH(const char* name, const char* filename, const char* skeletonName);
+    void UnloadAnimation(const char* name);
+    void UnloadAllAnimations();
+    bool HasAnimation(const char* name) const;
+    const ozz::animation::Animation* GetAnimation(const char* name) const;
+    std::vector<std::string> GetAnimationNames() const;
 
-    // Playback control
-    float CurrentTime() const;
-    void SetCurrentTime(float time);
-    float Duration() const;
-    
-    bool IsPlaying() const;
-    void SetPlaying(bool playing);
+    // Instance management
+    struct Instance {
+        std::string skeletonName;
+        std::string animationName;
+        float currentTime = 0.0f;
+        bool playing = false;
+        std::vector<ozz::math::SoaTransform> locals;
+        std::vector<ozz::math::Float4x4> models;
+        std::vector<float> jointWeights;
+    };
 
-    // Sampling
+    Instance* CreateInstance(const char* name, const char* skeletonName, const char* animationName);
+    void DestroyInstance(const char* name);
+    Instance* GetInstance(const char* name);
+    const Instance* GetInstance(const char* name) const;
+    std::vector<std::string> GetInstanceNames() const;
+
+    // Instance control
+    float GetCurrentTime(const char* instanceName) const;
+    void SetCurrentTime(const char* instanceName, float time);
+    float GetDuration(const char* instanceName) const;
+    bool IsPlaying(const char* instanceName) const;
+    void SetPlaying(const char* instanceName, bool playing);
+
+    // Instance sampling
     void Update(float deltaTime);
-    const ozz::math::Float4x4* GetJointTransforms() const;
-    int GetJointCount() const;
+    const ozz::math::Float4x4* GetJointTransforms(const char* instanceName) const;
+    int GetJointCount(const char* instanceName) const;
 };
 
 } // lab

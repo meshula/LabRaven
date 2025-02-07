@@ -204,22 +204,10 @@ static BVHData* ParseBVH(const char* filename) {
 
 
 struct AnimationProvider::data {
-    // Skeleton data
-    ozz::unique_ptr<ozz::animation::Skeleton> skeleton;
-
-    // Animation data
-    ozz::unique_ptr<ozz::animation::Animation> animation;
-    
-    // Runtime data
-    float currentTime = 0.0f;
-    bool playing = false;
-    
-    // Sampling buffers
-    std::vector<ozz::math::SoaTransform> locals;
-    std::vector<ozz::math::Float4x4> models;
-    
-    // Cache
-    std::vector<float> joint_weights;
+    // Resource management
+    std::map<std::string, ozz::unique_ptr<ozz::animation::Skeleton>> skeletons;
+    std::map<std::string, ozz::unique_ptr<ozz::animation::Animation>> animations;
+    std::map<std::string, std::unique_ptr<Instance>> instances;
 };
 
 AnimationProvider::AnimationProvider() : Provider(AnimationProvider::sname()) {
@@ -231,8 +219,8 @@ AnimationProvider::AnimationProvider() : Provider(AnimationProvider::sname()) {
 }
 
 AnimationProvider::~AnimationProvider() {
-    UnloadAnimation();
-    UnloadSkeleton();
+    UnloadAllAnimations();
+    UnloadAllSkeletons();
     delete _self;
 }
 
@@ -243,138 +231,248 @@ AnimationProvider* AnimationProvider::instance() {
     return _instance;
 }
 
-bool AnimationProvider::LoadSkeleton(const char* filename) {
-    UnloadSkeleton(); // Clean up existing skeleton if any
-    
+bool AnimationProvider::LoadSkeleton(const char* name, const char* filename) {
     ozz::io::File file(filename, "rb");
     if (!file.opened()) {
         return false;
     }
     
     ozz::io::IArchive archive(&file);
-    _self->skeleton = ozz::make_unique<ozz::animation::Skeleton>();
+    auto skeleton = ozz::make_unique<ozz::animation::Skeleton>();
     if (!archive.TestTag<ozz::animation::Skeleton>()) {
         return false;
     }
     
-    archive >> *_self->skeleton;
-    
-    // Initialize buffers
-    const int num_joints = _self->skeleton->num_joints();
-    const int num_soa_joints = (num_joints + 3) / 4;
-    _self->locals.resize(num_soa_joints);
-    _self->models.resize(num_joints);
-    _self->joint_weights.resize(num_joints, 1.f);
-    
+    archive >> *skeleton;
+    _self->skeletons[name] = std::move(skeleton);
     return true;
 }
 
-void AnimationProvider::UnloadSkeleton() {
-    _self->skeleton.reset();
-    _self->locals.clear();
-    _self->models.clear();
-    _self->joint_weights.clear();
-}
-
-bool AnimationProvider::HasSkeleton() const {
-    return _self->skeleton != nullptr;
-}
-
-bool AnimationProvider::LoadAnimation(const char* filename) {
-    UnloadAnimation(); // Clean up existing animation if any
+void AnimationProvider::UnloadSkeleton(const char* name) {
+    _self->skeletons.erase(name);
     
+    // Clean up any instances using this skeleton
+    for (auto it = _self->instances.begin(); it != _self->instances.end();) {
+        if (it->second->skeletonName == name) {
+            it = _self->instances.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
+void AnimationProvider::UnloadAllSkeletons() {
+    _self->skeletons.clear();
+    _self->instances.clear(); // All instances are invalid without skeletons
+}
+
+bool AnimationProvider::HasSkeleton(const char* name) const {
+    return _self->skeletons.find(name) != _self->skeletons.end();
+}
+
+const ozz::animation::Skeleton* AnimationProvider::GetSkeleton(const char* name) const {
+    auto it = _self->skeletons.find(name);
+    return it != _self->skeletons.end() ? it->second.get() : nullptr;
+}
+
+std::vector<std::string> AnimationProvider::GetSkeletonNames() const {
+    std::vector<std::string> names;
+    names.reserve(_self->skeletons.size());
+    for (const auto& pair : _self->skeletons) {
+        names.push_back(pair.first);
+    }
+    return names;
+}
+
+bool AnimationProvider::LoadAnimation(const char* name, const char* filename) {
     ozz::io::File file(filename, "rb");
     if (!file.opened()) {
         return false;
     }
     
     ozz::io::IArchive archive(&file);
-    _self->animation = ozz::make_unique<ozz::animation::Animation>();
+    auto animation = ozz::make_unique<ozz::animation::Animation>();
     if (!archive.TestTag<ozz::animation::Animation>()) {
         return false;
     }
     
-    archive >> *_self->animation;
+    archive >> *animation;
+    _self->animations[name] = std::move(animation);
     return true;
 }
 
-void AnimationProvider::UnloadAnimation() {
-    _self->animation.reset();
-    _self->currentTime = 0.0f;
-    _self->playing = false;
-}
-
-bool AnimationProvider::HasAnimation() const {
-    return _self->animation != nullptr;
-}
-
-float AnimationProvider::CurrentTime() const {
-    return _self->currentTime;
-}
-
-void AnimationProvider::SetCurrentTime(float time) {
-    if (_self->animation) {
-        _self->currentTime = std::fmod(time, _self->animation->duration());
+void AnimationProvider::UnloadAnimation(const char* name) {
+    _self->animations.erase(name);
+    
+    // Clean up any instances using this animation
+    for (auto it = _self->instances.begin(); it != _self->instances.end();) {
+        if (it->second->animationName == name) {
+            it = _self->instances.erase(it);
+        } else {
+            ++it;
+        }
     }
 }
 
-float AnimationProvider::Duration() const {
-    return _self->animation ? _self->animation->duration() : 0.0f;
+void AnimationProvider::UnloadAllAnimations() {
+    _self->animations.clear();
+    _self->instances.clear(); // All instances are invalid without animations
 }
 
-bool AnimationProvider::IsPlaying() const {
-    return _self->playing;
+bool AnimationProvider::HasAnimation(const char* name) const {
+    return _self->animations.find(name) != _self->animations.end();
 }
 
-void AnimationProvider::SetPlaying(bool playing) {
-    _self->playing = playing;
+const ozz::animation::Animation* AnimationProvider::GetAnimation(const char* name) const {
+    auto it = _self->animations.find(name);
+    return it != _self->animations.end() ? it->second.get() : nullptr;
+}
+
+std::vector<std::string> AnimationProvider::GetAnimationNames() const {
+    std::vector<std::string> names;
+    names.reserve(_self->animations.size());
+    for (const auto& pair : _self->animations) {
+        names.push_back(pair.first);
+    }
+    return names;
+}
+
+AnimationProvider::Instance* AnimationProvider::CreateInstance(const char* name, const char* skeletonName, const char* animationName) {
+    // Verify resources exist
+    auto skeleton = GetSkeleton(skeletonName);
+    auto animation = GetAnimation(animationName);
+    if (!skeleton || !animation) {
+        return nullptr;
+    }
+
+    // Create instance
+    auto instance = std::make_unique<Instance>();
+    instance->skeletonName = skeletonName;
+    instance->animationName = animationName;
+
+    // Initialize buffers
+    const int num_joints = skeleton->num_joints();
+    const int num_soa_joints = (num_joints + 3) / 4;
+    instance->locals.resize(num_soa_joints);
+    instance->models.resize(num_joints);
+    instance->jointWeights.resize(num_joints, 1.f);
+
+    // Store and return
+    auto ptr = instance.get();
+    _self->instances[name] = std::move(instance);
+    return ptr;
+}
+
+void AnimationProvider::DestroyInstance(const char* name) {
+    _self->instances.erase(name);
+}
+
+AnimationProvider::Instance* AnimationProvider::GetInstance(const char* name) {
+    auto it = _self->instances.find(name);
+    return it != _self->instances.end() ? it->second.get() : nullptr;
+}
+
+const AnimationProvider::Instance* AnimationProvider::GetInstance(const char* name) const {
+    auto it = _self->instances.find(name);
+    return it != _self->instances.end() ? it->second.get() : nullptr;
+}
+
+std::vector<std::string> AnimationProvider::GetInstanceNames() const {
+    std::vector<std::string> names;
+    names.reserve(_self->instances.size());
+    for (const auto& pair : _self->instances) {
+        names.push_back(pair.first);
+    }
+    return names;
+}
+
+float AnimationProvider::GetCurrentTime(const char* instanceName) const {
+    auto instance = GetInstance(instanceName);
+    return instance ? instance->currentTime : 0.0f;
+}
+
+void AnimationProvider::SetCurrentTime(const char* instanceName, float time) {
+    auto instance = GetInstance(instanceName);
+    if (!instance) return;
+
+    auto animation = GetAnimation(instance->animationName.c_str());
+    if (animation) {
+        instance->currentTime = std::fmod(time, animation->duration());
+    }
+}
+
+float AnimationProvider::GetDuration(const char* instanceName) const {
+    auto instance = GetInstance(instanceName);
+    if (!instance) return 0.0f;
+
+    auto animation = GetAnimation(instance->animationName.c_str());
+    return animation ? animation->duration() : 0.0f;
+}
+
+bool AnimationProvider::IsPlaying(const char* instanceName) const {
+    auto instance = GetInstance(instanceName);
+    return instance ? instance->playing : false;
+}
+
+void AnimationProvider::SetPlaying(const char* instanceName, bool playing) {
+    auto instance = GetInstance(instanceName);
+    if (instance) {
+        instance->playing = playing;
+    }
 }
 
 void AnimationProvider::Update(float deltaTime) {
-    if (!_self->animation || !_self->skeleton || !_self->playing) {
-        return;
-    }
-    
-    // Update animation time
-    _self->currentTime = std::fmod(_self->currentTime + deltaTime, _self->animation->duration());
-    
-    // Setup sampling job
-    ozz::animation::SamplingJob sampling_job;
-    sampling_job.animation = _self->animation.get();
-    sampling_job.ratio = _self->currentTime / _self->animation->duration();
-    sampling_job.output = ozz::make_span(_self->locals);
-    
-    // Sample animation
-    if (!sampling_job.Run()) {
-        return;
-    }
-    
-    // Convert local transforms to model-space matrices
-    ozz::animation::LocalToModelJob ltm_job;
-    ltm_job.skeleton = _self->skeleton.get();
-    ltm_job.input = ozz::make_span(_self->locals);
-    ltm_job.output = ozz::make_span(_self->models);
-    
-    if (!ltm_job.Run()) {
-        return;
+    // Update all playing instances
+    for (auto& pair : _self->instances) {
+        auto& instance = pair.second;
+        if (!instance->playing) continue;
+
+        auto skeleton = GetSkeleton(instance->skeletonName.c_str());
+        auto animation = GetAnimation(instance->animationName.c_str());
+        if (!animation || !skeleton) continue;
+
+        // Update animation time
+        instance->currentTime = std::fmod(instance->currentTime + deltaTime, animation->duration());
+
+        // Setup sampling job
+        ozz::animation::SamplingJob sampling_job;
+        sampling_job.animation = animation;
+        sampling_job.ratio = instance->currentTime / animation->duration();
+        sampling_job.output = ozz::make_span(instance->locals);
+
+        // Sample animation
+        if (!sampling_job.Run()) continue;
+
+        // Convert local transforms to model-space matrices
+        ozz::animation::LocalToModelJob ltm_job;
+        ltm_job.skeleton = skeleton;
+        ltm_job.input = ozz::make_span(instance->locals);
+        ltm_job.output = ozz::make_span(instance->models);
+
+        ltm_job.Run();
     }
 }
 
-const ozz::math::Float4x4* AnimationProvider::GetJointTransforms() const {
-    return _self->models.data();
+const ozz::math::Float4x4* AnimationProvider::GetJointTransforms(const char* instanceName) const {
+    auto instance = GetInstance(instanceName);
+    return instance ? instance->models.data() : nullptr;
 }
 
-int AnimationProvider::GetJointCount() const {
-    return _self->skeleton ? _self->skeleton->num_joints() : 0;
+int AnimationProvider::GetJointCount(const char* instanceName) const {
+    auto instance = GetInstance(instanceName);
+    if (!instance) return 0;
+
+    auto skeleton = GetSkeleton(instance->skeletonName.c_str());
+    return skeleton ? skeleton->num_joints() : 0;
 }
 
-bool AnimationProvider::LoadSkeletonFromBVH(const char* filename) {
+bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filename) {
     std::unique_ptr<BVHData> bvh(ParseBVH(filename));
     if (!bvh || !bvh->root) {
         return false;
     }
 
-    UnloadSkeleton();
+    UnloadSkeleton(name);
 
     // Count joints
     std::function<int(BVHJoint*)> countJoints = [&](BVHJoint* joint) {
@@ -412,33 +510,33 @@ bool AnimationProvider::LoadSkeletonFromBVH(const char* filename) {
 
     // Build runtime skeleton
     ozz::animation::offline::SkeletonBuilder builder;
-    _self->skeleton = builder(raw_skeleton);
-    if (!_self->skeleton) {
+    auto skeleton = builder(raw_skeleton);
+    if (!skeleton) {
         return false;
     }
 
-    // Initialize buffers
-    const int num_joints = _self->skeleton->num_joints();
-    const int num_soa_joints = (num_joints + 3) / 4;
-    _self->locals.resize(num_soa_joints);
-    _self->models.resize(num_joints);
-    _self->joint_weights.resize(num_joints, 1.f);
+    // Store skeleton
+    _self->skeletons[name] = std::move(skeleton);
 
     return true;
 }
 
-bool AnimationProvider::LoadAnimationFromBVH(const char* filename) {
+bool AnimationProvider::LoadAnimationFromBVH(const char* name, const char* filename, const char* skeletonName) {
     std::unique_ptr<BVHData> bvh(ParseBVH(filename));
     if (!bvh || !bvh->root || bvh->frames.empty()) {
         return false;
     }
 
-    UnloadAnimation();
+    // Get skeleton
+    auto skeleton = GetSkeleton(skeletonName);
+    if (!skeleton) {
+        return false;
+    }
 
     // Create raw animation
     ozz::animation::offline::RawAnimation raw_animation;
     raw_animation.duration = bvh->frameTime * bvh->frames.size();
-    raw_animation.tracks.resize(GetJointCount());
+    raw_animation.tracks.resize(skeleton->num_joints());
 
     // Map joints to their indices
     std::map<std::string, int> joint_indices;
@@ -492,10 +590,13 @@ bool AnimationProvider::LoadAnimationFromBVH(const char* filename) {
 
     // Build runtime animation
     ozz::animation::offline::AnimationBuilder builder;
-    _self->animation = builder(raw_animation);
-    if (!_self->animation) {
+    auto animation = builder(raw_animation);
+    if (!animation) {
         return false;
     }
+
+    // Store animation
+    _self->animations[name] = std::move(animation);
 
     return true;
 }
