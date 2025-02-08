@@ -2,6 +2,8 @@ get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
 set_property(GLOBAL PROPERTY PROVIDERS_LIST "${PROVIDERS};Animation")
 
 set(ANIMATION_SRCS
+    LabBVH.hpp
+    LabBVH.cpp
     AnimationProvider.hpp
     AnimationProvider.cpp
 )

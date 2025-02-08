@@ -1,4 +1,5 @@
 #include "AnimationProvider.hpp"
+#include "LabBVH.hpp"
 #include <ozz/animation/runtime/skeleton_utils.h>
 #include <ozz/animation/offline/raw_animation.h>
 #include <ozz/animation/offline/raw_skeleton.h>
@@ -17,191 +18,6 @@
 #include <cmath>
 
 namespace lab {
-
-// BVH parsing structures
-struct BVHChannel {
-    enum Type {
-        Xposition, Yposition, Zposition,
-        Xrotation, Yrotation, Zrotation
-    };
-    Type type;
-    int index;  // Index in motion data
-};
-
-struct BVHJoint {
-    std::string name;
-    std::vector<BVHChannel> channels;
-    std::vector<float> offset;
-    std::vector<BVHJoint*> children;
-    BVHJoint* parent;
-    int index;  // Index in skeleton hierarchy
-    
-    BVHJoint() : parent(nullptr), index(-1) {}
-    ~BVHJoint() {
-        for (auto child : children) {
-            delete child;
-        }
-    }
-};
-
-struct BVHData {
-    BVHJoint* root;
-    float frameTime;
-    std::vector<std::vector<float>> frames;
-    int totalChannels;
-    
-    BVHData() : root(nullptr), frameTime(0), totalChannels(0) {}
-    ~BVHData() { delete root; }
-};
-
-// Helper functions for BVH parsing
-static std::string ReadToken(std::istream& file) {
-    std::string token;
-    file >> token;
-    return token;
-}
-
-static BVHJoint* ParseJoint(std::istream& file, BVHJoint* parent, int& channelOffset, int& jointIndex) {
-    std::string token = ReadToken(file);
-    if (token != "JOINT" && token != "End" && token != "ROOT") {
-        return nullptr;
-    }
-    
-    auto joint = new BVHJoint();
-    joint->parent = parent;
-    joint->index = jointIndex++;
-    
-    if (token != "End") {
-        joint->name = ReadToken(file);
-    } else {
-        joint->name = "End Site";
-        ReadToken(file);  // Skip "Site"
-    }
-    
-    token = ReadToken(file);  // {
-    if (token != "{") {
-        delete joint;
-        return nullptr;
-    }
-    
-    // Read OFFSET
-    token = ReadToken(file);
-    if (token != "OFFSET") {
-        delete joint;
-        return nullptr;
-    }
-    
-    joint->offset.resize(3);
-    file >> joint->offset[0] >> joint->offset[1] >> joint->offset[2];
-    
-    // Read channels if not End Site
-    if (joint->name != "End Site") {
-        token = ReadToken(file);
-        if (token != "CHANNELS") {
-            delete joint;
-            return nullptr;
-        }
-        
-        int numChannels;
-        file >> numChannels;
-        
-        joint->channels.resize(numChannels);
-        for (int i = 0; i < numChannels; ++i) {
-            token = ReadToken(file);
-            BVHChannel channel;
-            channel.index = channelOffset++;
-            
-            if (token == "Xposition") channel.type = BVHChannel::Xposition;
-            else if (token == "Yposition") channel.type = BVHChannel::Yposition;
-            else if (token == "Zposition") channel.type = BVHChannel::Zposition;
-            else if (token == "Xrotation") channel.type = BVHChannel::Xrotation;
-            else if (token == "Yrotation") channel.type = BVHChannel::Yrotation;
-            else if (token == "Zrotation") channel.type = BVHChannel::Zrotation;
-            
-            joint->channels.push_back(channel);
-        }
-    }
-    
-    // Read child joints
-    while (true) {
-        token = ReadToken(file);
-        if (token == "}") break;
-        
-        file.seekg(-token.length(), std::ios::cur);
-        auto child = ParseJoint(file, joint, channelOffset, jointIndex);
-        if (child) {
-            joint->children.push_back(child);
-        }
-    }
-    
-    return joint;
-}
-
-static BVHData* ParseBVH(const char* filename) {
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        return nullptr;
-    }
-    
-    auto bvh = new BVHData();
-    std::string token = ReadToken(file);
-    if (token != "HIERARCHY") {
-        delete bvh;
-        return nullptr;
-    }
-    
-    // Parse skeleton
-    int channelOffset = 0;
-    int jointIndex = 0;
-    bvh->root = ParseJoint(file, nullptr, channelOffset, jointIndex);
-    if (!bvh->root) {
-        delete bvh;
-        return nullptr;
-    }
-    
-    bvh->totalChannels = channelOffset;
-    
-    // Parse motion
-    token = ReadToken(file);
-    if (token != "MOTION") {
-        delete bvh;
-        return nullptr;
-    }
-    
-    token = ReadToken(file);
-    if (token != "Frames:") {
-        delete bvh;
-        return nullptr;
-    }
-    
-    int numFrames;
-    file >> numFrames;
-    
-    token = ReadToken(file);
-    if (token != "Frame") {
-        delete bvh;
-        return nullptr;
-    }
-    token = ReadToken(file);
-    if (token != "Time:") {
-        delete bvh;
-        return nullptr;
-    }
-    
-    file >> bvh->frameTime;
-    
-    // Read frame data
-    bvh->frames.resize(numFrames);
-    for (int i = 0; i < numFrames; ++i) {
-        bvh->frames[i].resize(bvh->totalChannels);
-        for (int j = 0; j < bvh->totalChannels; ++j) {
-            file >> bvh->frames[i][j];
-        }
-    }
-    
-    return bvh;
-}
-
 
 struct AnimationProvider::data {
     // Resource management
@@ -318,6 +134,241 @@ void AnimationProvider::UnloadAllAnimations() {
     _self->animations.clear();
     _self->instances.clear(); // All instances are invalid without animations
 }
+
+
+bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filename) {
+    const bool printDiagnostics = true;
+
+    std::unique_ptr<BVHData> bvh(lab::ParseBVH(filename));
+    if (!bvh || !bvh->root) {
+        return false;
+    }
+
+    UnloadSkeleton(name);
+
+    if (printDiagnostics) {
+        printf("Loading skeleton from BVH file: %s\n", filename);
+        printf("Skeleton hierarchy:\n");
+
+        std::function<void(BVHJoint*, int)> printJoint = [&](BVHJoint* joint, int depth) {
+            // Print indentation
+            for (int i = 0; i < depth; i++) {
+                printf("  ");
+            }
+
+            // Print joint info
+            printf("- %s (index: %d, offset: %.2f, %.2f, %.2f)\n",
+                joint->name.c_str(),
+                joint->index,
+                joint->offset[0],
+                joint->offset[1],
+                joint->offset[2]
+            );
+
+            // Print channels
+            if (!joint->channels.empty()) {
+                for (int i = 0; i < depth + 1; i++) printf("  ");
+                printf("channels: ");
+                for (const auto& channel : joint->channels) {
+                    const char* type = "";
+                    switch (channel.type) {
+                        case BVHChannel::Xposition: type = "Xpos"; break;
+                        case BVHChannel::Yposition: type = "Ypos"; break;
+                        case BVHChannel::Zposition: type = "Zpos"; break;
+                        case BVHChannel::Xrotation: type = "Xrot"; break;
+                        case BVHChannel::Yrotation: type = "Yrot"; break;
+                        case BVHChannel::Zrotation: type = "Zrot"; break;
+                    }
+                    printf("%s(%d) ", type, channel.index);
+                }
+                printf("\n");
+            }
+
+            // Recursively print children
+            for (auto child : joint->children) {
+                printJoint(child, depth + 1);
+            }
+        };
+
+        printJoint(bvh->root, 0);
+        printf("\n");
+    }
+
+    // Count joints
+    std::function<int(BVHJoint*)> countJoints = [&](BVHJoint* joint) {
+        int count = 1;  // Count this joint
+        for (auto child : joint->children) {
+            count += countJoints(child);
+        }
+        return count;
+    };
+    int numJoints = countJoints(bvh->root);
+
+    // Create an instance to store the rest pose
+    auto instance = std::make_unique<Instance>();
+    instance->skeletonName = name;
+    instance->animationName = "";
+
+    // Initialize buffers
+    instance->locals.resize(numJoints);
+    instance->models.resize(numJoints);
+    instance->jointWeights.resize(numJoints, 1.f);
+
+    // Initialize all transforms to identity
+    for (int i = 0; i < numJoints; ++i) {
+        instance->locals[i] = ozz::math::SoaTransform::identity();
+        instance->models[i] = ozz::math::Float4x4::identity();
+    }
+
+    // Create raw skeleton
+    ozz::animation::offline::RawSkeleton raw_skeleton;
+    raw_skeleton.roots.resize(1);
+    ozz::animation::offline::RawSkeleton::Joint& root = raw_skeleton.roots[0];
+    root.name = bvh->root->name;
+    root.transform.translation = ozz::math::Float3(bvh->root->offset[0], bvh->root->offset[1], bvh->root->offset[2]);
+    root.transform.rotation = ozz::math::Quaternion::identity();
+    root.transform.scale = ozz::math::Float3(1.f);
+    root.children.resize(bvh->root->children.size());
+
+    // Build joint hierarchy
+    int currentJoint = 0;
+    std::function<void(BVHJoint*, ozz::animation::offline::RawSkeleton::Joint&)> buildHierarchy =
+        [&](BVHJoint* joint, ozz::animation::offline::RawSkeleton::Joint& raw_joint) {
+            raw_joint.name = joint->name;
+            raw_joint.transform.translation = ozz::math::Float3(
+                joint->offset[0],
+                joint->offset[1],
+                joint->offset[2]
+            );
+
+            printf("%f %f %f\n", joint->offset[0], joint->offset[1], joint->offset[2]);
+
+            raw_joint.transform.rotation = ozz::math::Quaternion::identity();
+            raw_joint.transform.scale = ozz::math::Float3(1.f);
+
+            instance->locals[currentJoint].translation = { joint->offset[0],
+                joint->offset[1],
+                joint->offset[2] };
+            instance->locals[currentJoint].rotation = ozz::math::SoaQuaternion::identity();
+            instance->locals[currentJoint].scale = {1,1,1};
+
+            ++currentJoint;
+
+            raw_joint.children.resize(joint->children.size());
+            for (size_t i = 0; i < joint->children.size(); ++i) {
+                buildHierarchy(joint->children[i], raw_joint.children[i]);
+            }
+        };
+
+    buildHierarchy(bvh->root, root);
+
+    // Validate skeleton
+    if (!raw_skeleton.Validate()) {
+        printf("Invalid skeleton\n");
+        return false;
+    }
+
+    // Build runtime skeleton
+    ozz::animation::offline::SkeletonBuilder builder;
+    auto skeleton = builder(raw_skeleton);
+    if (!skeleton) {
+        return false;
+    }
+
+    // Convert to model space
+    ozz::animation::LocalToModelJob ltm_job;
+    ltm_job.skeleton = skeleton.get();
+    ltm_job.input = ozz::make_span(instance->locals);
+    ltm_job.output = ozz::make_span(instance->models);
+    ltm_job.Run();
+
+    // Store skeleton and instance
+    _self->skeletons[name] = std::move(skeleton);
+    _self->instances[name] = std::move(instance);
+    return true;
+}
+
+bool AnimationProvider::LoadAnimationFromBVH(const char* name, const char* filename, const char* skeletonName) {
+    std::unique_ptr<BVHData> bvh(lab::ParseBVH(filename));
+    if (!bvh || !bvh->root || bvh->frames.empty()) {
+        return false;
+    }
+
+    // Get skeleton
+    auto skeleton = GetSkeleton(skeletonName);
+    if (!skeleton) {
+        return false;
+    }
+
+    // Create raw animation
+    ozz::animation::offline::RawAnimation raw_animation;
+    raw_animation.duration = bvh->frameTime * bvh->frames.size();
+    raw_animation.tracks.resize(skeleton->num_joints());
+
+    // Map joints to their indices
+    std::map<std::string, int> joint_indices;
+    std::function<void(BVHJoint*)> mapJointIndices = [&](BVHJoint* joint) {
+        joint_indices[joint->name] = joint->index;
+        for (auto child : joint->children) {
+            mapJointIndices(child);
+        }
+    };
+    mapJointIndices(bvh->root);
+
+    // Create track for each joint
+    std::function<void(BVHJoint*)> createTracks = [&](BVHJoint* joint) {
+        auto& track = raw_animation.tracks[joint->index];
+
+        // Add keyframes for each frame
+        for (size_t i = 0; i < bvh->frames.size(); ++i) {
+            ozz::math::Float3 translation(0.f);
+            ozz::math::Float3 rotation(0.f);
+
+            // Process channels
+            for (const auto& channel : joint->channels) {
+                float value = bvh->frames[i][channel.index];
+                switch (channel.type) {
+                    case BVHChannel::Xposition: translation.x = value; break;
+                    case BVHChannel::Yposition: translation.y = value; break;
+                    case BVHChannel::Zposition: translation.z = value; break;
+                    case BVHChannel::Xrotation: rotation.x = value * 0.0174533f; break;
+                    case BVHChannel::Yrotation: rotation.y = value * 0.0174533f; break;
+                    case BVHChannel::Zrotation: rotation.z = value * 0.0174533f; break;
+                }
+            }
+
+            // Convert Euler angles to quaternion
+            ozz::math::Quaternion quat = ozz::math::Quaternion::FromEuler(rotation);
+
+            // Add keyframe
+            float time = i * bvh->frameTime;
+            track.translations.push_back({time, translation});
+            track.rotations.push_back({time, quat});
+            track.scales.push_back({time, ozz::math::Float3(1.f)});
+        }
+
+        // Process children
+        for (auto child : joint->children) {
+            createTracks(child);
+        }
+    };
+
+    createTracks(bvh->root);
+
+    // Build runtime animation
+    ozz::animation::offline::AnimationBuilder builder;
+    auto animation = builder(raw_animation);
+    if (!animation) {
+        return false;
+    }
+
+    // Store animation
+    _self->animations[name] = std::move(animation);
+
+    return true;
+}
+
+
 
 bool AnimationProvider::HasAnimation(const char* name) const {
     return _self->animations.find(name) != _self->animations.end();
@@ -464,238 +515,6 @@ int AnimationProvider::GetJointCount(const char* instanceName) const {
 
     auto skeleton = GetSkeleton(instance->skeletonName.c_str());
     return skeleton ? skeleton->num_joints() : 0;
-}
-
-bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filename) {
-    const bool printDiagnostics = true;
-
-    std::unique_ptr<BVHData> bvh(ParseBVH(filename));
-    if (!bvh || !bvh->root) {
-        return false;
-    }
-
-    UnloadSkeleton(name);
-
-    if (printDiagnostics) {
-        printf("Loading skeleton from BVH file: %s\n", filename);
-        printf("Skeleton hierarchy:\n");
-        
-        std::function<void(BVHJoint*, int)> printJoint = [&](BVHJoint* joint, int depth) {
-            // Print indentation
-            for (int i = 0; i < depth; i++) {
-                printf("  ");
-            }
-            
-            // Print joint info
-            printf("- %s (index: %d, offset: %.2f, %.2f, %.2f)\n",
-                joint->name.c_str(),
-                joint->index,
-                joint->offset[0],
-                joint->offset[1],
-                joint->offset[2]
-            );
-            
-            // Print channels
-            if (!joint->channels.empty()) {
-                for (int i = 0; i < depth + 1; i++) printf("  ");
-                printf("channels: ");
-                for (const auto& channel : joint->channels) {
-                    const char* type = "";
-                    switch (channel.type) {
-                        case BVHChannel::Xposition: type = "Xpos"; break;
-                        case BVHChannel::Yposition: type = "Ypos"; break;
-                        case BVHChannel::Zposition: type = "Zpos"; break;
-                        case BVHChannel::Xrotation: type = "Xrot"; break;
-                        case BVHChannel::Yrotation: type = "Yrot"; break;
-                        case BVHChannel::Zrotation: type = "Zrot"; break;
-                    }
-                    printf("%s(%d) ", type, channel.index);
-                }
-                printf("\n");
-            }
-            
-            // Recursively print children
-            for (auto child : joint->children) {
-                printJoint(child, depth + 1);
-            }
-        };
-        
-        printJoint(bvh->root, 0);
-        printf("\n");
-    }
-
-    // Count joints
-    std::function<int(BVHJoint*)> countJoints = [&](BVHJoint* joint) {
-        int count = 1;  // Count this joint
-        for (auto child : joint->children) {
-            count += countJoints(child);
-        }
-        return count;
-    };
-    int numJoints = countJoints(bvh->root);
-
-    // Create an instance to store the rest pose
-    auto instance = std::make_unique<Instance>();
-    instance->skeletonName = name;
-    instance->animationName = "";
-
-    // Initialize buffers
-    instance->locals.resize(numJoints);
-    instance->models.resize(numJoints);
-    instance->jointWeights.resize(numJoints, 1.f);
-
-    // Initialize all transforms to identity
-    for (int i = 0; i < numJoints; ++i) {
-        instance->locals[i] = ozz::math::SoaTransform::identity();
-        instance->models[i] = ozz::math::Float4x4::identity();
-    }
-
-    // Create raw skeleton
-    ozz::animation::offline::RawSkeleton raw_skeleton;
-    raw_skeleton.roots.resize(1);
-    ozz::animation::offline::RawSkeleton::Joint& root = raw_skeleton.roots[0];
-    root.name = bvh->root->name;
-    root.transform.translation = ozz::math::Float3(bvh->root->offset[0], bvh->root->offset[1], bvh->root->offset[2]);
-    root.transform.rotation = ozz::math::Quaternion::identity();
-    root.transform.scale = ozz::math::Float3(1.f);
-    root.children.resize(bvh->root->children.size());
-
-    // Build joint hierarchy
-    int currentJoint = 0;
-    std::function<void(BVHJoint*, ozz::animation::offline::RawSkeleton::Joint&)> buildHierarchy = 
-        [&](BVHJoint* joint, ozz::animation::offline::RawSkeleton::Joint& raw_joint) {
-            raw_joint.name = joint->name;
-            raw_joint.transform.translation = ozz::math::Float3(
-                joint->offset[0],
-                joint->offset[1],
-                joint->offset[2]
-            );
-
-            printf("%f %f %f\n", joint->offset[0], joint->offset[1], joint->offset[2]);
-
-            raw_joint.transform.rotation = ozz::math::Quaternion::identity();
-            raw_joint.transform.scale = ozz::math::Float3(1.f);
-
-            instance->locals[currentJoint].translation = { joint->offset[0],
-                joint->offset[1],
-                joint->offset[2] };
-            instance->locals[currentJoint].rotation = ozz::math::SoaQuaternion::identity();
-            instance->locals[currentJoint].scale = {1,1,1};
-
-            ++currentJoint;
-            
-            raw_joint.children.resize(joint->children.size());
-            for (size_t i = 0; i < joint->children.size(); ++i) {
-                buildHierarchy(joint->children[i], raw_joint.children[i]);
-            }
-        };
-    
-    buildHierarchy(bvh->root, root);
-
-    // Validate skeleton
-    if (!raw_skeleton.Validate()) {
-        printf("Invalid skeleton\n");
-        return false;
-    }
-
-    // Build runtime skeleton
-    ozz::animation::offline::SkeletonBuilder builder;
-    auto skeleton = builder(raw_skeleton);
-    if (!skeleton) {
-        return false;
-    }
-
-    // Convert to model space
-    ozz::animation::LocalToModelJob ltm_job;
-    ltm_job.skeleton = skeleton.get();
-    ltm_job.input = ozz::make_span(instance->locals);
-    ltm_job.output = ozz::make_span(instance->models);
-    ltm_job.Run();
-
-    // Store skeleton and instance
-    _self->skeletons[name] = std::move(skeleton);
-    _self->instances[name] = std::move(instance);
-    return true;
-}
-
-bool AnimationProvider::LoadAnimationFromBVH(const char* name, const char* filename, const char* skeletonName) {
-    std::unique_ptr<BVHData> bvh(ParseBVH(filename));
-    if (!bvh || !bvh->root || bvh->frames.empty()) {
-        return false;
-    }
-
-    // Get skeleton
-    auto skeleton = GetSkeleton(skeletonName);
-    if (!skeleton) {
-        return false;
-    }
-
-    // Create raw animation
-    ozz::animation::offline::RawAnimation raw_animation;
-    raw_animation.duration = bvh->frameTime * bvh->frames.size();
-    raw_animation.tracks.resize(skeleton->num_joints());
-
-    // Map joints to their indices
-    std::map<std::string, int> joint_indices;
-    std::function<void(BVHJoint*)> mapJointIndices = [&](BVHJoint* joint) {
-        joint_indices[joint->name] = joint->index;
-        for (auto child : joint->children) {
-            mapJointIndices(child);
-        }
-    };
-    mapJointIndices(bvh->root);
-
-    // Create track for each joint
-    std::function<void(BVHJoint*)> createTracks = [&](BVHJoint* joint) {
-        auto& track = raw_animation.tracks[joint->index];
-        
-        // Add keyframes for each frame
-        for (size_t i = 0; i < bvh->frames.size(); ++i) {
-            ozz::math::Float3 translation(0.f);
-            ozz::math::Float3 rotation(0.f);
-            
-            // Process channels
-            for (const auto& channel : joint->channels) {
-                float value = bvh->frames[i][channel.index];
-                switch (channel.type) {
-                    case BVHChannel::Xposition: translation.x = value; break;
-                    case BVHChannel::Yposition: translation.y = value; break;
-                    case BVHChannel::Zposition: translation.z = value; break;
-                    case BVHChannel::Xrotation: rotation.x = value * 0.0174533f; break;
-                    case BVHChannel::Yrotation: rotation.y = value * 0.0174533f; break;
-                    case BVHChannel::Zrotation: rotation.z = value * 0.0174533f; break;
-                }
-            }
-            
-            // Convert Euler angles to quaternion
-            ozz::math::Quaternion quat = ozz::math::Quaternion::FromEuler(rotation);
-            
-            // Add keyframe
-            float time = i * bvh->frameTime;
-            track.translations.push_back({time, translation});
-            track.rotations.push_back({time, quat});
-            track.scales.push_back({time, ozz::math::Float3(1.f)});
-        }
-        
-        // Process children
-        for (auto child : joint->children) {
-            createTracks(child);
-        }
-    };
-    
-    createTracks(bvh->root);
-
-    // Build runtime animation
-    ozz::animation::offline::AnimationBuilder builder;
-    auto animation = builder(raw_animation);
-    if (!animation) {
-        return false;
-    }
-
-    // Store animation
-    _self->animations[name] = std::move(animation);
-
-    return true;
 }
 
 } // lab
