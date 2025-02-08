@@ -323,10 +323,26 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
         ImGui::InputText("File Path", _self->skeletonFilePath, sizeof(_self->skeletonFilePath));
         if (ImGui::Button("Add")) {
             if (strlen(_self->skeletonName) > 0 && strlen(_self->skeletonFilePath) > 0) {
-                AnimationProvider::instance()->LoadSkeletonFromBVH(_self->skeletonName, _self->skeletonFilePath);
-                _self->showAddSkeletonModal = false;
-                memset(_self->skeletonName, 0, sizeof(_self->skeletonName));
-                memset(_self->skeletonFilePath, 0, sizeof(_self->skeletonFilePath));
+                // Check file extension to determine which loader to use
+                std::string filepath(_self->skeletonFilePath);
+                std::string ext = filepath.substr(filepath.find_last_of(".") + 1);
+                bool success = false;
+                
+                if (ext == "ozz") {
+                    success = AnimationProvider::instance()->LoadSkeleton(_self->skeletonName, _self->skeletonFilePath);
+                } else if (ext == "bvh") {
+                    success = AnimationProvider::instance()->LoadSkeletonFromBVH(_self->skeletonName, _self->skeletonFilePath);
+                } else if (ext == "gltf" || ext == "glb") {
+                    success = AnimationProvider::instance()->LoadSkeletonFromGLTF(_self->skeletonName, _self->skeletonFilePath);
+                } else if (ext == "vrm") {
+                    success = AnimationProvider::instance()->LoadSkeletonFromVRM(_self->skeletonName, _self->skeletonFilePath);
+                }
+
+                if (success) {
+                    _self->showAddSkeletonModal = false;
+                    memset(_self->skeletonName, 0, sizeof(_self->skeletonName));
+                    memset(_self->skeletonFilePath, 0, sizeof(_self->skeletonFilePath));
+                }
             }
         }
         ImGui::SameLine();
@@ -345,10 +361,26 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
         ImGui::InputText("File Path", _self->animationFilePath, sizeof(_self->animationFilePath));
         if (ImGui::Button("Add")) {
             if (strlen(_self->animationName) > 0 && strlen(_self->animationFilePath) > 0 && !_self->selectedSkeleton.empty()) {
-                AnimationProvider::instance()->LoadAnimationFromBVH(_self->animationName, _self->animationFilePath, _self->selectedSkeleton.c_str());
-                _self->showAddAnimationModal = false;
-                memset(_self->animationName, 0, sizeof(_self->animationName));
-                memset(_self->animationFilePath, 0, sizeof(_self->animationFilePath));
+                // Check file extension to determine which loader to use
+                std::string filepath(_self->animationFilePath);
+                std::string ext = filepath.substr(filepath.find_last_of(".") + 1);
+                bool success = false;
+
+                if (ext == "ozz") {
+                    success = AnimationProvider::instance()->LoadAnimation(_self->animationName, _self->animationFilePath);
+                } else if (ext == "bvh") {
+                    success = AnimationProvider::instance()->LoadAnimationFromBVH(_self->animationName, _self->animationFilePath, _self->selectedSkeleton.c_str());
+                } else if (ext == "gltf" || ext == "glb") {
+                    success = AnimationProvider::instance()->LoadAnimationFromGLTF(_self->animationName, _self->animationFilePath, _self->selectedSkeleton.c_str());
+                } else if (ext == "vrm") {
+                    success = AnimationProvider::instance()->LoadAnimationFromVRM(_self->animationName, _self->animationFilePath, _self->selectedSkeleton.c_str());
+                }
+
+                if (success) {
+                    _self->showAddAnimationModal = false;
+                    memset(_self->animationName, 0, sizeof(_self->animationName));
+                    memset(_self->animationFilePath, 0, sizeof(_self->animationFilePath));
+                }
             }
         }
         ImGui::SameLine();

@@ -1,6 +1,10 @@
 #include "AnimationProvider.hpp"
 #include "LabBVH.hpp"
 #include <ozz/animation/runtime/skeleton_utils.h>
+#define CGLTF_IMPLEMENTATION
+#include <cgltf/cgltf.h>
+#define CGLTF_VRM_IMPLEMENTATION
+#include <cgltf_vrm/cgltf_vrm.h>
 #include <ozz/animation/offline/raw_animation.h>
 #include <ozz/animation/offline/raw_skeleton.h>
 #include <ozz/animation/offline/skeleton_builder.h>
@@ -286,6 +290,264 @@ bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filena
     _self->skeletons[name] = std::move(skeleton);
     _self->instances[name] = std::move(instance);
     return true;
+}
+
+bool AnimationProvider::LoadSkeletonFromGLTF(const char* name, const char* filename) {
+    cgltf_options options = {};
+    cgltf_data* data = nullptr;
+    cgltf_result result = cgltf_parse_file(&options, filename, &data);
+    if (result != cgltf_result_success) {
+        return false;
+    }
+
+    result = cgltf_load_buffers(&options, data, filename);
+    if (result != cgltf_result_success) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Create raw skeleton
+    ozz::animation::offline::RawSkeleton raw_skeleton;
+    raw_skeleton.roots.resize(1);
+
+    // Find the first node with a skin
+    cgltf_node* root_node = nullptr;
+    cgltf_skin* skin = nullptr;
+    for (size_t i = 0; i < data->nodes_count; i++) {
+        if (data->nodes[i].skin) {
+            root_node = &data->nodes[i];
+            skin = data->nodes[i].skin;
+            break;
+        }
+    }
+
+    if (!root_node || !skin) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Build joint hierarchy
+    std::function<void(cgltf_node*, ozz::animation::offline::RawSkeleton::Joint&)> buildJoint =
+        [&](cgltf_node* node, ozz::animation::offline::RawSkeleton::Joint& joint) {
+            joint.name = node->name ? node->name : "joint";
+            
+            // Get transform
+            if (node->has_translation) {
+                joint.transform.translation = ozz::math::Float3(
+                    node->translation[0],
+                    node->translation[1],
+                    node->translation[2]
+                );
+            }
+            
+            if (node->has_rotation) {
+                joint.transform.rotation = ozz::math::Quaternion(
+                    node->rotation[0],
+                    node->rotation[1],
+                    node->rotation[2],
+                    node->rotation[3]
+                );
+            }
+            
+            if (node->has_scale) {
+                joint.transform.scale = ozz::math::Float3(
+                    node->scale[0],
+                    node->scale[1],
+                    node->scale[2]
+                );
+            }
+
+            // Process children
+            joint.children.resize(node->children_count);
+            for (size_t i = 0; i < node->children_count; i++) {
+                buildJoint(node->children[i], joint.children[i]);
+            }
+        };
+
+    // Build the skeleton starting from root
+    buildJoint(root_node, raw_skeleton.roots[0]);
+
+    // Validate skeleton
+    if (!raw_skeleton.Validate()) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Build runtime skeleton
+    ozz::animation::offline::SkeletonBuilder builder;
+    auto skeleton = builder(raw_skeleton);
+    if (!skeleton) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Store skeleton
+    _self->skeletons[name] = std::move(skeleton);
+
+    // Create instance for rest pose
+    auto instance = std::make_unique<Instance>();
+    instance->skeletonName = name;
+    instance->animationName = "";
+
+    // Initialize buffers
+    const int num_joints = _self->skeletons[name]->num_joints();
+    const int num_soa_joints = (num_joints + 3) / 4;
+    instance->locals.resize(num_soa_joints);
+    instance->models.resize(num_joints);
+    instance->jointWeights.resize(num_joints, 1.f);
+
+    // Initialize transforms
+    for (int i = 0; i < num_soa_joints; ++i) {
+        instance->locals[i] = ozz::math::SoaTransform::identity();
+    }
+    for (int i = 0; i < num_joints; ++i) {
+        instance->models[i] = ozz::math::Float4x4::identity();
+    }
+
+    // Store instance
+    _self->instances[name] = std::move(instance);
+
+    cgltf_free(data);
+    return true;
+}
+
+bool AnimationProvider::LoadSkeletonFromVRM(const char* name, const char* filename) {
+    // VRM is an extension of GLTF, so we can use the same loading code
+    return LoadSkeletonFromGLTF(name, filename);
+}
+
+bool AnimationProvider::LoadAnimationFromGLTF(const char* name, const char* filename, const char* skeletonName) {
+    cgltf_options options = {};
+    cgltf_data* data = nullptr;
+    cgltf_result result = cgltf_parse_file(&options, filename, &data);
+    if (result != cgltf_result_success) {
+        return false;
+    }
+
+    result = cgltf_load_buffers(&options, data, filename);
+    if (result != cgltf_result_success) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Get skeleton
+    auto skeleton = GetSkeleton(skeletonName);
+    if (!skeleton) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Create raw animation
+    ozz::animation::offline::RawAnimation raw_animation;
+
+    // Find animation data
+    if (data->animations_count == 0) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Use first animation
+    cgltf_animation* gltf_animation = &data->animations[0];
+    
+    // Calculate duration
+    float max_time = 0.0f;
+    for (size_t i = 0; i < gltf_animation->samplers_count; i++) {
+        cgltf_animation_sampler* sampler = &gltf_animation->samplers[i];
+        if (sampler->input->count > 0) {
+            float* times = (float*)sampler->input->buffer_view->buffer->data + 
+                         sampler->input->offset / sizeof(float);
+            max_time = std::max(max_time, times[sampler->input->count - 1]);
+        }
+    }
+    raw_animation.duration = max_time;
+
+    // Initialize tracks
+    raw_animation.tracks.resize(skeleton->num_joints());
+
+    // Process animation channels
+    for (size_t i = 0; i < gltf_animation->channels_count; i++) {
+        cgltf_animation_channel* channel = &gltf_animation->channels[i];
+        cgltf_animation_sampler* sampler = channel->sampler;
+        cgltf_node* target_node = channel->target_node;
+
+        // Find joint index
+        int joint_index = -1;
+        for (size_t j = 0; j < skeleton->num_joints(); j++) {
+            if (strcmp(skeleton->joint_names()[j], target_node->name) == 0) {
+                joint_index = j;
+                break;
+            }
+        }
+        if (joint_index == -1) continue;
+
+        // Get keyframe times
+        float* times = (float*)sampler->input->buffer_view->buffer->data + 
+                     sampler->input->offset / sizeof(float);
+        size_t time_stride = sampler->input->stride / sizeof(float);
+
+        // Get keyframe values
+        float* values = (float*)sampler->output->buffer_view->buffer->data + 
+                      sampler->output->offset / sizeof(float);
+        size_t value_stride = sampler->output->stride / sizeof(float);
+
+        // Add keyframes
+        auto& track = raw_animation.tracks[joint_index];
+        for (size_t j = 0; j < sampler->input->count; j++) {
+            float time = times[j * time_stride];
+            
+            switch (channel->target_path) {
+                case cgltf_animation_path_type_translation: {
+                    ozz::math::Float3 translation(
+                        values[j * value_stride],
+                        values[j * value_stride + 1],
+                        values[j * value_stride + 2]
+                    );
+                    track.translations.push_back({time, translation});
+                    break;
+                }
+                case cgltf_animation_path_type_rotation: {
+                    ozz::math::Quaternion rotation(
+                        values[j * value_stride],
+                        values[j * value_stride + 1],
+                        values[j * value_stride + 2],
+                        values[j * value_stride + 3]
+                    );
+                    track.rotations.push_back({time, rotation});
+                    break;
+                }
+                case cgltf_animation_path_type_scale: {
+                    ozz::math::Float3 scale(
+                        values[j * value_stride],
+                        values[j * value_stride + 1],
+                        values[j * value_stride + 2]
+                    );
+                    track.scales.push_back({time, scale});
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+    // Build runtime animation
+    ozz::animation::offline::AnimationBuilder builder;
+    auto animation = builder(raw_animation);
+    if (!animation) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Store animation
+    _self->animations[name] = std::move(animation);
+
+    cgltf_free(data);
+    return true;
+}
+
+bool AnimationProvider::LoadAnimationFromVRM(const char* name, const char* filename, const char* skeletonName) {
+    // VRM is an extension of GLTF, so we can use the same loading code
+    return LoadAnimationFromGLTF(name, filename, skeletonName);
 }
 
 bool AnimationProvider::LoadAnimationFromBVH(const char* name, const char* filename, const char* skeletonName) {

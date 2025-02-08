@@ -10,5 +10,18 @@ set(ANIMATION_SRCS
 
 target_sources(${PROJECT_NAME} PUBLIC ${ANIMATION_SRCS})
 
-# Link ozz-animation libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE ozz_animation_offline ozz_animation ozz_base)
+# Add include directories for cgltf and cgltf_vrm
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${CMAKE_SOURCE_DIR}/ext
+    ${CMAKE_SOURCE_DIR}/ext/cgltf
+    ${CMAKE_SOURCE_DIR}/ext/cgltf_vrm
+)
+
+# Link required libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    ozz_animation_offline 
+    ozz_animation 
+    ozz_base
+    cgltf
+    cgltf_vrm
+)

@@ -44,6 +44,14 @@ target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
 target_include_directories(openexr PUBLIC OpenEXR)
 
 ####################################
+# cgltf and cgltf_vrm are header-only libraries
+add_library(cgltf INTERFACE)
+target_include_directories(cgltf INTERFACE cgltf)
+
+add_library(cgltf_vrm INTERFACE)
+target_include_directories(cgltf_vrm INTERFACE cgltf_vrm)
+
+####################################
 add_subdirectory(Tilengine)
 add_subdirectory(ImGuizmo)
 ####################################

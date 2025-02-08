@@ -26,6 +26,8 @@ public:
     // Skeleton management
     bool LoadSkeleton(const char* name, const char* filename);
     bool LoadSkeletonFromBVH(const char* name, const char* filename);
+    bool LoadSkeletonFromGLTF(const char* name, const char* filename);
+    bool LoadSkeletonFromVRM(const char* name, const char* filename);
     void UnloadSkeleton(const char* name);
     void UnloadAllSkeletons();
     bool HasSkeleton(const char* name) const;
@@ -35,6 +37,8 @@ public:
     // Animation management
     bool LoadAnimation(const char* name, const char* filename);
     bool LoadAnimationFromBVH(const char* name, const char* filename, const char* skeletonName);
+    bool LoadAnimationFromGLTF(const char* name, const char* filename, const char* skeletonName);
+    bool LoadAnimationFromVRM(const char* name, const char* filename, const char* skeletonName);
     void UnloadAnimation(const char* name);
     void UnloadAllAnimations();
     bool HasAnimation(const char* name) const;
