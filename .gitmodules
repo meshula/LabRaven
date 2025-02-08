@@ -49,4 +49,4 @@
 	url = https://github.com/tcoppex/cgltf_vrm.git
 [submodule "ext/cgltf_vrm"]
 	path = ext/cgltf_vrm
-	url = https://github.com/tcoppex/cgltf_vrm.git
+	url = https://github.com/meshula/cgltf_vrm.git
