@@ -8,8 +8,31 @@
 #include <ozz/animation/runtime/local_to_model_job.h>
 #include <string>
 #include <memory>
+#include <vector>
 
 namespace lab {
+
+struct Material {
+    // Placeholder for future material implementation
+    std::string name;
+};
+
+struct Mesh {
+    std::string name;
+    std::vector<float> positions;      // xyz per vertex
+    std::vector<float> normals;        // xyz per vertex
+    std::vector<float> uvs;           // uv per vertex
+    std::vector<float> weights;       // Per-vertex joint weights
+    std::vector<int> jointIndices;    // Per-vertex joint indices
+    std::vector<unsigned int> indices; // Triangle indices
+    std::shared_ptr<Material> material;
+};
+
+struct Model {
+    std::string name;
+    std::string skeletonName;
+    std::vector<std::shared_ptr<Mesh>> meshes;
+};
 
 class AnimationProvider : public Provider {
     struct data;
@@ -44,6 +67,14 @@ public:
     bool HasAnimation(const char* name) const;
     const ozz::animation::Animation* GetAnimation(const char* name) const;
     std::vector<std::string> GetAnimationNames() const;
+
+    // Model management
+    bool LoadModelFromGLTF(const char* name, const char* filename, const char* skeletonName);
+    bool HasModel(const char* name) const;
+    const Model* GetModel(const char* name) const;
+    std::vector<std::string> GetModelNames() const;
+    void UnloadModel(const char* name);
+    void UnloadAllModels();
 
     // Instance management
     struct Instance {

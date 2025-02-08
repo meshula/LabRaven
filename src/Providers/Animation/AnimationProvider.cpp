@@ -28,6 +28,7 @@ struct AnimationProvider::data {
     std::map<std::string, ozz::unique_ptr<ozz::animation::Skeleton>> skeletons;
     std::map<std::string, ozz::unique_ptr<ozz::animation::Animation>> animations;
     std::map<std::string, std::unique_ptr<Instance>> instances;
+    std::map<std::string, std::unique_ptr<Model>> models;
 };
 
 AnimationProvider::AnimationProvider() : Provider(AnimationProvider::sname()) {
@@ -548,6 +549,153 @@ bool AnimationProvider::LoadAnimationFromGLTF(const char* name, const char* file
 bool AnimationProvider::LoadAnimationFromVRM(const char* name, const char* filename, const char* skeletonName) {
     // VRM is an extension of GLTF, so we can use the same loading code
     return LoadAnimationFromGLTF(name, filename, skeletonName);
+}
+
+bool AnimationProvider::LoadModelFromGLTF(const char* name, const char* filename, const char* skeletonName) {
+    // Verify skeleton exists
+    if (!HasSkeleton(skeletonName)) {
+        return false;
+    }
+
+    cgltf_options options = {};
+    cgltf_data* data = nullptr;
+    cgltf_result result = cgltf_parse_file(&options, filename, &data);
+    if (result != cgltf_result_success) {
+        return false;
+    }
+
+    result = cgltf_load_buffers(&options, data, filename);
+    if (result != cgltf_result_success) {
+        cgltf_free(data);
+        return false;
+    }
+
+    // Create model
+    auto model = std::make_unique<Model>();
+    model->name = name;
+    model->skeletonName = skeletonName;
+
+    // Process each mesh
+    for (size_t i = 0; i < data->meshes_count; i++) {
+        const cgltf_mesh& gltf_mesh = data->meshes[i];
+        
+        // Create mesh
+        auto mesh = std::make_shared<Mesh>();
+        mesh->name = gltf_mesh.name ? gltf_mesh.name : "mesh";
+
+        // Process each primitive
+        for (size_t j = 0; j < gltf_mesh.primitives_count; j++) {
+            const cgltf_primitive& primitive = gltf_mesh.primitives[j];
+
+            // Get vertex count
+            size_t vertex_count = 0;
+            for (size_t k = 0; k < primitive.attributes_count; k++) {
+                const cgltf_attribute& attribute = primitive.attributes[k];
+                if (attribute.type == cgltf_attribute_type_position) {
+                    vertex_count = attribute.data->count;
+                    break;
+                }
+            }
+
+            if (vertex_count == 0) continue;
+
+            // Process attributes
+            for (size_t k = 0; k < primitive.attributes_count; k++) {
+                const cgltf_attribute& attribute = primitive.attributes[k];
+                const cgltf_accessor* accessor = attribute.data;
+                
+                switch (attribute.type) {
+                    case cgltf_attribute_type_position: {
+                        mesh->positions.resize(vertex_count * 3);
+                        for (size_t v = 0; v < vertex_count; v++) {
+                            cgltf_accessor_read_float(accessor, v, &mesh->positions[v * 3], 3);
+                        }
+                        break;
+                    }
+                    case cgltf_attribute_type_normal: {
+                        mesh->normals.resize(vertex_count * 3);
+                        for (size_t v = 0; v < vertex_count; v++) {
+                            cgltf_accessor_read_float(accessor, v, &mesh->normals[v * 3], 3);
+                        }
+                        break;
+                    }
+                    case cgltf_attribute_type_texcoord: {
+                        mesh->uvs.resize(vertex_count * 2);
+                        for (size_t v = 0; v < vertex_count; v++) {
+                            cgltf_accessor_read_float(accessor, v, &mesh->uvs[v * 2], 2);
+                        }
+                        break;
+                    }
+                    case cgltf_attribute_type_weights: {
+                        mesh->weights.resize(vertex_count * 4);
+                        for (size_t v = 0; v < vertex_count; v++) {
+                            cgltf_accessor_read_float(accessor, v, &mesh->weights[v * 4], 4);
+                        }
+                        break;
+                    }
+                    case cgltf_attribute_type_joints: {
+                        mesh->jointIndices.resize(vertex_count * 4);
+                        for (size_t v = 0; v < vertex_count; v++) {
+                            cgltf_uint joints[4];
+                            cgltf_accessor_read_uint(accessor, v, joints, 4);
+                            for (int ji = 0; ji < 4; ji++) {
+                                mesh->jointIndices[v * 4 + ji] = static_cast<uint16_t>(joints[ji]);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Process indices
+            if (primitive.indices) {
+                size_t index_count = primitive.indices->count;
+                mesh->indices.resize(index_count);
+                for (size_t idx = 0; idx < index_count; idx++) {
+                    mesh->indices[idx] = cgltf_accessor_read_index(primitive.indices, idx);
+                }
+            }
+
+            // Create placeholder material
+            mesh->material = std::make_shared<Material>();
+            mesh->material->name = primitive.material && primitive.material->name ? 
+                                 primitive.material->name : "material";
+        }
+
+        model->meshes.push_back(mesh);
+    }
+
+    // Store model
+    _self->models[name] = std::move(model);
+
+    cgltf_free(data);
+    return true;
+}
+
+bool AnimationProvider::HasModel(const char* name) const {
+    return _self->models.find(name) != _self->models.end();
+}
+
+const Model* AnimationProvider::GetModel(const char* name) const {
+    auto it = _self->models.find(name);
+    return it != _self->models.end() ? it->second.get() : nullptr;
+}
+
+std::vector<std::string> AnimationProvider::GetModelNames() const {
+    std::vector<std::string> names;
+    names.reserve(_self->models.size());
+    for (const auto& pair : _self->models) {
+        names.push_back(pair.first);
+    }
+    return names;
+}
+
+void AnimationProvider::UnloadModel(const char* name) {
+    _self->models.erase(name);
+}
+
+void AnimationProvider::UnloadAllModels() {
+    _self->models.clear();
 }
 
 bool AnimationProvider::LoadAnimationFromBVH(const char* name, const char* filename, const char* skeletonName) {

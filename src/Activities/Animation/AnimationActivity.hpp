@@ -2,6 +2,7 @@
 #define ACTIVITIES_ANIMATIONACTIVITY_HPP
 
 #include "Lab/StudioCore.hpp"
+#include "Activities/Animation/AnimationDialogModules.hpp"
 
 namespace lab {
 

@@ -1,5 +1,6 @@
 #include "AnimationActivity.hpp"
 #include "Lab/App.h"
+#include "Lab/CSP.hpp"
 #include "Providers/Animation/AnimationProvider.hpp"
 #include <ozz/base/maths/simd_math.h>
 
@@ -12,14 +13,22 @@
 namespace lab {
 
 struct AnimationActivity::data {
-    bool showAddSkeletonModal = false;
-    bool showAddAnimationModal = false;
-    char skeletonFilePath[256] = "";
-    char animationFilePath[256] = "";
-    char skeletonName[256] = "";
-    char animationName[256] = "";
+    CSP_Engine engine;
+
+    data()
+    : loadSkeletonModule(engine)
+    , loadAnimationModule(engine)
+    , loadModelModule(engine) {
+        engine.run();
+    }
+
     std::string selectedSkeleton;
     std::string selectedAnimation;
+
+    // Dialog modules
+    LoadSkeletonModule loadSkeletonModule;
+    LoadAnimationModule loadAnimationModule;
+    LoadModelModule loadModelModule;
 };
 
 AnimationActivity::AnimationActivity() 
@@ -28,6 +37,11 @@ AnimationActivity::AnimationActivity()
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
         static_cast<AnimationActivity*>(instance)->RunUI(*vi);
     };
+
+    // Initialize dialog modules
+    _self->loadSkeletonModule.Register();
+    _self->loadAnimationModule.Register();
+    _self->loadModelModule.Register();
 }
 
 AnimationActivity::~AnimationActivity() {
@@ -67,7 +81,7 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     }
     ImGui::EndChild();
     if (ImGui::Button("+ Skeleton")) {
-        _self->showAddSkeletonModal = true;
+        _self->loadSkeletonModule.LoadSkeleton();
     }
 
     ImGui::Spacing();
@@ -94,7 +108,35 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     }
     ImGui::EndChild();
     if (ImGui::Button("+ Animation")) {
-        _self->showAddAnimationModal = true;
+        if (!_self->selectedSkeleton.empty()) {
+            _self->loadAnimationModule.LoadAnimation(_self->selectedSkeleton);
+        }
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Models list
+    ImGui::Text("Models");
+    ImGui::BeginChild("models", ImVec2(0, 200), true);
+    auto modelNames = AnimationProvider::instance()->GetModelNames();
+    for (const auto& name : modelNames) {
+        ImGui::PushID(name.c_str());
+        if (ImGui::Selectable(name.c_str())) {
+            // Model selection will be used later for visualization
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("X")) {
+            AnimationProvider::instance()->UnloadModel(name.c_str());
+        }
+        ImGui::PopID();
+    }
+    ImGui::EndChild();
+    if (ImGui::Button("+ Model")) {
+        if (!_self->selectedSkeleton.empty()) {
+            _self->loadModelModule.LoadModel(_self->selectedSkeleton);
+        }
     }
 
     ImGui::EndChild();
@@ -106,7 +148,7 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     
     // 3D Plot
     if (ImPlot3D::BeginPlot("##3D", ImVec2(-1, -50))) {
-        ImPlot3D::SetupAxes("x", "z", "y");
+        ImPlot3D::SetupAxes("right ->", "<- forward", "up");
         if (!_self->selectedSkeleton.empty()) {
             auto skeleton = AnimationProvider::instance()->GetSkeleton(_self->selectedSkeleton.c_str());
             if (skeleton) {
@@ -314,81 +356,6 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     }
     ImGui::EndChild();
 
-    // Add Skeleton Modal
-    if (_self->showAddSkeletonModal) {
-        ImGui::OpenPopup("Add Skeleton");
-    }
-    if (ImGui::BeginPopupModal("Add Skeleton", &_self->showAddSkeletonModal)) {
-        ImGui::InputText("Name", _self->skeletonName, sizeof(_self->skeletonName));
-        ImGui::InputText("File Path", _self->skeletonFilePath, sizeof(_self->skeletonFilePath));
-        if (ImGui::Button("Add")) {
-            if (strlen(_self->skeletonName) > 0 && strlen(_self->skeletonFilePath) > 0) {
-                // Check file extension to determine which loader to use
-                std::string filepath(_self->skeletonFilePath);
-                std::string ext = filepath.substr(filepath.find_last_of(".") + 1);
-                bool success = false;
-                
-                if (ext == "ozz") {
-                    success = AnimationProvider::instance()->LoadSkeleton(_self->skeletonName, _self->skeletonFilePath);
-                } else if (ext == "bvh") {
-                    success = AnimationProvider::instance()->LoadSkeletonFromBVH(_self->skeletonName, _self->skeletonFilePath);
-                } else if (ext == "gltf" || ext == "glb") {
-                    success = AnimationProvider::instance()->LoadSkeletonFromGLTF(_self->skeletonName, _self->skeletonFilePath);
-                } else if (ext == "vrm") {
-                    success = AnimationProvider::instance()->LoadSkeletonFromVRM(_self->skeletonName, _self->skeletonFilePath);
-                }
-
-                if (success) {
-                    _self->showAddSkeletonModal = false;
-                    memset(_self->skeletonName, 0, sizeof(_self->skeletonName));
-                    memset(_self->skeletonFilePath, 0, sizeof(_self->skeletonFilePath));
-                }
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel")) {
-            _self->showAddSkeletonModal = false;
-        }
-        ImGui::EndPopup();
-    }
-
-    // Add Animation Modal
-    if (_self->showAddAnimationModal) {
-        ImGui::OpenPopup("Add Animation");
-    }
-    if (ImGui::BeginPopupModal("Add Animation", &_self->showAddAnimationModal)) {
-        ImGui::InputText("Name", _self->animationName, sizeof(_self->animationName));
-        ImGui::InputText("File Path", _self->animationFilePath, sizeof(_self->animationFilePath));
-        if (ImGui::Button("Add")) {
-            if (strlen(_self->animationName) > 0 && strlen(_self->animationFilePath) > 0 && !_self->selectedSkeleton.empty()) {
-                // Check file extension to determine which loader to use
-                std::string filepath(_self->animationFilePath);
-                std::string ext = filepath.substr(filepath.find_last_of(".") + 1);
-                bool success = false;
-
-                if (ext == "ozz") {
-                    success = AnimationProvider::instance()->LoadAnimation(_self->animationName, _self->animationFilePath);
-                } else if (ext == "bvh") {
-                    success = AnimationProvider::instance()->LoadAnimationFromBVH(_self->animationName, _self->animationFilePath, _self->selectedSkeleton.c_str());
-                } else if (ext == "gltf" || ext == "glb") {
-                    success = AnimationProvider::instance()->LoadAnimationFromGLTF(_self->animationName, _self->animationFilePath, _self->selectedSkeleton.c_str());
-                } else if (ext == "vrm") {
-                    success = AnimationProvider::instance()->LoadAnimationFromVRM(_self->animationName, _self->animationFilePath, _self->selectedSkeleton.c_str());
-                }
-
-                if (success) {
-                    _self->showAddAnimationModal = false;
-                    memset(_self->animationName, 0, sizeof(_self->animationName));
-                    memset(_self->animationFilePath, 0, sizeof(_self->animationFilePath));
-                }
-            }
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Cancel")) {
-            _self->showAddAnimationModal = false;
-        }
-        ImGui::EndPopup();
-    }
 
     ImGui::End();
 }

@@ -11,6 +11,7 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST
              OpenUSD/UsdOutliner")
 
 target_sources(${PROJECT_NAME} PUBLIC 
+    UsdFileDialogModules.hpp
     OpenUSDActivity.cpp OpenUSDActivity.hpp
     HydraActivity.cpp HydraActivity.hpp
     PropertiesActivity.cpp PropertiesActivity.hpp
