@@ -41,3 +41,12 @@
 [submodule "ext/implot3d"]
 	path = ext/implot3d
 	url = https://github.com/brenocq/implot3d.git
+[submodule "ext/cgltf"]
+	path = ext/cgltf
+	url = https://github.com/jkuhlmann/cgltf.git
+[submodule "cgltf_vrm"]
+	path = cgltf_vrm
+	url = https://github.com/tcoppex/cgltf_vrm.git
+[submodule "ext/cgltf_vrm"]
+	path = ext/cgltf_vrm
+	url = https://github.com/tcoppex/cgltf_vrm.git
