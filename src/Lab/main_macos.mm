@@ -7,6 +7,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_metal.h"
 #include "implot.h"
+#include "implot3d.h"
 
 #include "usdtweak/src/resources/ResourcesLoader.h"
 
@@ -57,6 +58,7 @@ int main(int argc, char** argv)
     ResourcesLoader* resourcesLoader = new ResourcesLoader("Lab");
     //ImGui::CreateContext();
     ImPlot::CreateContext();
+    ImPlot3D::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls

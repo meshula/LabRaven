@@ -467,12 +467,62 @@ int AnimationProvider::GetJointCount(const char* instanceName) const {
 }
 
 bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filename) {
+    const bool printDiagnostics = true;
+
     std::unique_ptr<BVHData> bvh(ParseBVH(filename));
     if (!bvh || !bvh->root) {
         return false;
     }
 
     UnloadSkeleton(name);
+
+    if (printDiagnostics) {
+        printf("Loading skeleton from BVH file: %s\n", filename);
+        printf("Skeleton hierarchy:\n");
+        
+        std::function<void(BVHJoint*, int)> printJoint = [&](BVHJoint* joint, int depth) {
+            // Print indentation
+            for (int i = 0; i < depth; i++) {
+                printf("  ");
+            }
+            
+            // Print joint info
+            printf("- %s (index: %d, offset: %.2f, %.2f, %.2f)\n",
+                joint->name.c_str(),
+                joint->index,
+                joint->offset[0],
+                joint->offset[1],
+                joint->offset[2]
+            );
+            
+            // Print channels
+            if (!joint->channels.empty()) {
+                for (int i = 0; i < depth + 1; i++) printf("  ");
+                printf("channels: ");
+                for (const auto& channel : joint->channels) {
+                    const char* type = "";
+                    switch (channel.type) {
+                        case BVHChannel::Xposition: type = "Xpos"; break;
+                        case BVHChannel::Yposition: type = "Ypos"; break;
+                        case BVHChannel::Zposition: type = "Zpos"; break;
+                        case BVHChannel::Xrotation: type = "Xrot"; break;
+                        case BVHChannel::Yrotation: type = "Yrot"; break;
+                        case BVHChannel::Zrotation: type = "Zrot"; break;
+                    }
+                    printf("%s(%d) ", type, channel.index);
+                }
+                printf("\n");
+            }
+            
+            // Recursively print children
+            for (auto child : joint->children) {
+                printJoint(child, depth + 1);
+            }
+        };
+        
+        printJoint(bvh->root, 0);
+        printf("\n");
+    }
 
     // Count joints
     std::function<int(BVHJoint*)> countJoints = [&](BVHJoint* joint) {
@@ -484,11 +534,34 @@ bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filena
     };
     int numJoints = countJoints(bvh->root);
 
+    // Create an instance to store the rest pose
+    auto instance = std::make_unique<Instance>();
+    instance->skeletonName = name;
+    instance->animationName = "";
+
+    // Initialize buffers
+    instance->locals.resize(numJoints);
+    instance->models.resize(numJoints);
+    instance->jointWeights.resize(numJoints, 1.f);
+
+    // Initialize all transforms to identity
+    for (int i = 0; i < numJoints; ++i) {
+        instance->locals[i] = ozz::math::SoaTransform::identity();
+        instance->models[i] = ozz::math::Float4x4::identity();
+    }
+
     // Create raw skeleton
     ozz::animation::offline::RawSkeleton raw_skeleton;
     raw_skeleton.roots.resize(1);
-    
+    ozz::animation::offline::RawSkeleton::Joint& root = raw_skeleton.roots[0];
+    root.name = bvh->root->name;
+    root.transform.translation = ozz::math::Float3(bvh->root->offset[0], bvh->root->offset[1], bvh->root->offset[2]);
+    root.transform.rotation = ozz::math::Quaternion::identity();
+    root.transform.scale = ozz::math::Float3(1.f);
+    root.children.resize(bvh->root->children.size());
+
     // Build joint hierarchy
+    int currentJoint = 0;
     std::function<void(BVHJoint*, ozz::animation::offline::RawSkeleton::Joint&)> buildHierarchy = 
         [&](BVHJoint* joint, ozz::animation::offline::RawSkeleton::Joint& raw_joint) {
             raw_joint.name = joint->name;
@@ -497,8 +570,19 @@ bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filena
                 joint->offset[1],
                 joint->offset[2]
             );
+
+            printf("%f %f %f\n", joint->offset[0], joint->offset[1], joint->offset[2]);
+
             raw_joint.transform.rotation = ozz::math::Quaternion::identity();
             raw_joint.transform.scale = ozz::math::Float3(1.f);
+
+            instance->locals[currentJoint].translation = { joint->offset[0],
+                joint->offset[1],
+                joint->offset[2] };
+            instance->locals[currentJoint].rotation = ozz::math::SoaQuaternion::identity();
+            instance->locals[currentJoint].scale = {1,1,1};
+
+            ++currentJoint;
             
             raw_joint.children.resize(joint->children.size());
             for (size_t i = 0; i < joint->children.size(); ++i) {
@@ -506,7 +590,13 @@ bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filena
             }
         };
     
-    buildHierarchy(bvh->root, raw_skeleton.roots[0]);
+    buildHierarchy(bvh->root, root);
+
+    // Validate skeleton
+    if (!raw_skeleton.Validate()) {
+        printf("Invalid skeleton\n");
+        return false;
+    }
 
     // Build runtime skeleton
     ozz::animation::offline::SkeletonBuilder builder;
@@ -515,9 +605,16 @@ bool AnimationProvider::LoadSkeletonFromBVH(const char* name, const char* filena
         return false;
     }
 
-    // Store skeleton
-    _self->skeletons[name] = std::move(skeleton);
+    // Convert to model space
+    ozz::animation::LocalToModelJob ltm_job;
+    ltm_job.skeleton = skeleton.get();
+    ltm_job.input = ozz::make_span(instance->locals);
+    ltm_job.output = ozz::make_span(instance->models);
+    ltm_job.Run();
 
+    // Store skeleton and instance
+    _self->skeletons[name] = std::move(skeleton);
+    _self->instances[name] = std::move(instance);
     return true;
 }
 
