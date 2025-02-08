@@ -70,6 +70,7 @@ set_property(TARGET IMGUI PROPERTY CXX_STANDARD 14)
 
 set(IMGUI_DIR imgui)
 set(IMPLOT_DIR implot)
+set(IMPLOT3D_DIR implot3d)
 set(TEXTEDIT_DIR ImGuiColorTextEdit)
 
 target_sources(IMGUI
@@ -86,11 +87,17 @@ target_sources(IMGUI
     ${IMPLOT_DIR}/implot.cpp
     ${IMPLOT_DIR}/implot_demo.cpp
     ${IMPLOT_DIR}/implot_items.cpp
+    ${IMPLOT3D_DIR}/implot3d.cpp
+    ${IMPLOT3D_DIR}/implot3d_items.cpp
+    ${IMPLOT3D_DIR}/implot3d_meshes.cpp
     ${TEXTEDIT_DIR}/TextEditor.cpp
 
   PUBLIC
     ${IMGUI_DIR}/imgui.h
+    ${IMGUI_DIR}/imgui_internal.h
     ${IMPLOT_DIR}/implot.h
+    ${IMPLOT3D_DIR}/implot3d.h
+    ${IMPLOT3D_DIR}/implot3d_internal.h
     ${TEXTEDIT_DIR}/TextEditor.h
 )
 
@@ -140,6 +147,7 @@ target_include_directories(IMGUI
   PUBLIC ${IMGUI_DIR}/misc/cpp
   PUBLIC glfw/include
   PUBLIC ${IMPLOT_DIR}
+  PUBLIC ${IMPLOT3D_DIR}
   PUBLIC ${TEXTEDIT_DIR}
 )
 

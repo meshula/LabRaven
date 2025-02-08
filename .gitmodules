@@ -38,3 +38,6 @@
 [submodule "ext/ozz-animation"]
 	path = ext/ozz-animation
 	url = https://github.com/guillaumeblanc/ozz-animation.git
+[submodule "ext/implot3d"]
+	path = ext/implot3d
+	url = https://github.com/brenocq/implot3d.git
