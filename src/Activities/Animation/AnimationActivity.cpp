@@ -177,18 +177,20 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     
     // 3D Plot
     if (ImPlot3D::BeginPlot("##3D", ImVec2(-1, -50))) {
-        ImPlot3D::SetupAxes("right ->", "<- forward", "up");
-        
+        ImPlot3D::SetupAxes("right", "forward", "u");
+
         // If a model is selected, display its meshes
         if (!_self->selectedModel.empty()) {
             auto model = AnimationProvider::instance()->GetModel(_self->selectedModel.c_str());
             if (model) {
                 for (const auto& mesh : model->meshes) {
                     // Get or create cache entry
-                    auto it = _self->meshCache.find(mesh->name);
-                    if (it == _self->meshCache.end() || it->second.vertices.empty()) {
+                    std::string meshKey = model->name + "-" + mesh->name;
+                    auto it = _self->meshCache.find(meshKey);
+                    if (it == _self->meshCache.end()) {
                         // Create cache entry
-                        ImPlotCacheMesh& cacheMesh = _self->meshCache[mesh->name];
+                        _self->meshCache[meshKey] = ImPlotCacheMesh();
+                        ImPlotCacheMesh& cacheMesh = _self->meshCache[meshKey];
                         cacheMesh.vertices.clear();
                         cacheMesh.indices = mesh->indices;
                         
@@ -201,7 +203,7 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
                                 positions[i + 2]
                             ));
                         }
-                        it = _self->meshCache.find(mesh->name);
+                        it = _self->meshCache.find(meshKey);
                     }
 
                     // Draw mesh

@@ -238,7 +238,7 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
 
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImGuiID dockspace_id = lab::DockSpaceOverViewport(viewport,
-                                                      ImGuiDockNodeFlags_NoDockingInCentralNode |
+                                                      //ImGuiDockNodeFlags_NoDockingInCentralNode |
                                                       ImGuiDockNodeFlags_PassthruCentralNode,
                                                       NULL);
 

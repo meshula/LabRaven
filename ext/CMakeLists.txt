@@ -159,8 +159,11 @@ target_include_directories(IMGUI
   PUBLIC ${TEXTEDIT_DIR}
 )
 
+# we need to
+# #define ImDrawIdx unsigned int
+
 target_compile_definitions(IMGUI PUBLIC 
-    IMGUI_DEFINE_MATH_OPERATORS)
+    "IMGUI_DEFINE_MATH_OPERATORS")
 
 # add an alias library
 add_library(ImGui::ImGui ALIAS IMGUI)
