@@ -413,8 +413,212 @@ bool AnimationProvider::LoadSkeletonFromGLTF(const char* name, const char* filen
 }
 
 bool AnimationProvider::LoadSkeletonFromVRM(const char* name, const char* filename) {
-    // VRM is an extension of GLTF, so we can use the same loading code
-    return LoadSkeletonFromGLTF(name, filename);
+    cgltf_options options = {};
+    cgltf_data* gltf = nullptr;
+    cgltf_result result = cgltf_parse_file(&options, filename, &gltf);
+    if (result != cgltf_result_success) {
+        return false;
+    }
+
+    result = cgltf_load_buffers(&options, gltf, filename);
+    if (result != cgltf_result_success) {
+        cgltf_free(gltf);
+        return false;
+    }
+
+    cgltf_vrm_data vrm;
+    result = cgltf_vrm_parse_cgltf_data(&options, gltf, &vrm);
+    if (result != cgltf_result_success)
+    {
+        cgltf_free(gltf);
+        return false;
+    }
+
+    // Create raw skeleton with VRM humanoid bone structure
+    ozz::animation::offline::RawSkeleton raw_skeleton;
+    raw_skeleton.roots.resize(1);
+    auto& root = raw_skeleton.roots[0];
+    root.name = "hips"; // VRM root is always hips
+
+    const bool listBones = true;
+    if (listBones) {
+        for (size_t i = 0; i < vrm.core.humanoid.human_bones_count; i++) {
+            if (vrm.core.humanoid.human_bones[i].name != nullptr) {
+                printf("bone: [%d] %s\n", i, vrm.core.humanoid.human_bones[i].name);
+            }
+        }
+    }
+
+    // Find the hips node
+    cgltf_node* hips_node = nullptr;
+    for (size_t i = 0; i < vrm.core.humanoid.human_bones_count; i++) {
+        if ((vrm.core.humanoid.human_bones[i].name != NULL) &&
+                (strcmp(vrm.core.humanoid.human_bones[i].name, "hips") == 0)) {
+            hips_node = vrm.core.humanoid.human_bones[i].node;
+            break;
+        }
+    }
+
+    if (!hips_node) {
+        cgltf_vrm_free(&vrm);
+        cgltf_free(gltf);
+        return false;
+    }
+
+    // Map VRM bones to nodes
+    std::map<std::string, cgltf_node*> bone_map;
+    for (size_t i = 0; i < vrm.core.humanoid.human_bones_count; i++) {
+        const auto& bone = vrm.core.humanoid.human_bones[i];
+        if (bone.node) {
+            bone_map[bone.name] = bone.node;
+        }
+    }
+
+    // Helper to build joint hierarchy
+    std::function<void(ozz::animation::offline::RawSkeleton::Joint&, const std::string&)> buildJoint =
+        [&](ozz::animation::offline::RawSkeleton::Joint& joint, const std::string& bone_name) {
+            joint.name = bone_name;
+            
+            auto node = bone_map[bone_name];
+            if (node) {
+                // Get transform
+                if (node->has_translation) {
+                    joint.transform.translation = ozz::math::Float3(
+                        node->translation[0],
+                        node->translation[1],
+                        node->translation[2]
+                    );
+                }
+                
+                if (node->has_rotation) {
+                    joint.transform.rotation = ozz::math::Quaternion(
+                        node->rotation[0],
+                        node->rotation[1],
+                        node->rotation[2],
+                        node->rotation[3]
+                    );
+                }
+                
+                if (node->has_scale) {
+                    joint.transform.scale = ozz::math::Float3(
+                        node->scale[0],
+                        node->scale[1],
+                        node->scale[2]
+                    );
+                }
+            }
+
+            // Add standard VRM child bones based on hierarchy
+            if (bone_name == "hips") {
+                joint.children.resize(3);
+                buildJoint(joint.children[0], "spine");
+                buildJoint(joint.children[1], "leftUpperLeg");
+                buildJoint(joint.children[2], "rightUpperLeg");
+            }
+            else if (bone_name == "spine") {
+                joint.children.resize(3);
+                buildJoint(joint.children[0], "chest");
+                buildJoint(joint.children[1], "leftShoulder");
+                buildJoint(joint.children[2], "rightShoulder");
+            }
+            else if (bone_name == "chest") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "neck");
+            }
+            else if (bone_name == "neck") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "head");
+            }
+            else if (bone_name == "leftShoulder") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "leftUpperArm");
+            }
+            else if (bone_name == "rightShoulder") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "rightUpperArm");
+            }
+            else if (bone_name == "leftUpperArm") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "leftLowerArm");
+            }
+            else if (bone_name == "rightUpperArm") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "rightLowerArm");
+            }
+            else if (bone_name == "leftLowerArm") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "leftHand");
+            }
+            else if (bone_name == "rightLowerArm") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "rightHand");
+            }
+            else if (bone_name == "leftUpperLeg") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "leftLowerLeg");
+            }
+            else if (bone_name == "rightUpperLeg") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "rightLowerLeg");
+            }
+            else if (bone_name == "leftLowerLeg") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "leftFoot");
+            }
+            else if (bone_name == "rightLowerLeg") {
+                joint.children.resize(1);
+                buildJoint(joint.children[0], "rightFoot");
+            }
+        };
+
+    // Build the skeleton starting from hips
+    buildJoint(root, "hips");
+
+    // Validate skeleton
+    if (!raw_skeleton.Validate()) {
+        cgltf_vrm_free(&vrm);
+        cgltf_free(gltf);
+        return false;
+    }
+
+    // Build runtime skeleton
+    ozz::animation::offline::SkeletonBuilder builder;
+    auto skeleton = builder(raw_skeleton);
+    if (!skeleton) {
+        cgltf_vrm_free(&vrm);
+        cgltf_free(gltf);
+        return false;
+    }
+
+    // Store skeleton
+    _self->skeletons[name] = std::move(skeleton);
+
+    // Create instance for rest pose
+    auto instance = std::make_unique<Instance>();
+    instance->skeletonName = name;
+    instance->animationName = "";
+
+    // Initialize buffers
+    const int num_joints = _self->skeletons[name]->num_joints();
+    const int num_soa_joints = (num_joints + 3) / 4;
+    instance->locals.resize(num_soa_joints);
+    instance->models.resize(num_joints);
+    instance->jointWeights.resize(num_joints, 1.f);
+
+    // Initialize transforms
+    for (int i = 0; i < num_soa_joints; ++i) {
+        instance->locals[i] = ozz::math::SoaTransform::identity();
+    }
+    for (int i = 0; i < num_joints; ++i) {
+        instance->models[i] = ozz::math::Float4x4::identity();
+    }
+
+    // Store instance
+    _self->instances[name] = std::move(instance);
+
+    cgltf_vrm_free(&vrm);
+    cgltf_free(gltf);
+    return true;
 }
 
 bool AnimationProvider::LoadAnimationFromGLTF(const char* name, const char* filename, const char* skeletonName) {
@@ -644,6 +848,8 @@ bool AnimationProvider::LoadModelFromGLTF(const char* name, const char* filename
                         }
                         break;
                     }
+                    default:
+                        break;
                 }
             }
 

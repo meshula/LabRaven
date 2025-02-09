@@ -24,6 +24,10 @@ struct AnimationActivity::data {
 
     std::string selectedSkeleton;
     std::string selectedAnimation;
+    std::string selectedModel;
+    
+    // Cache for model mesh data
+    std::map<std::string, ImPlotCacheMesh> meshCache;
 
     // Dialog modules
     LoadSkeletonModule loadSkeletonModule;
@@ -123,12 +127,37 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     auto modelNames = AnimationProvider::instance()->GetModelNames();
     for (const auto& name : modelNames) {
         ImGui::PushID(name.c_str());
-        if (ImGui::Selectable(name.c_str())) {
-            // Model selection will be used later for visualization
+        if (ImGui::Selectable(name.c_str(), _self->selectedModel == name)) {
+            if (_self->selectedModel != name) {
+                _self->selectedModel = name;
+                // Cache model data for visualization
+                auto model = AnimationProvider::instance()->GetModel(name.c_str());
+                if (model) {
+                    for (const auto& mesh : model->meshes) {
+                        ImPlotCacheMesh& cacheMesh = _self->meshCache[mesh->name];
+                        cacheMesh.vertices.clear();
+                        cacheMesh.indices = mesh->indices;
+                        
+                        // Convert positions to ImPlot3DPoints
+                        const auto& positions = mesh->positions;
+                        for (size_t i = 0; i < positions.size(); i += 3) {
+                            cacheMesh.vertices.push_back(ImPlot3DPoint(
+                                positions[i],
+                                positions[i + 1],
+                                positions[i + 2]
+                            ));
+                        }
+                    }
+                }
+            }
         }
         ImGui::SameLine();
         if (ImGui::Button("X")) {
             AnimationProvider::instance()->UnloadModel(name.c_str());
+            if (_self->selectedModel == name) {
+                _self->selectedModel = "";
+                _self->meshCache.clear();
+            }
         }
         ImGui::PopID();
     }
@@ -149,7 +178,46 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     // 3D Plot
     if (ImPlot3D::BeginPlot("##3D", ImVec2(-1, -50))) {
         ImPlot3D::SetupAxes("right ->", "<- forward", "up");
-        if (!_self->selectedSkeleton.empty()) {
+        
+        // If a model is selected, display its meshes
+        if (!_self->selectedModel.empty()) {
+            auto model = AnimationProvider::instance()->GetModel(_self->selectedModel.c_str());
+            if (model) {
+                for (const auto& mesh : model->meshes) {
+                    // Get or create cache entry
+                    auto it = _self->meshCache.find(mesh->name);
+                    if (it == _self->meshCache.end() || it->second.vertices.empty()) {
+                        // Create cache entry
+                        ImPlotCacheMesh& cacheMesh = _self->meshCache[mesh->name];
+                        cacheMesh.vertices.clear();
+                        cacheMesh.indices = mesh->indices;
+                        
+                        // Convert positions to ImPlot3DPoints
+                        const auto& positions = mesh->positions;
+                        for (size_t i = 0; i < positions.size(); i += 3) {
+                            cacheMesh.vertices.push_back(ImPlot3DPoint(
+                                positions[i],
+                                positions[i + 1],
+                                positions[i + 2]
+                            ));
+                        }
+                        it = _self->meshCache.find(mesh->name);
+                    }
+
+                    // Draw mesh
+                    const auto& cacheMesh = it->second;
+                    if (!cacheMesh.vertices.empty() && !cacheMesh.indices.empty()) {
+                        ImPlot3D::PlotMesh(mesh->name.c_str(), 
+                            cacheMesh.vertices.data(),
+                            cacheMesh.indices.data(),
+                            cacheMesh.vertices.size(),
+                            cacheMesh.indices.size());
+                    }
+                }
+            }
+        }
+        // Otherwise, if a skeleton is selected, display it
+        else if (!_self->selectedSkeleton.empty()) {
             auto skeleton = AnimationProvider::instance()->GetSkeleton(_self->selectedSkeleton.c_str());
             if (skeleton) {
                 if (_self->selectedAnimation.empty()) {
@@ -355,7 +423,6 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
         }
     }
     ImGui::EndChild();
-
 
     ImGui::End();
 }

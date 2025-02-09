@@ -3,8 +3,16 @@
 
 #include "Lab/StudioCore.hpp"
 #include "Activities/Animation/AnimationDialogModules.hpp"
+#include <map>
+#include <vector>
+#include "implot3d.h"
 
 namespace lab {
+
+struct ImPlotCacheMesh {
+    std::vector<ImPlot3DPoint> vertices;
+    std::vector<unsigned int> indices;
+};
 
 class AnimationActivity : public Activity
 {
