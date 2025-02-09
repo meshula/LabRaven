@@ -58,12 +58,21 @@ if (TARGET ${PARENT_PROJECT_NAME})
     add_dependencies(${PARENT_PROJECT_NAME} ${PROJECT_NAME})
 endif()
 
-# add a signing step to run locally using XCODE_ATTRIBUTES
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Apple Development" # or specific identity
-    #XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "YOUR_TEAM_ID"         # Replace with your team ID
-    #XCODE_ATTRIBUTE_PROVISIONING_PROFILE_SPECIFIER "Your Provisioning Profile"
-    XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"            # or "Manual"
-)
+# Configure signing with entitlements for the plugin
+if (APPLE)
+    set(ENTITLEMENTS_PATH "${CMAKE_SOURCE_DIR}/src/Lab.entitlements")
+    
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-"
+        //XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
+        XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
+        XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "" # Ensure it's empty to let Xcode prompt you
+        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_PATH}"
+        # Inherit bundle identifier prefix from main app
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.planetix.raven.testplugin"
+        # Enable hardened runtime like the main app
+        XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME "YES"
+    )
+endif()
 
 GroupSourcesByFolder(TestPlugin)
