@@ -76,6 +76,7 @@ ImGuiID DockSpaceOverViewport(const ImGuiViewport* viewport, ImGuiDockNodeFlags 
 struct LabApp::data {
     FileDialogManager _fdm;
     Orchestrator _mm;
+    CSP_Engine _csp;
     LabViewInteraction _vi;
     int _model_generation = 0;
     bool should_terminate = false;
@@ -87,6 +88,7 @@ struct LabApp::data {
 LabApp::LabApp() {
     _instance = this;
     _self = new data();
+    _self->_csp.run();
 
     App::Init = [](int argc, char** argv, int width, int height) {
         //MainInit(argc, argv, width, height);
@@ -149,6 +151,7 @@ void LabApp::ResetWindowPositions() {
 
 FileDialogManager* LabApp::fdm() { return &_self->_fdm; }
 Orchestrator* LabApp::mm() { return &_self->_mm; }
+CSP_Engine* LabApp::csp() { return &_self->_csp; }
 
 // dimensions of the viewport of the main window ~ it is the area not
 // occupied by docked panels.

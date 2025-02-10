@@ -6,6 +6,7 @@
 #define App_h
 
 #include "Lab/StudioCore.hpp"
+#include "Lab/CSP.hpp"
 
 typedef struct App {
     void (*Init)(int argc, char** argv, int width, int height);
@@ -53,6 +54,7 @@ public:
 
     FileDialogManager* fdm();
     Orchestrator* mm();
+    CSP_Engine* csp();
     
     // dimensions of the viewport of the main window ~ it is the area not
     // occupied by docked panels.

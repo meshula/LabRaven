@@ -215,10 +215,8 @@ struct TextureActivity::data {
     std::once_flag init;
     ImGuiTexInspect::Texture focussedTexture;
     LoadTextureModule loadTextureModule;
-    CSP_Engine engine;
 
-    data() : loadTextureModule(engine) {
-        engine.run();
+    data() : loadTextureModule(*lab::LabApp::instance()->csp()) {
         loadTextureModule.Register();
     }
 
@@ -574,4 +572,3 @@ void TextureActivity::Menu() {
 
 
 } //lab
-

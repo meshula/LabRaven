@@ -13,13 +13,10 @@
 namespace lab {
 
 struct AnimationActivity::data {
-    CSP_Engine engine;
-
     data()
-    : loadSkeletonModule(engine)
-    , loadAnimationModule(engine)
-    , loadModelModule(engine) {
-        engine.run();
+    : loadSkeletonModule(*lab::LabApp::instance()->csp())
+    , loadAnimationModule(*lab::LabApp::instance()->csp())
+    , loadModelModule(*lab::LabApp::instance()->csp()) {
     }
 
     std::string selectedSkeleton;

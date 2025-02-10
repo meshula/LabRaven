@@ -32,12 +32,10 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 
 struct OpenUSDActivity::data {
-    CSP_Engine engine;
     data()
-        : loadLayerModule(engine)
-        , exportStageModule(engine)
-        , shotTemplateModule(engine) {
-            engine.run();
+        : loadLayerModule(*lab::LabApp::instance()->csp())
+        , exportStageModule(*lab::LabApp::instance()->csp())
+        , shotTemplateModule(*lab::LabApp::instance()->csp()) {
         }
     ~data() = default;
 
