@@ -58,9 +58,12 @@ void AnimationActivity::_deactivate() {
 void AnimationActivity::RunUI(const LabViewInteraction&) {
     ImGui::Begin("Animation##mM");
 
+    static float w1 = 150;
+    static float w2 = 150;
+
     // Left panel with lists
-    ImGui::BeginChild("left_panel", ImVec2(200, 0), true);
-    
+    ImGui::BeginChild("left_panel", ImVec2(w1, 0), true);
+
     // Skeletons list
     ImGui::Text("Skeletons");
     ImGui::BeginChild("skeletons", ImVec2(0, 200), true);
@@ -169,9 +172,17 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
 
     ImGui::SameLine();
 
+    ImGui::InvisibleButton("list-plot-splitter", ImVec2(8.0f, ImGui::GetContentRegionAvail().y));
+    if (ImGui::IsItemActive()) {
+        w1 += ImGui::GetIO().MouseDelta.x;
+        if (w1 < 20)
+            w1 = 20;
+    }
+    ImGui::SameLine();
+
     // Center panel with 3D plot and controls
-    ImGui::BeginChild("center_panel", ImVec2(-200, 0));
-    
+    ImGui::BeginChild("center_panel", ImVec2(-w2, 0));
+
     // 3D Plot
     if (ImPlot3D::BeginPlot("##3D", ImVec2(-1, -50))) {
         ImPlot3D::SetupAxes("right", "forward", "u");
@@ -355,6 +366,14 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
 
     ImGui::EndChild();
 
+    ImGui::SameLine();
+
+    ImGui::InvisibleButton("plot-hier-splitter", ImVec2(8.0f, ImGui::GetContentRegionAvail().y));
+    if (ImGui::IsItemActive()) {
+        w2 -= ImGui::GetIO().MouseDelta.x;
+        if (w2 < 20)
+            w2 = 20;
+    }
     ImGui::SameLine();
 
     // Right panel with joint hierarchy
