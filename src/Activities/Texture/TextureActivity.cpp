@@ -122,89 +122,77 @@ bool BackEnd_GetData(Inspector* inspector, ImTextureID texture,
 namespace lab {
 
 class LoadTextureModule : public CSP_Module {
-public:
-    LoadTextureModule(CSP_Engine& engine)
-        : CSP_Module(engine, "LoadTextureModule")
-    {
-    }
-
-    enum class Process : int {
-        LoadRequest = 100,
-        Loading,
-        Error,
-        LoadFile,
-        Idle
-    };
-
-    static constexpr int toInt(Process p) { return static_cast<int>(p); }
-
-    void LoadTexture() {
-        emit_event("file_load_request", toInt(Process::LoadRequest));
-    }
-
-private:
+    CSP_Process LoadRequest, Loading, Error, LoadFile, Idle;
     int pendingFile = 0;
     FileDialogManager::FileReq req;
-
-    virtual void initialize_processes() override {
-        add_process({toInt(Process::LoadRequest), "file_load_request",
-            [this]() {
-                printf("Entering file_load_request\n");
-                auto fdm = LabApp::instance()->fdm();
-                const char* dir = lab_pref_for_key("LoadTextureDir");
-                pendingFile = fdm->RequestOpenFile(
-                    {"png","jpg","jpeg","tga","bmp","gif","hdr","exr","pfm"},
-                    dir? dir: ".");
-                this->emit_event("loading", toInt(Process::Loading));
-            }});
-
-        add_process({toInt(Process::Loading), "loading",
-            [this]() {
-                auto fdm = LabApp::instance()->fdm();
-                req = fdm->PopOpenedFile(pendingFile);
-                switch (req.status) {
-                    case FileDialogManager::FileReq::notReady:
-                        this->emit_event("loading", toInt(Process::Loading)); // continue polling
-                        break;
-                    case FileDialogManager::FileReq::expired:
-                    case FileDialogManager::FileReq::canceled:
-                        this->emit_event("file_error", toInt(Process::Error));
-                        break;
-                    default:
-                        this->emit_event("file_load_success", toInt(Process::LoadFile));
-                        break;
-                }
-            }});
-
-        add_process({toInt(Process::Error), "file_error",
+public:
+    LoadTextureModule(CSP_Engine& engine)
+    : CSP_Module(engine, "LoadTextureModule")
+    , LoadRequest("LoadRequest",
+                  [this]() {
+                      printf("Entering file_load_request\n");
+                      auto fdm = LabApp::instance()->fdm();
+                      const char* dir = lab_pref_for_key("LoadTextureDir");
+                      pendingFile = fdm->RequestOpenFile(
+                          {"png","jpg","jpeg","tga","bmp","gif","hdr","exr","pfm"},
+                          dir? dir: ".");
+                      this->emit_event(Loading);
+                  })
+    , Loading("Loading",
+              [this]() {
+                  auto fdm = LabApp::instance()->fdm();
+                  req = fdm->PopOpenedFile(pendingFile);
+                  switch (req.status) {
+                      case FileDialogManager::FileReq::notReady:
+                          this->emit_event(Loading); // continue polling
+                          break;
+                      case FileDialogManager::FileReq::expired:
+                      case FileDialogManager::FileReq::canceled:
+                          this->emit_event(Error);
+                          break;
+                      default:
+                          this->emit_event(LoadFile);
+                          break;
+                  }
+              })
+    , Error("Error",
             [this]() {
                 printf("Entering file_error\n");
                 std::cout << "Error: Failed to open file. Returning to Ready...\n";
-                this->emit_event("idle", toInt(Process::Idle));
-            }});
+                this->emit_event(Idle);
+            })
+    , LoadFile("LoadFile",
+               [this]() {
+                   printf("Entering file_load_success\n");
+                   auto fdm = LabApp::instance()->fdm();
+                   auto path = req.path.c_str();
+                   auto tc = TextureCache::instance();
+                   auto img = ImGuiTexInspect::LoadTexture(req.path.c_str());
+                   if (img.texture >= 0) {
+                       printf("Loaded texture %s\n", path);
+                       // get the directory of path and save it as the default
+                       std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
+                       lab_set_pref_for_key("LoadTextureDir", dir.c_str());
+                   }
+                   else {
+                       printf("Failed to load texture %s\n", path);
+                   }
+                   this->emit_event(Idle);
+               })
+    , Idle("Idle",
+           []() {
+              printf("Entering idle\n");
+          })
+    {
+        add_process(LoadRequest);
+        add_process(Loading);
+        add_process(Error);
+        add_process(LoadFile);
+        add_process(Idle);
+    }
 
-        add_process({toInt(Process::LoadFile), "file_load_success",
-            [this]() {
-                printf("Entering file_load_success\n");
-                auto fdm = LabApp::instance()->fdm();
-                auto path = req.path.c_str();
-                auto tc = TextureCache::instance();
-                auto img = ImGuiTexInspect::LoadTexture(req.path.c_str());
-                if (img.texture >= 0) {
-                    printf("Loaded texture %s\n", path);
-                    // get the directory of path and save it as the default
-                    std::string dir = req.path.substr(0, req.path.find_last_of("/\\"));
-                    lab_set_pref_for_key("LoadTextureDir", dir.c_str());
-                }
-                else {
-                    printf("Failed to load texture %s\n", path);
-                }
-                this->emit_event("idle", toInt(Process::Idle));
-            }});
-
-        add_process({toInt(Process::Idle), "idle", []() {
-            printf("Entering idle\n");
-        }});
+    void LoadTexture() {
+        emit_event(LoadRequest);
     }
 };
 

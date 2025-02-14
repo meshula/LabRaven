@@ -16,35 +16,37 @@ namespace lab {
 class CSP_Module;
 class CSP_Engine;
 
-struct CSP_Process {
+class CSP_Process {
+    friend class CSP_Engine;
     int id;
-    std::string event;
+public:
+    CSP_Process() = delete;
+    CSP_Process(const std::string& n, std::function<void()> b)
+    : id(-1), name(n), behavior(b) {}
+
+    std::string name;
     std::function<void()> behavior;
 };
 
-// currently modules can only be singletons. the eventual design is that modules
-// can be instanced, and the module is just the program an instance runs.
-
 class CSP_Module {
+    friend class CSP_Engine;
     CSP_Engine& engine;
     std::string module_name;
     bool running;
-    friend class CSP_Engine;
 
 public:
     CSP_Module(CSP_Engine& engine, const std::string& name);
     ~CSP_Module();
+    const std::string& get_name() const { return module_name; }
 
     // must be called to register the module with the engine.
     void Register();
 
-    void add_process(CSP_Process&& proc);
-    void emit_event(const std::string& event, int id);
-    const std::string& get_name() const { return module_name; }
+    void emit_event(const CSP_Process& event);
 
 protected:
-    virtual void initialize_processes() = 0;
-    std::vector<CSP_Process> processes;
+    void add_process(CSP_Process& proc);
+    std::vector<CSP_Process*> processes;
 };
 
 //#define PUSHPULL
@@ -65,62 +67,51 @@ public:
     void stop();
 
     // Emit an event with a delay (in milliseconds)
-     void emit_event(const std::string& event, int id, int msDelay);
+    void emit_event(const CSP_Process& event, int msDelay);
     int test();
 };
 
 
 // example
 
-class FileOpenModule : public CSP_Module {
+class DemoFileOpenModule : public CSP_Module {
+    CSP_Process Ready;
+    CSP_Process Opening;
+    CSP_Process OpenFile;
+    CSP_Process Error;
+    CSP_Process Idle;
+
 public:
-    FileOpenModule(CSP_Engine& engine)
-        : CSP_Module(engine, "FileOpenModule") {
-    }
-
-private:
-    // enum class for Processes, with an underlying int to be used as an id
-    enum class Process : int {
-        Ready = 100,
-        Opening,
-        Error,
-        OpenFile,
-        Idle
-    };
-
-    static constexpr int toInt(Process p) { return static_cast<int>(p); }
-
-    virtual void initialize_processes() override {
-        add_process({toInt(Process::Ready), "file_open_request",
-                     [this]() {
-                         std::cout << "Ready: Waiting for file open request...\n";
-                         this->emit_event("user_select_file", toInt(Process::Opening));
-                     }});
-
-        add_process({toInt(Process::Opening), "user_select_file",
-                     [this]() {
-                         std::cout << "Opening: File dialog box launched...\n";
-                         bool success = true; // Simulate file selection result
-                         if (success) {
-                             this->emit_event("file_open_success", toInt(Process::OpenFile));
-                         } else {
-                             this->emit_event("file_open_error", toInt(Process::Error));
-                         }
-                     }});
-
-        add_process({toInt(Process::Error), "file_open_error",
-                    [this]() {
-                        std::cout << "Error: Failed to open file. Returning to Ready...\n";
-                        this->emit_event("idle", toInt(Process::Idle));
-                    }});
-
-        add_process({toInt(Process::OpenFile), "file_open_success",
-                    [this]() {
+    DemoFileOpenModule(CSP_Engine& engine)
+    : CSP_Module(engine, "DemoFileOpenModule")
+    , Ready("Ready", [this]() {
+                        std::cout << "Ready: Waiting for file open request...\n";
+                        this->emit_event(Opening);
+                    })
+    , Opening("Opening", [this]() {
+                        std::cout << "Opening: File dialog box launched...\n";
+                        bool success = true; // Simulate file selection result
+                        if (success) {
+                            this->emit_event(OpenFile);
+                        } else {
+                            this->emit_event(Error);
+                        }
+                    })
+    , OpenFile("OpenFile", [this]() {
                         std::cout << "OpenFile: File opened successfully.\n";
-                        this->emit_event("idle", toInt(Process::Idle));
-                    }});
-
-        add_process({toInt(Process::Idle), "reset", [](){} });
+                        this->emit_event(Idle);
+                    })
+    , Error("Error", [this]() {
+                        std::cout << "Error: Failed to open file. Returning to Ready...\n";
+                        this->emit_event(Idle);
+                    })
+    , Idle("Idle", [](){})
+    {
+        add_process(Ready);
+        add_process(Opening);
+        add_process(OpenFile);
+        add_process(Error);
+        add_process(Idle);
     }
 };
 

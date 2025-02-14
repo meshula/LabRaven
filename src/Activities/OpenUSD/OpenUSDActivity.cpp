@@ -86,7 +86,7 @@ void OpenUSDActivity::Menu() {
             _self->shotTemplateModule.CreateShotFromTemplate();
         }
         if (ImGui::MenuItem("Export Stage ...")) {
-            _self->exportStageModule.emit_event("file_export_request", 0);
+            _self->exportStageModule.ExportCurrentStage();
         }
         if (ImGui::MenuItem("Add a Sublayer...")) {
             _self->loadLayerModule.InsertSubLayer();

@@ -20,6 +20,23 @@ target_sources(${PROJECT_NAME}
 
     Lab/StudioCore.hpp Lab/StudioCore.cpp
 
+    Lab/LabAstro/hosek_wilkie_skyModel/color_info.h 
+    Lab/LabAstro/hosek_wilkie_skyModel/sky_model_data_ciexyz.h 
+    Lab/LabAstro/hosek_wilkie_skyModel/sky_model_data_rgb.h 
+    Lab/LabAstro/hosek_wilkie_skyModel/sky_model_data_spectral.h 
+    Lab/LabAstro/hosek_wilkie_skyModel/sky_model.cpp 
+    Lab/LabAstro/hosek_wilkie_skyModel/sky_model.h
+    Lab/LabAstro/sun-sky/HosekDataXYZ.h
+    Lab/LabAstro/sun-sky/stb_image_mini.h
+    Lab/LabAstro/sun-sky/SunSky.cpp
+    Lab/LabAstro/sun-sky/SunSky.h
+    Lab/LabAstro/sun-sky/SunSkyTool.cpp
+    Lab/LabAstro/sun-sky/VL234f.h
+    Lab/LabAstro/astronomy.c
+    Lab/LabAstro/astronomy.h
+    Lab/LabAstro/LabLocation.h
+    Lab/LabAstro/TimeUtil.hpp
+
     resources/fonts/embedded_font.inc
 )
 
@@ -28,6 +45,7 @@ if(APPLE)
         Lab/main_macos.mm
         Lab/LabFileDialogManager.mm
         Lab/LabJoystick.mm
+        Lab/LabAstro/LabLocation.mm
     )
 elseif(WIN32)
     target_sources(${PROJECT_NAME} PUBLIC Lab/main_win32.cpp)

@@ -2,6 +2,7 @@
 #include "CSP.hpp"
 
 #include <zmq.hpp>
+#include <atomic>
 #include <functional>
 #include <iostream>
 #include <map>
@@ -11,22 +12,6 @@
 
 namespace lab {
 
-struct EventData {
-    int id;
-    char message[];
-};
-
-void emit_event(const std::string& event, int id, zmq::socket_t& socket) {
-    printf("Emitting %s [%d]\n", event.c_str(), id);
-    size_t sz = event.size() + sizeof(int) + 1;
-    EventData* event_data = (EventData*) new char[event.size() + sizeof(int) + 1];
-    char* messageStr = event_data->message;
-    std::memcpy(messageStr, event.data(), event.size());
-    messageStr[event.size()] = '\0';
-    event_data->id = id;
-    zmq::message_t message(event_data, sz);
-    socket.send(message, zmq::send_flags::none); // Send the event message
-}
 
 CSP_Module::CSP_Module(CSP_Engine& engine, const std::string& name)
 : engine(engine)
@@ -39,23 +24,23 @@ CSP_Module::~CSP_Module() {
 }
 
 void CSP_Module::Register() {
-    initialize_processes();
     engine.register_module(this);
 }
 
-void CSP_Module::add_process(CSP_Process&& proc) {
-    processes.emplace_back(proc);
+void CSP_Module::add_process(CSP_Process& proc) {
+    processes.emplace_back(&proc);
 }
 
-void CSP_Module::emit_event(const std::string& event, int id) {
-    engine.emit_event(event, id, 0);
+void CSP_Module::emit_event(const CSP_Process& proc) {
+    engine.emit_event(proc, 0);
 }
 
-struct TimedEvent {
-    int id; std::string msg; std::chrono::steady_clock::time_point when;
+struct TimedProcess {
+    const CSP_Process* process;
+    std::chrono::steady_clock::time_point when;
 
     // implement < for priority queue
-    bool operator<(const TimedEvent& other) const {
+    bool operator<(const TimedProcess& other) const {
         return when > other.when;
     }
 };
@@ -71,10 +56,35 @@ struct CSP_Engine::Self {
     std::map<int, CSP_Process*> processes;
     std::map<std::string, CSP_Module*> modules;
 
-    std::priority_queue<TimedEvent> priorityQueue;
+    std::priority_queue<TimedProcess> timedProcessQueue;
     std::thread serviceThread;
     std::mutex serviceMutex;
     std::condition_variable cv;
+
+    std::atomic<int> nextProcess{1};
+    std::atomic<int> nextModule{1};
+    struct EventData {
+        int id;
+        std::string message;
+        const CSP_Process* process;
+    };
+
+    std::map<int, EventData> pendingProcesses;
+
+    void AsyncSendProcess(const CSP_Process& process, zmq::socket_t& socket) {
+        int pendingMessageId = ++nextProcess;
+        pendingProcesses[pendingMessageId] = {pendingMessageId, process.name, &process};
+
+        // package pendingMessageId and process.name into a message and send it on a socket
+        // structure it as name:id
+        std::string event = process.name + ":" + std::to_string(pendingMessageId);
+        printf("Sending event: %s\n", event.c_str());
+
+        zmq::message_t message(event.size());
+        memcpy(message.data(), event.data(), event.size());
+        socket.send(message, zmq::send_flags::none);
+    }
+    
 
 #ifdef PUSHPULL
     Self()
@@ -88,8 +98,10 @@ struct CSP_Engine::Self {
 #else
     Self()
     : context(1)
-    , sub_socket(context, ZMQ_SUB), running(false)
-    , pub_socket(context, ZMQ_PUB) {
+    , sub_socket(context, ZMQ_SUB)
+    , running(false)
+    , pub_socket(context, ZMQ_PUB)
+    , nextProcess(1) {
         pub_socket.bind("inproc://csp_engine");
         sub_socket.connect("inproc://csp_engine");
         sub_socket.set(zmq::sockopt::subscribe, ""); // "" means subscribe to all messages
@@ -117,11 +129,8 @@ void CSP_Engine::register_module(CSP_Module* module) {
     // add all the module's process ids to the processes map
     // report an error if a process id is already in the map.
     for (auto& proc : module->processes) {
-        if (self->processes.find(proc.id) != self->processes.end()) {
-            std::cerr << "Error: Process id " << proc.id << " already exists in the engine." << std::endl;
-        } else {
-            self->processes[proc.id] = &proc;
-        }
+        proc->id = self->nextProcess++;
+        self->processes[proc->id] = proc;
     }
 }
 
@@ -133,7 +142,7 @@ void CSP_Engine::unregister_module(const std::string& module_name) {
     }
     // remove all the module's process ids from the processes map
     for (auto& proc : module->second->processes) {
-        self->processes.erase(proc.id);
+        self->processes.erase(proc->id);
     }
     self->modules.erase(module_name);
 }
@@ -147,30 +156,27 @@ void CSP_Engine::run() {
                 std::unique_lock<std::mutex> lock(self->serviceMutex);
 
                 // Wait until there are messages in the queue or the thread is stopped
-                self->cv.wait(lock, [this]() { return !self->priorityQueue.empty() || !self->running; });
+                self->cv.wait(lock, [this]() { return !self->timedProcessQueue.empty() || !self->running; });
 
                 // If we're stopping and there are no messages, exit
-                if (!self->running && self->priorityQueue.empty()) break;
+                if (!self->running && self->timedProcessQueue.empty()) break;
 
                 // Check the front of the priority queue
                 auto now = std::chrono::steady_clock::now();
-                auto front = self->priorityQueue.top();
+                auto front = self->timedProcessQueue.top();
 
                 // If the scheduled time has arrived, send the message
                 if (front.when <= now) {
-                    std::string message = front.msg;
-                    self->priorityQueue.pop();
+                    const CSP_Process* process = front.process;
+                    self->timedProcessQueue.pop();
 
                     // Send the message via ZMQ
                     /// @TODO need to have the id that was passed in
-                    ::lab::emit_event(message, front.id, self->pub_socket);
+                    self->AsyncSendProcess(*process, self->pub_socket);
 
                     //zmq::message_t message2(5);
                     //memcpy(message2.data(), "Alice", 5);
                     //pub_socket.send(message2, zmq::send_flags::none);
-
-                    std::cout << "Sent event: '" << message << "' at time "
-                            << std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count() << " ms\n";
                 }
                 else {
                     // Otherwise, if the front message isn't due yet, wait until it is
@@ -192,15 +198,26 @@ void CSP_Engine::run() {
                         continue;
                     }
 
-                    EventData* event_data = reinterpret_cast<EventData*>(event_msg.data());
-                    int id = event_data->id;
-                    std::cout << "Received event [" << id
-                                << "] msg: " << event_data->message << std::endl;
-                    if (id == 0) continue; // no associated process
+                    const char* msg = reinterpret_cast<const char*>(event_msg.data());
+                    if (!msg) {
+                        continue;
+                    }
+                    int id = 0;
+                    std::string message(msg);
+                    auto colon = message.find(':');
+                    if (colon != std::string::npos) {
+                        id = std::stoi(message.substr(colon + 1));
+                        message = message.substr(0, colon);
+                    }
 
-                    auto proc = self->processes.find(id);
-                    if (proc != self->processes.end()) {
-                        proc->second->behavior();
+                    std::cout << "Received event [" << id
+                              << "] msg: " << message << std::endl;
+                    if (id == 0)
+                        continue; // no associated process
+
+                    auto proc = self->pendingProcesses.find(id);
+                    if (proc != self->pendingProcesses.end()) {
+                        proc->second.process->behavior();
                     }
                     else {
                         std::cerr << "Error: Process id " << id << " not found in the engine." << std::endl;
@@ -224,7 +241,7 @@ void CSP_Engine::stop() {
 }
 
 // Emit an event with a delay (in milliseconds)
-void CSP_Engine::emit_event(const std::string& event, int id, int msDelay) {
+void CSP_Engine::emit_event(const CSP_Process& process, int msDelay) {
     // Get current time
     auto now = std::chrono::steady_clock::now();
 
@@ -234,14 +251,14 @@ void CSP_Engine::emit_event(const std::string& event, int id, int msDelay) {
     {
         std::lock_guard<std::mutex> lock(self->serviceMutex);
         // Insert the message into the priority queue
-        self->priorityQueue.push({id, event, sendTime});
+        self->timedProcessQueue.push({&process, sendTime});
     }
 
     // Notify the service thread that there is a new message to process
     self->cv.notify_one();
 
-    std::cout << "Event '" << event << "' scheduled for: "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(sendTime.time_since_epoch()).count() << " ms\n";
+    std::cout << "Event '" << process.name << "' scheduled for: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(sendTime.time_since_epoch()).count() << " ms\n";
 }
 
 zmq::context_t& CSP_Engine::get_context() { return self->context; }
@@ -255,9 +272,13 @@ int CSP_Engine::test() {
     memcpy(message2.data(), "Bob", 3);
     self->pub_socket.send(message2, zmq::send_flags::none);
 
-    emit_event("Event 1.0s", 0, 1000);  // 1 second delay
-    emit_event("Event 0.5s", 0, 500);   // 0.5 second delay
-    emit_event("Event 2.0s", 0, 2000);  // 2 second delay
+    static CSP_Process e0("Event 1.0s", [](){ std::cout << "Event 1.0s"; });
+    static CSP_Process e1("Event 0.5s", [](){ std::cout << "Event 0.5s"; });
+    static CSP_Process e2("Event 2.0s", [](){ std::cout << "Event 2.0s"; });
+
+    emit_event(e0, 1000);  // 1 second delay
+    emit_event(e1,  500);  // 0.5 second delay
+    emit_event(e2, 2000);  // 2 second delay
 
     return 0;
 }
