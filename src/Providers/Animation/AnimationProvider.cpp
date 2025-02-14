@@ -757,7 +757,7 @@ bool AnimationProvider::LoadAnimationFromVRM(const char* name, const char* filen
 
 bool AnimationProvider::LoadModelFromGLTF(const char* name, const char* filename, const char* skeletonName) {
     // Verify skeleton exists
-    if (!HasSkeleton(skeletonName)) {
+    if (strlen(skeletonName) && !HasSkeleton(skeletonName)) {
         return false;
     }
 
@@ -777,6 +777,25 @@ bool AnimationProvider::LoadModelFromGLTF(const char* name, const char* filename
     // Create model
     auto model = std::make_unique<Model>();
     model->name = name;
+
+    // if skeletonName is empty, construct a name from the filename, and add it to skeletons.
+    std::string newName;
+    if (strlen(skeletonName) == 0) {
+        newName = filename;
+        size_t lastSlash = newName.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            newName = newName.substr(lastSlash + 1);
+        }
+        size_t lastDot = newName.find_last_of(".");
+        if (lastDot != std::string::npos) {
+            newName = newName.substr(0, lastDot);
+        }
+        if (!LoadSkeletonFromGLTF(newName.c_str(), filename)) {
+            cgltf_free(data);
+            return false;
+        }
+        skeletonName = newName.c_str();
+    }
     model->skeletonName = skeletonName;
 
     // Process each mesh

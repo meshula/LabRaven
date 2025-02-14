@@ -80,8 +80,10 @@ struct CSP_Engine::Self {
         std::string event = process.name + ":" + std::to_string(pendingMessageId);
         printf("Sending event: %s\n", event.c_str());
 
-        zmq::message_t message(event.size());
-        memcpy(message.data(), event.data(), event.size());
+        zmq::message_t message(event.size()+1);
+        char* buff = (char*) message.data();
+        memcpy(buff, event.data(), event.size());
+        buff[event.size()] = '\0';
         socket.send(message, zmq::send_flags::none);
     }
     

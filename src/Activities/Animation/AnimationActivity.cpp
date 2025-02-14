@@ -163,9 +163,7 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
     }
     ImGui::EndChild();
     if (ImGui::Button("+ Model")) {
-        if (!_self->selectedSkeleton.empty()) {
-            _self->loadModelModule.LoadModel(_self->selectedSkeleton);
-        }
+        _self->loadModelModule.LoadModel("");
     }
 
     ImGui::EndChild();
@@ -185,7 +183,7 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
 
     // 3D Plot
     if (ImPlot3D::BeginPlot("##3D", ImVec2(-1, -50))) {
-        ImPlot3D::SetupAxes("right", "forward", "u");
+        ImPlot3D::SetupAxes("right", "forward", "up");
 
         // If a model is selected, display its meshes
         if (!_self->selectedModel.empty()) {
@@ -207,8 +205,8 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
                         for (size_t i = 0; i < positions.size(); i += 3) {
                             cacheMesh.vertices.push_back(ImPlot3DPoint(
                                 positions[i],
-                                positions[i + 1],
-                                positions[i + 2]
+                                positions[i + 2],
+                                positions[i + 1]
                             ));
                         }
                         it = _self->meshCache.find(meshKey);
@@ -220,8 +218,8 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
                         ImPlot3D::PlotMesh(mesh->name.c_str(), 
                             cacheMesh.vertices.data(),
                             cacheMesh.indices.data(),
-                            cacheMesh.vertices.size(),
-                            cacheMesh.indices.size());
+                            (int) cacheMesh.vertices.size(),
+                            (int) cacheMesh.indices.size());
                     }
                 }
             }

@@ -260,14 +260,22 @@ if (APPLE)
     find_library(METALKIT_LIBRARY MetalKit)
     find_library(QUARTZCORE_LIBRARY QuartzCore)
     find_library(GAMECONTROLLER_LIBRARY GameController)
+    find_library(CORELOCATION_LIBRARY CoreLocation REQUIRED)
     target_link_libraries(${PROJECT_NAME} PUBLIC
         glfw
         nativefiledialog
-        ${COREFOUNDATION_LIBRARY}
-        ${GAMECONTROLLER_LIBRARY}
-        ${METAL_LIBRARY}
-        ${METALKIT_LIBRARY}
-        ${QUARTZCORE_LIBRARY}
+        "-framework CoreFoundation"
+        "-framework CoreLocation"
+        "-framework GameController"
+        "-framework Metal"
+        "-framework MetalKit"
+        "-framework QuartzCore"
+        #${COREFOUNDATION_LIBRARY}
+        #${CORELOCATION_LIBRARY}
+        #${GAMECONTROLLER_LIBRARY}
+        #${METAL_LIBRARY}
+        #${METALKIT_LIBRARY}
+        #${QUARTZCORE_LIBRARY}
     )
 elseif(WIN32)
   target_link_libraries(${PROJECT_NAME} PUBLIC

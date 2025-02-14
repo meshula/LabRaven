@@ -289,7 +289,13 @@ public:
         add_process(Idle);
     }
 
-    void ExportCurrentStage() { emit_event(ExportRequest); }
+    void ExportCurrentStage() {
+        if (pendingFile != 0) {
+            std::cerr << "ExportCurrentStage: an export is currently in progress\n";
+            return;
+        }
+        emit_event(ExportRequest);
+    }
 };
 
 class ShotTemplateModule : public lab::CSP_Module {
