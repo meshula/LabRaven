@@ -259,8 +259,11 @@ void CSP_Engine::emit_event(const CSP_Process& process, int msDelay) {
     // Notify the service thread that there is a new message to process
     self->cv.notify_one();
 
-    std::cout << "Event '" << process.name << "' scheduled for: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(sendTime.time_since_epoch()).count() << " ms\n";
+    static const bool verbose = false;
+    if (verbose)
+        std::cout << "Event '" << process.name << "' scheduled for: "
+                  << std::chrono::duration_cast<std::chrono::milliseconds>(sendTime.time_since_epoch()).count()
+                  << " ms\n";
 }
 
 zmq::context_t& CSP_Engine::get_context() { return self->context; }

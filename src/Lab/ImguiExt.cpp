@@ -71,7 +71,10 @@ ImFont * append_audio_icon_font(const std::vector<uint8_t> & buffer)
 
 // This Icon drawing is adapted from thedmd's imgui_node_editor blueprint sample because the icons are nice
 
-void DrawIcon(ImDrawList* drawList, const ImVec2& ul, const ImVec2& lr, IconType type, bool filled, ImU32 color, ImU32 innerColor)
+void DrawIcon(ImDrawList* drawList,
+              const ImVec2& ul, const ImVec2& lr,
+              IconType type, bool filled,
+              ImU32 color, ImU32 innerColor)
 {
     struct rectf {
         float x, y, w, h;
@@ -263,11 +266,70 @@ void DrawIcon(ImDrawList* drawList, const ImVec2& ul, const ImVec2& lr, IconType
                 drawList->PathStroke(color, true, 2.0f * outline_scale);
             }
         }
+        else if (type == IconType::Plus) {
+            const float r = rect.w / 3.f;
+            const float half_r = r * 0.5f;
+            const auto c = ImVec2{ rect.center_x(), rect.center_y() };
+            if (filled) {
+                // p is the center of each of the rectangles, offset from c by r,
+                // and each rectangle spans from p - half_r to p + half_r
+                // three of the rectangles are horizontal, and two are vertical
+                const ImVec2 p1 = c + ImVec2(-r, 0);
+                const ImVec2 p2 = c + ImVec2(r, 0);
+                const ImVec2 p3 = c + ImVec2(0, -r);
+                const ImVec2 p4 = c + ImVec2(0, r);
+                drawList->AddRectFilled(p1 - ImVec2(half_r, half_r), p1 + ImVec2(half_r, half_r), color);
+                drawList->AddRectFilled(p2 - ImVec2(half_r, half_r), p2 + ImVec2(half_r, half_r), color);
+                drawList->AddRectFilled(p3 - ImVec2(half_r, half_r), p3 + ImVec2(half_r, half_r), color);
+                drawList->AddRectFilled(p4 - ImVec2(half_r, half_r), p4 + ImVec2(half_r, half_r), color);
+                drawList->AddRectFilled(c - ImVec2(half_r, half_r), c + ImVec2(half_r, half_r), color);
+            }
+            else {
+                // draw an outline around the plus shape similar to the boxes,
+                // each of the four outside boxes will be drawn as three lines, not including the center box.
+                // there will therefore be 12 lines.
+                // the first box will be the upper box, then the right, then the bottom, then the left.
+
+                // draw the top box, from bottom left to top left to top right to bottom right.
+                ImVec2 p1 = c - ImVec2(half_r, half_r);
+                ImVec2 p2 = p1 - ImVec2(0, r);
+                ImVec2 p3 = p2 + ImVec2(r, 0);
+                ImVec2 p4 = p3 + ImVec2(0, r);
+                drawList->AddLine(p1, p2, color);
+                drawList->AddLine(p2, p3, color);
+                drawList->AddLine(p3, p4, color);
+
+                // draw the right box, from top left to top right to bottom right to bottom left.
+                p1 = p4;
+                p2 = p1 + ImVec2(r, 0);
+                p3 = p2 + ImVec2(0, r);
+                p4 = p3 - ImVec2(r, 0);
+                drawList->AddLine(p1, p2, color);
+                drawList->AddLine(p2, p3, color);
+                drawList->AddLine(p3, p4, color);
+
+                // draw the bottom box, from top right to bottom right to bottom left to top left.
+                p1 = p4;
+                p2 = p1 + ImVec2(0, r);
+                p3 = p2 - ImVec2(r, 0);
+                p4 = p3 - ImVec2(0, r);
+                drawList->AddLine(p1, p2, color);
+                drawList->AddLine(p2, p3, color);
+                drawList->AddLine(p3, p4, color);
+
+                // draw the left box, from bottom right to bottom left to top left to top right.
+                p1 = p4;
+                p2 = p1 - ImVec2(r, 0);
+                p3 = p2 - ImVec2(0, r);
+                p4 = p3 + ImVec2(r, 0);
+                drawList->AddLine(p1, p2, color);
+                drawList->AddLine(p2, p3, color);
+                drawList->AddLine(p3, p4, color);
+            }
+        }
         else
         {
             const auto triangleTip = triangleStart + rect.w * (0.45f - 0.32f);
-
-
             drawList->AddTriangleFilled(
                 ImVec2(ceilf(triangleTip), rect.center_y() * 0.5f),
                 ImVec2(triangleStart, rect.center_y() + 0.15f * rect.h),
@@ -275,6 +337,98 @@ void DrawIcon(ImDrawList* drawList, const ImVec2& ul, const ImVec2& lr, IconType
                 color);
         }
     }
+}
+
+// dpad. If the mouse button is not pressed, p_x and p_y will be zero, and false will be returned.
+// when the mouse button is pressed initially, init_x and init_y will be set to the position of the mouse.
+// if the mouse is held down and moved, p_x and p_y will be set to the relative motion from init_x and init_y, scaled to the range -1 to 1.
+// if the mouse is held down and moved less than deadzone from init_x and init_y, p_x and p_y will be zero.
+// label is the label for the widget.
+// p_x and p_y are the output values.
+// init_x and init_y are the initial position of the mouse when the button is pressed.
+// size is the width and height of the widget.
+// deadzone is the amount of motion away from init_x and init_y that is required to change p_x and p_y.
+// returns true if the dpad was used.
+// it will be drawn using DrawIcon, using the Plus sign. If it is not used, it will be drawn in a light gray color.
+// if it is used, it will be drawn in a darker gray color.
+// is_active is a pointer to a bool that will be set to true if the dpad is being used. It used by the algorithm
+// to determine, if the mouse is down, whether init_x and init_y should be set to the current mouse position.
+bool imgui_dpad(const char* label, float* p_x, float* p_y,
+    float size,
+    float deadzone)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems)
+        return false;
+
+    const ImGuiID id = window->GetID(label);
+    const ImGuiStyle& style = ImGui::GetStyle();
+
+    // Calculate layout
+    ImVec2 pos = window->DC.CursorPos;
+    ImVec2 button_sz(size, size);
+    const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+    const float total_height = button_sz.y + style.ItemSpacing.y + label_size.y;
+
+    // Create the invisible button to handle input
+    bool is_active = ImGui::InvisibleButton(label, button_sz);
+    is_active = ImGui::IsItemActive();
+    bool hovered = ImGui::IsItemHovered();
+
+    if (p_x && p_y) {
+        // Input handling
+        if (is_active)
+        {
+            ImVec2 delta = ImGui::GetIO().MousePos - pos;
+            ImVec2 center(button_sz.x * 0.5f, button_sz.y * 0.5f);
+
+            // Calculate normalized coordinates (-1 to 1)
+            *p_x = (delta.x - center.x) / center.x;
+            *p_y = (delta.y - center.y) / center.y;
+
+            // Clamp values
+            *p_x = ImClamp(*p_x, -1.0f, 1.0f);
+            *p_y = ImClamp(*p_y, -1.0f, 1.0f);
+
+            // Apply deadzone
+            if (fabsf(*p_x) < deadzone) *p_x = 0.0f;
+            if (fabsf(*p_y) < deadzone) *p_y = 0.0f;
+        }
+        else
+        {
+            // Reset when released
+            *p_x = 0.0f;
+            *p_y = 0.0f;
+        }
+    }
+
+    // Rendering
+    ImDrawList* draw_list = window->DrawList;
+    const ImU32 bg_col = ImGui::GetColorU32(is_active ? ImGuiCol_FrameBgActive :
+                                          hovered ? ImGuiCol_FrameBgHovered :
+                                          ImGuiCol_FrameBg);
+
+    // Draw background
+    draw_list->AddRectFilled(pos, pos + button_sz,
+                             bg_col, style.FrameRounding);
+
+    // Draw icon
+    DrawIcon(draw_list, pos, pos + button_sz,
+             IconType::Plus, is_active,
+             ImGui::GetColorU32(ImGuiCol_Text),
+             ImGui::GetColorU32(ImGuiCol_TextDisabled));
+
+    // Draw label
+    ImVec2 label_pos(
+        pos.x + (button_sz.x - label_size.x) * 0.5f,
+        pos.y + button_sz.y + style.ItemSpacing.y
+    );
+    draw_list->AddText(label_pos, ImGui::GetColorU32(ImGuiCol_Text), label);
+
+    // Advance cursor past the control including label
+    //ImGui::ItemSize(ImVec2(button_sz.x, total_height), style.FramePadding.y);
+
+    return is_active;
 }
 
 bool imgui_knob(const char* label, float* p_value, float v_min, float v_max, bool zero_on_release)

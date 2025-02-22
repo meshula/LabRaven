@@ -1116,10 +1116,13 @@ void OpenUSDProvider::CreateShotFromTemplate(const std::string& directory_,
         throw std::runtime_error("Failed to create shot directory: " + directory);
     }
 
-    UsdTemplater::TemplateData td = {
+    UsdTemplater::TemplateEvaluationContext td = {
         directory, shotname,
         self->templater->GetTemplateStageMetadata(),
-        {} };
+        {},
+        self->templater->GetTemplateStage(),
+        {}
+    };
 
     /*   ___             _   _          _                  _      _
         | _ \_  _ _ _   | |_| |_  ___  | |_ ___ _ __  _ __| |__ _| |_ ___
@@ -1141,10 +1144,10 @@ void OpenUSDProvider::CreateCard(const std::string& scope,
     }
 
     UsdPrim prim = self->templater->GetTemplatePrim("/Templates/Card");
-    UsdTemplater::TemplateData td {};
+    UsdTemplater::TemplateEvaluationContext td {};
     td.dict["SCOPE"] = VtValue(scope);
     td.dict["IMAGE_FILE"] = VtValue(imagePath);
-    td.stage = Stage();
+    td.templateStage = Stage();
     self->templater->InstantiateTemplate(100, td, prim, prim);
     self->sessionLayer->UpdateStageSceneIndex();
 }

@@ -9,6 +9,7 @@
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
+#include "Lab/ImguiExt.hpp"
 #include "CameraActivity.hpp"
 #include "imgui.h"
 #include "imgui-knobs.hpp"
@@ -189,6 +190,19 @@ void CameraActivity::SetFrustum(const GfFrustum f) {
 
 void CameraActivity::RunUI(const LabViewInteraction& vi)
 {
+    ImGui::Begin("Camera2");
+    static float dolly_px = 0;
+    static float dolly_py = 0;
+    if (imgui_dpad("Dolly", &dolly_px, &dolly_py, 50, 0.1)) {
+        printf("side %g fwd %g\n", dolly_px, dolly_py);
+    }
+    ImGui::SameLine();
+    static float crane_px = 0;
+    static float crane_py = 0;
+    if (imgui_dpad("Crane", &crane_px, &crane_py, 50, 0.1)) {
+        printf("side %g up %g\n", crane_px, crane_py);
+    }
+    ImGui::End();
     activate_navigator_panel(true);
     if (fabsf(_self->yaw_input) > 0.f || fabsf(_self->pitch_input) > 0.f) {
         float trackball_size = 32.f;
@@ -325,7 +339,7 @@ void CameraActivity::RunUI(const LabViewInteraction& vi)
                      ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoTitleBar |
                      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoCollapse);
-        
+
         lc_m44f m = lc_rt_matrix(&_self->camera.mount.transform);
         lc_m44f m0 = m;
         lc_v3f orbit = lc_i_orbit_center_constraint(_self->interactive_controller);

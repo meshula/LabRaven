@@ -16,20 +16,21 @@ public:
     UsdTemplater();
     ~UsdTemplater();
 
-    struct TemplateData {
+    struct TemplateEvaluationContext {
         std::string rootDir;
         std::string shotName;
         PXR_NS::UsdMetadataValueMap commonMetaData;
         std::set<std::string> builtLayers;
-        PXR_NS::UsdStageRefPtr stage;
+        PXR_NS::UsdStageRefPtr templateStage;
         std::map<std::string, PXR_NS::VtValue> dict;
     };
 
     PXR_NS::UsdPrim GetTemplatePrim(const std::string& path);
     PXR_NS::UsdMetadataValueMap GetTemplateStageMetadata();
+    PXR_NS::UsdStageRefPtr GetTemplateStage();
 
     void InstantiateTemplate(int recursionLevel,
-                             TemplateData& templateData,
+                             TemplateEvaluationContext& templateData,
                              PXR_NS::UsdPrim templateRoot,
                              PXR_NS::UsdPrim templateAnchor);
 }; // struct TemplateMinorData::data

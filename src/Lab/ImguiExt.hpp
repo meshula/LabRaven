@@ -27,7 +27,8 @@ void imgui_fixed_window_end();
 
 std::vector<uint8_t> read_file_binary(const std::string & pathToFile);
 
-enum class IconType { Flow, Circle, Square, Grid, RoundSquare, Diamond };
+enum class IconType { 
+    Flow, Circle, Square, Grid, RoundSquare, Diamond, Plus };
 void DrawIcon(ImDrawList* drawList, const ImVec2& ul, const ImVec2& lr, IconType type, bool filled, ImU32 color, ImU32 innerColor);
 
 bool imgui_knob(const char* label, float* p_value, float v_min, float v_max, bool zero_on_release);
@@ -37,6 +38,25 @@ bool imgui_splitter(bool split_vertically, float thickness, float* size1, float*
 bool RangeSliderFloat(const char* label, float* v1, float* v2,
                       float v_min, float v_max,
                       const char* display_format = "(%.3f, %.3f)", float power = 1.0f);
+
+// dpad. If the mouse button is not pressed, p_x and p_y will be zero, and false will be returned.
+// when the mouse button is pressed initially, init_x and init_y will be set to the position of the mouse.
+// if the mouse is held down and moved, p_x and p_y will be set to the relative motion from init_x and init_y, scaled to the range -1 to 1.
+// if the mouse is held down and moved less than deadzone from init_x and init_y, p_x and p_y will be zero.
+// label is the label for the widget.
+// p_x and p_y are the output values.
+// init_x and init_y are the initial position of the mouse when the button is pressed.
+// size is the width and height of the widget.
+// deadzone is the amount of motion away from init_x and init_y that is required to change p_x and p_y.
+// returns true if the dpad was used.
+// it will be drawn using DrawIcon, using the Plus sign. If it is not used, it will be drawn in a light gray color.
+// if it is used, it will be drawn in a darker gray color.
+// is_active is a pointer to a bool that will be set to true if the dpad is being used. It used by the algorithm
+// to determine, if the mouse is down, whether init_x and init_y should be set to the current mouse position.
+bool imgui_dpad(const char* label, float* p_x, float* p_y,
+                float size,
+                float deadzone = 0.2f);
+
 /*
 bool ImageButton(
     ImTextureID img,

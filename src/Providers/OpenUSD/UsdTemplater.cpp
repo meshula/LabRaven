@@ -23,7 +23,7 @@ using std::vector;
 using std::string;
 
 struct UsdTemplater::data {
-    pxr::UsdStageRefPtr templateStage;
+    UsdStageRefPtr standardTemplateStage;
 
     void CopyMetadata(const SdfSpecHandle& dest, const UsdMetadataValueMap& metadata)
     {
@@ -43,7 +43,7 @@ struct UsdTemplater::data {
         }
     }
 
-    std::string ExpandString(const std::string& str_, const TemplateData& td) {
+    std::string ExpandString(const std::string& str_, const TemplateEvaluationContext& td) {
         // find "${" within str
         std::string str = str_;
         size_t start = 0;
@@ -77,7 +77,7 @@ struct UsdTemplater::data {
     }
 
     std::vector<VtValue> RunSexpr(const std::string& name, TfSpan<VtValue> arg,
-                                    const TemplateData& td) {
+                                  const TemplateEvaluationContext& td) {
         std::vector<VtValue> ret;
         if (name == "add") {
             if (arg.size() != 2) {
@@ -277,13 +277,13 @@ struct UsdTemplater::data {
                 //             # material.CreateSurfaceOutput().ConnectToSource(pbrShader.ConnectableAPI(), "surface")
                 // first, get the material prim
                 try {
-                    UsdPrim materialPrim = td.stage->GetPrimAtPath(SdfPath(materialName));
+                    UsdPrim materialPrim = td.templateStage->GetPrimAtPath(SdfPath(materialName));
                     if (!materialPrim) {
                         printf("Could not find material prim: %s\n", materialName.c_str());
                         return {};
                     }
                     // then, get the shader prim
-                    UsdPrim shaderPrim = td.stage->GetPrimAtPath(SdfPath(shaderName));
+                    UsdPrim shaderPrim = td.templateStage->GetPrimAtPath(SdfPath(shaderName));
                     if (!shaderPrim) {
                         printf("Could not find shader prim: %s\n", shaderName.c_str());
                         return {};
@@ -318,12 +318,12 @@ struct UsdTemplater::data {
                 try {
                     std::string meshName = ExpandString(arg[0].Get<std::string>(), td);
                     std::string materialName = ExpandString(arg[1].Get<std::string>(), td);
-                    UsdPrim meshPrim = td.stage->GetPrimAtPath(SdfPath(meshName));
+                    UsdPrim meshPrim = td.templateStage->GetPrimAtPath(SdfPath(meshName));
                     if (!meshPrim) {
                         printf("Could not find mesh prim: %s\n", meshName.c_str());
                         return {};
                     }
-                    UsdPrim materialPrim = td.stage->GetPrimAtPath(SdfPath(materialName));
+                    UsdPrim materialPrim = td.templateStage->GetPrimAtPath(SdfPath(materialName));
                     if (!materialPrim) {
                         printf("Could not find material prim: %s\n", materialName.c_str());
                         return {};
@@ -362,7 +362,7 @@ struct UsdTemplater::data {
                     std::string shaderInputName = ExpandString(arg[1].Get<std::string>(), td);
                     std::string textureName = ExpandString(arg[2].Get<std::string>(), td);
                     std::string textureOutputName = ExpandString(arg[3].Get<std::string>(), td);
-                    UsdPrim shaderPrim = td.stage->GetPrimAtPath(SdfPath(shaderName));
+                    UsdPrim shaderPrim = td.templateStage->GetPrimAtPath(SdfPath(shaderName));
                     if (!shaderPrim) {
                         printf("Could not find shader prim: %s\n", shaderName.c_str());
                         return {};
@@ -394,7 +394,7 @@ struct UsdTemplater::data {
                         printf("Could not find shader input: %s\n", shaderInputName.c_str());
                         return {};
                     }
-                    UsdPrim texturePrim = td.stage->GetPrimAtPath(SdfPath(textureName));
+                    UsdPrim texturePrim = td.templateStage->GetPrimAtPath(SdfPath(textureName));
                     if (!texturePrim) {
                         printf("Could not find texture prim: %s\n", textureName.c_str());
                         return {};
@@ -439,7 +439,7 @@ struct UsdTemplater::data {
                     std::string shaderName = ExpandString(arg[0].Get<std::string>(), td);
                     std::string shaderInputName = ExpandString(arg[1].Get<std::string>(), td);
                     std::string value = ExpandString(arg[2].Get<std::string>(), td);
-                    UsdPrim shaderPrim = td.stage->GetPrimAtPath(SdfPath(shaderName));
+                    UsdPrim shaderPrim = td.templateStage->GetPrimAtPath(SdfPath(shaderName));
                     if (!shaderPrim) {
                         printf("Could not find shader prim: %s\n", shaderName.c_str());
                         return {};
@@ -471,7 +471,7 @@ struct UsdTemplater::data {
                 printf("Computing extent for %s\n", arg[0].Get<std::string>().c_str());
                 try {
                     std::string meshName = ExpandString(arg[0].Get<std::string>(), td);
-                    UsdPrim meshPrim = td.stage->GetPrimAtPath(SdfPath(meshName));
+                    UsdPrim meshPrim = td.templateStage->GetPrimAtPath(SdfPath(meshName));
                     if (!meshPrim) {
                         printf("Could not find mesh prim: %s\n", meshName.c_str());
                         return {};
@@ -515,7 +515,7 @@ struct UsdTemplater::data {
                 try {
                     std::string meshName = ExpandString(arg[0].Get<std::string>(), td);
                     std::string imageFile = ExpandString(arg[1].Get<std::string>(), td);
-                    UsdPrim meshPrim = td.stage->GetPrimAtPath(SdfPath(meshName));
+                    UsdPrim meshPrim = td.templateStage->GetPrimAtPath(SdfPath(meshName));
                     if (!meshPrim) {
                         printf("Could not find mesh prim: %s\n", meshName.c_str());
                         return {};
@@ -573,7 +573,7 @@ struct UsdTemplater::data {
         return ret;
     }
 
-    bool RunRecipe(tsParsedSexpr_t* curr, const TemplateData& td) {
+    bool RunRecipe(tsParsedSexpr_t* curr, const TemplateEvaluationContext& td) {
         if (!curr || curr->token != tsSexprPushList) {
             return false;
         }
@@ -668,8 +668,8 @@ UsdTemplater::UsdTemplater()
 : self(new data()) {
     auto resource_path = std::string(lab_application_resource_path(nullptr, nullptr));
     std::string path = resource_path + "/LabSceneTemplate.usda";
-    self->templateStage = pxr::UsdStage::Open(path);
-    if (!self->templateStage) {
+    self->standardTemplateStage = pxr::UsdStage::Open(path);
+    if (!self->standardTemplateStage) {
         printf("Failed to open the Scene Template\n");
     }
 }
@@ -679,32 +679,36 @@ UsdTemplater::~UsdTemplater() {
 }
 
 PXR_NS::UsdPrim UsdTemplater::GetTemplatePrim(const std::string& path) {
-    if (!self->templateStage)
+    if (!self->standardTemplateStage)
         return {};
 
-    return
-        self->templateStage->GetPrimAtPath(pxr::SdfPath(path));
+    return self->standardTemplateStage->GetPrimAtPath(pxr::SdfPath(path));
 }
 
 PXR_NS::UsdMetadataValueMap UsdTemplater::GetTemplateStageMetadata() {
-    if (!self->templateStage)
+    if (!self->standardTemplateStage)
         return {};
 
-    return self->templateStage->GetPseudoRoot().GetAllAuthoredMetadata();
+    return self->standardTemplateStage->GetPseudoRoot().GetAllAuthoredMetadata();
 }
 
+PXR_NS::UsdStageRefPtr UsdTemplater::GetTemplateStage() {
+    return self->standardTemplateStage;
+}
+
+
 void UsdTemplater::InstantiateTemplate(int recursionLevel,
-                            TemplateData& templateData,
-                            UsdPrim templateRoot,
-                            UsdPrim templateAnchor) {
+                                       TemplateEvaluationContext& templateData,
+                                       UsdPrim templateRoot,
+                                       UsdPrim templateAnchor) {
 
     if (!templateRoot) {
         printf("No root provided for instantiation\n");
         return;
     }
 
-    if (!self->templateStage) {
-        printf("No template file\n");
+    if (!templateData.templateStage) {
+        printf("No template stage supplied\n");
         return;
     }
 
@@ -796,7 +800,7 @@ void UsdTemplater::InstantiateTemplate(int recursionLevel,
 
                 SdfPath path = templatePrim.GetPath().AppendPath(SdfPath(newSubLayer));
                 printf("    %s     \n", path.GetText());
-                auto subLayerPrim = self->templateStage->GetPrimAtPath(path);
+                auto subLayerPrim = templateData.templateStage->GetPrimAtPath(path);
                 if (subLayerPrim) {
                     InstantiateTemplate(recursionLevel + 1, templateData,
                                               subLayerPrim, templateAnchor);
@@ -857,7 +861,7 @@ void UsdTemplater::InstantiateTemplate(int recursionLevel,
             // Export the stage to the new directory
             shotSubStage->Save();
         }
-        else if (templateData.stage) {
+        else if (templateData.templateStage) {
             auto it = templateData.dict.find("SCOPE");
             if (it != templateData.dict.end()) {
                 // the templateAnchor is the prim that the template was instantiated from.
@@ -874,13 +878,13 @@ void UsdTemplater::InstantiateTemplate(int recursionLevel,
                 SdfPath newPath = SdfPath(scope);
                 if (relativePath.size())
                     newPath = newPath.AppendPath(SdfPath(relativePath));
-                newPrim = templateData.stage->DefinePrim(newPath);
+                newPrim = templateData.templateStage->DefinePrim(newPath);
                 printf("~~Defining prim: %s\n", newPrim.GetPath().GetText());
             }
             else {
                 // if SCOPE is not defined, then copy the prim at the same
                 // path as the template prim.
-                newPrim = templateData.stage->DefinePrim(templatePrim.GetPath());
+                newPrim = templateData.templateStage->DefinePrim(templatePrim.GetPath());
             }
         }
 
@@ -889,7 +893,7 @@ void UsdTemplater::InstantiateTemplate(int recursionLevel,
             UsdMetadataValueMap primMetadata = templatePrim.GetAllAuthoredMetadata();
 
             // get the SdfSpecHandle for the newPrim
-            SdfSpecHandle newPrimSpec = templateData.stage->GetRootLayer()->GetPrimAtPath(newPrim.GetPath());
+            SdfSpecHandle newPrimSpec = templateData.templateStage->GetRootLayer()->GetPrimAtPath(newPrim.GetPath());
             self->CopyMetadata(newPrimSpec, primMetadata);
 
             newPrim.SetCustomData(work.newCustomData);
@@ -924,7 +928,7 @@ void UsdTemplater::InstantiateTemplate(int recursionLevel,
             SdfLayerHandle sourceLayer = templatePrim.GetStage()->GetEditTarget().GetLayer();
 
             // Get the SdfLayer for the copied prim
-            SdfLayerHandle targetLayer = templateData.stage->GetEditTarget().GetLayer();
+            SdfLayerHandle targetLayer = templateData.templateStage->GetEditTarget().GetLayer();
 
             // Copy properties from source prim to copied prim using SdfLayer.
             // This copies the guts of the prim...
