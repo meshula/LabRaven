@@ -12,7 +12,7 @@
 #ifndef LABCAMERAIMGUI_H
 #define LABCAMERAIMGUI_H
 
-#include "LabCamera.h"
+#include "Providers/Camera/LabCamera.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -10,7 +10,7 @@
 #define CameraActivity_hpp
 
 #include "Lab/StudioCore.hpp"
-#include "LabCamera.h"
+#include "Providers/Camera/LabCamera.h"
 #include <pxr/base/gf/camera.h>
 #include <pxr/base/gf/frustum.h>
 #include <pxr/base/gf/matrix4f.h>

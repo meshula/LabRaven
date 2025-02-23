@@ -13,7 +13,7 @@
 #include "CameraActivity.hpp"
 #include "imgui.h"
 #include "imgui-knobs.hpp"
-#include "LabCamera.h"
+#include "Providers/Camera/LabCamera.h"
 #include "LabCameraImGui.h"
 #include "ImGuizmo.h"
 #include "LabGizmo.hpp"

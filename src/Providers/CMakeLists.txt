@@ -1,5 +1,6 @@
 
 add_subdirectory(Assets)
+add_subdirectory(Camera)
 add_subdirectory(Color)
 add_subdirectory(Animation)
 add_subdirectory(Selection)
