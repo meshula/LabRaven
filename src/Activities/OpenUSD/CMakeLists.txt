@@ -14,6 +14,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     UsdFileDialogModules.hpp
     OpenUSDActivity.cpp OpenUSDActivity.hpp
     HydraActivity.cpp HydraActivity.hpp
+    HydraViewport.cpp HydraViewport.hpp
     PropertiesActivity.cpp PropertiesActivity.hpp
     SessionActivity.cpp SessionActivity.hpp
     TfDebugActivity.cpp TfDebugActivity.hpp

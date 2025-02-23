@@ -4,7 +4,7 @@
 #endif
 #include "imgui.h"
 
-#include "ImGuiHydraEditor/src/views/viewport.h"
+#include "HydraViewport.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 
 namespace lab {
@@ -12,7 +12,7 @@ namespace lab {
 struct HydraActivity::data {
     data() = default;
     ~data() = default;
-    std::unique_ptr<pxr::Viewport> viewport;
+    std::unique_ptr<HydraViewport> viewport;
 };
 
 HydraActivity::HydraActivity() : Activity(HydraActivity::sname()) {
@@ -36,8 +36,8 @@ void HydraActivity::RunUI(const LabViewInteraction&) {
         auto model = usd->Model();
         if (model) {
             ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-            _self->viewport = std::unique_ptr<pxr::Viewport>(
-                                     new pxr::Viewport(model, "Hydra Viewport##A1"));
+            _self->viewport = std::unique_ptr<HydraViewport>(
+                                     new HydraViewport(model, "Hydra Viewport##A1"));
         }
     }
 

@@ -10,7 +10,7 @@ namespace lab {
 struct CameraProvider::data {
     data() {
         lookAts["##home"] = {
-                                {{0, 0, 50},        // eye
+                                {{0, 5, 50},        // eye
                                 {0, 0, 0},          // center
                                 {0, 1, 0}},         // up
                                 1
@@ -53,10 +53,14 @@ void CameraProvider::SetLookAt(const LookAt& lookAt, const std::string& name) {
 }
 
 CameraProvider::CameraData CameraProvider::GetLookAt(const std::string& name) const {
-    std::lock_guard<std::mutex> lock(_self->safety);
-    if (_self->lookAts.find(name) == _self->lookAts.end())
-        return GetHome();
-    return _self->lookAts[name];
+    {
+        std::lock_guard<std::mutex> lock(_self->safety);
+        auto it = _self->lookAts.find(name);
+        if (it != _self->lookAts.end()) {
+            return it->second;
+        }
+    }
+    return GetHome();
 }
 
 } // lab

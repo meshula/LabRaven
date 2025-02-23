@@ -74,8 +74,6 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/usdsessionlayer.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.cpp
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/viewport.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/models/model.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/models/model.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/colorfiltersceneindex.h
