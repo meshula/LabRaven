@@ -135,7 +135,7 @@ void LabApp::RunUI() {
     if (_instance->_self->suspend_power_save > 0) {
         --_instance->_self->suspend_power_save;
     }
-    _instance->UpdateMainWindow(_instance->_self->_vi.dt,
+    _instance->UpdateMainWindow(_instance->FrameTime_ms() * 1.0e-3f,
                                 ImGui::IsWindowHovered(), ImGui::IsWindowFocused());
 }
 
@@ -170,7 +170,7 @@ lab::Orchestrator* gOrchestrator() {
 void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dragging)
 {
     auto& mm = _self->_mm;
-    mm.ServiceTransactionsAndActivities();
+    mm.ServiceTransactionsAndActivities(dt);
     auto currStudio = mm.CurrentStudio();
     static auto studioNames = mm.StudioNames();
     auto activityNames = mm.ActivityNames();
@@ -303,6 +303,17 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
     }
     was_dragging = viewport_dragging;
 }
+
+// elapsed time since app start
+double LabApp::Now_ms() const {
+    return ImGui::GetTime() * 1000.0;
+}
+
+// time since last frame
+double LabApp::FrameTime_ms() const {
+    return ImGui::GetIO().DeltaTime * 1000.0;
+}
+
 
 } // lab
 

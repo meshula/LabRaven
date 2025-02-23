@@ -31,6 +31,9 @@ public:
     void SetLookAt(const LookAt& lookAt, const std::string& name);
     CameraData GetLookAt(const std::string& name) const;
 
+    void LerpLookAt(const LookAt& lookAt, float t, const std::string& name);
+    void Update(float dt);
+
     void SetHome(const LookAt& lookAt) { SetLookAt(lookAt, "##home"); }
     CameraData GetHome() const { return GetLookAt("##home"); }
 };

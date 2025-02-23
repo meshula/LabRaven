@@ -218,7 +218,7 @@ TextureActivity::TextureActivity()
     activity.Menu = [](void* instance) {
         static_cast<TextureActivity*>(instance)->Menu();
     };
-    activity.Update = [](void* instance) {
+    activity.Update = [](void* instance, float) {
         static_cast<TextureActivity*>(instance)->Update();
     };
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {

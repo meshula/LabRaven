@@ -354,7 +354,7 @@ void DrawIcon(ImDrawList* drawList,
 // is_active is a pointer to a bool that will be set to true if the dpad is being used. It used by the algorithm
 // to determine, if the mouse is down, whether init_x and init_y should be set to the current mouse position.
 bool imgui_dpad(const char* label, float* p_x, float* p_y,
-    float size,
+    bool drawBg, float size,
     float deadzone)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -409,8 +409,10 @@ bool imgui_dpad(const char* label, float* p_x, float* p_y,
                                           ImGuiCol_FrameBg);
 
     // Draw background
-    draw_list->AddRectFilled(pos, pos + button_sz,
-                             bg_col, style.FrameRounding);
+    if (drawBg) {
+        draw_list->AddRectFilled(pos, pos + button_sz,
+                                 bg_col, style.FrameRounding);
+    }
 
     // Draw icon
     DrawIcon(draw_list, pos, pos + button_sz,

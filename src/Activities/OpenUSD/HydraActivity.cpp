@@ -6,6 +6,7 @@
 
 #include "HydraViewport.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
+#include "Providers/Camera/CameraProvider.hpp"
 
 namespace lab {
 
@@ -23,6 +24,11 @@ HydraActivity::HydraActivity() : Activity(HydraActivity::sname()) {
     };
     activity.Menu = [](void* instance) {
         static_cast<HydraActivity*>(instance)->Menu();
+    };
+
+    activity.Update = [](void* instance, float dt) {
+        auto cp = CameraProvider::instance();
+        cp->Update(dt);
     };
 }
 

@@ -85,7 +85,7 @@ typedef struct LabActivity {
     void* instance = nullptr; // an activity can store its instance data here
     void (*Activate)(void*) = nullptr;
     void (*Deactivate)(void*) = nullptr;
-    void (*Update)(void*) = nullptr;
+    void (*Update)(void*, float dt) = nullptr;
     void (*Render)(void*, const LabViewInteraction*) = nullptr;
     void (*RunUI)(void*, const LabViewInteraction*) = nullptr;
     void (*Menu)(void*) = nullptr;
@@ -364,7 +364,7 @@ public:
     void RunMainMenu();
         
     void EnqueueTransaction(Transaction&&);
-    void ServiceTransactionsAndActivities();
+    void ServiceTransactionsAndActivities(float dt);
 
     Journal& GetJournal() const;
 };

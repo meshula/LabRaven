@@ -54,7 +54,7 @@ bool RangeSliderFloat(const char* label, float* v1, float* v2,
 // is_active is a pointer to a bool that will be set to true if the dpad is being used. It used by the algorithm
 // to determine, if the mouse is down, whether init_x and init_y should be set to the current mouse position.
 bool imgui_dpad(const char* label, float* p_x, float* p_y,
-                float size,
+                bool drawBg, float size,
                 float deadzone = 0.2f);
 
 /*

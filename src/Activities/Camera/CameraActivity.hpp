@@ -56,6 +56,6 @@ public:
     PXR_NS::GfVec3d HitPoint() const;
 };
 
-}
+} // lab
 
 #endif /* CameraActivity_hpp */

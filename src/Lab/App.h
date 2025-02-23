@@ -55,6 +55,9 @@ public:
     FileDialogManager* fdm();
     Orchestrator* mm();
     CSP_Engine* csp();
+
+    double Now_ms() const;          // elapsed time since app start
+    double FrameTime_ms() const;    // time since last frame
     
     // dimensions of the viewport of the main window ~ it is the area not
     // occupied by docked panels.

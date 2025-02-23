@@ -278,7 +278,7 @@ void Orchestrator::EnqueueTransaction(Transaction&& work) {
     _self->transactor.push_socket.send(message, zmq::send_flags::none);
 }
 
-void Orchestrator::ServiceTransactionsAndActivities() {
+void Orchestrator::ServiceTransactionsAndActivities(float dt) {
     // activate pending studio if ready
     if (_studio_pending.length()) {
         _activate_studio(_studio_pending);
@@ -306,7 +306,7 @@ void Orchestrator::ServiceTransactionsAndActivities() {
     CommandStack::GetInstance().ExecuteCommands();
 
     for (auto i : _self->update_activities)
-        i->activity.Update(i);
+        i->activity.Update(i, dt);
 }
 
 std::shared_ptr<Studio> Orchestrator::FindStudio(const std::string & m)

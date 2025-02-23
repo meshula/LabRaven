@@ -2,6 +2,9 @@
 
 #include "Lab/App.h"
 #include "Providers/Camera/CameraProvider.hpp"
+#include "Providers/OpenUSD/OpenUSDProvider.hpp"
+#include "Providers/OpenUSD/UsdUtils.hpp"
+#include "Lab/ImguiExt.hpp"
 
 #include <pxr/base/gf/camera.h>
 #include <pxr/base/gf/frustum.h>
@@ -89,15 +92,28 @@ float HydraViewport::_GetViewportHeight()
 
 void HydraViewport::_Draw()
 {
+    // This routine is inside a Begin/End()
     _DrawMenuBar();
 
     if (_GetViewportWidth() <= 0 || _GetViewportHeight() <= 0) return;
 
     ImGui::BeginChild("GameRender");
 
+    const float dpad_width = 32;
+    // record the current upper left corner of the ImGui window
+    ImVec2 upperLeft = ImGui::GetCursorPos();
+    ImVec2 dollyWidgetPos = upperLeft;
+    // add the width of the window and subtract a hundred for a widget pos
+    dollyWidgetPos.x += _GetViewportWidth() - 150;
+    dollyWidgetPos.y += 2;
+    ImVec2 craneWidgetPos = dollyWidgetPos;
+    craneWidgetPos.x -= (dpad_width + 8);
+    ImVec2 panWidgetPos = craneWidgetPos;
+    panWidgetPos.x -= (dpad_width + 8);
+
     _ConfigureImGuizmo();
 
-    // read from active cam in case it is modify by another view
+    // read from active cam in case it was modified by another view
     if (!ImGui::IsWindowFocused())
         _UpdateViewportFromActiveCam();
 
@@ -109,6 +125,55 @@ void HydraViewport::_Draw()
     _UpdatePluginLabel();
 
     ImGuizmo::PopID();
+
+    static float x = 0;
+    static float y = 0;
+    ImGui::SetCursorPos(dollyWidgetPos);
+    imgui_dpad("dolly", &x, &y, false, dpad_width, 0.1);
+    static float cx = 0;
+    static float cy = 0;
+    ImGui::SetCursorPos(craneWidgetPos);
+    imgui_dpad("crane", &cx, &cy, false, dpad_width, 0.1);
+    static float px = 0;
+    static float py = 0;
+    ImGui::SetCursorPos(panWidgetPos);
+    imgui_dpad("pan", &px, &py, false, dpad_width, 0.1);
+
+    ImGui::SetCursorPos(upperLeft);
+    static bool centerLocked = true;
+    // checkbox
+    ImGui::Checkbox("lock center", &centerLocked);
+
+    if (ImGui::Button("Home")) {
+        auto cp = CameraProvider::instance();
+        cp->SetLookAt(cp->GetHome().lookAt, "interactive");
+    }
+    if (ImGui::Button("Center")) {
+        auto cp = CameraProvider::instance();
+        auto lookAt = cp->GetLookAt("interactive").lookAt;
+
+        auto usd = OpenUSDProvider::instance();
+        auto model = usd->Model();
+        auto selection = model->GetSelection();
+
+        if (selection.size()) {
+            auto box = ComputeWorldBounds(model->GetStage(), UsdTimeCode::Default(), selection);
+            GfVec3d center = box.ComputeCentroid();
+            lookAt.center = { (float) center[0], (float) center[1], (float) center[2] };
+        }
+        else {
+            lookAt.center = { 0, 0, 0 };
+        }
+        cp->LerpLookAt(lookAt, 0.25f, "interactive");
+    }
+    if (ImGui::Button("Frame")) {
+        auto cp = CameraProvider::instance();
+        auto lookAt = cp->GetLookAt("interactive").lookAt;
+        lookAt.eye = { 0, 3, 10 };
+        lookAt.center = { 0, 0, 0 };
+        lookAt.up = { 0, 1, 0 };
+        cp->SetLookAt(lookAt, "interactive");
+    }
 
     ImGui::EndChild();
 };
