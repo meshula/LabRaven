@@ -69,6 +69,9 @@ class HydraViewport : public pxr::View {
         const float _FREE_CAM_FAR = 10000.f;
 
         bool _isAmbientLightEnabled, _isDomeLightEnabled, _isGridEnabled;
+
+        bool _guiInterceptedMouse = false;
+
         pxr::SdfPath _activeCam;
 
         pxr::GfMatrix4d _proj;

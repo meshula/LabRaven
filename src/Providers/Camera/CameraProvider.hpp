@@ -25,11 +25,13 @@ public:
     };
     struct CameraData {
         CameraProvider::LookAt lookAt;
+        lc_radians HFOV = { 0.7f }; // 40 degrees, approximately
         int generation = 0;
     };
 
     void SetLookAt(const LookAt& lookAt, const std::string& name);
     CameraData GetLookAt(const std::string& name) const;
+    void SetHFOV(lc_radians hfov, const std::string& name);
 
     void LerpLookAt(const LookAt& lookAt, float t, const std::string& name);
     void Update(float dt);

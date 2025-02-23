@@ -94,6 +94,21 @@ void CameraProvider::Update(float dt) {
     }
 }
 
+void CameraProvider::SetHFOV(lc_radians hfov, const std::string& name) {
+    std::lock_guard<std::mutex> lock(_self->safety);
+    auto it = _self->lookAts.find(name);
+    if (it != _self->lookAts.end()) {
+        it->second.HFOV = hfov;
+        it->second.generation++;
+    }
+    else {
+        auto home = GetHome();
+        home.HFOV = hfov;
+        home.generation = 1;
+        _self->lookAts[name] = home;
+    }
+}
+
 void CameraProvider::SetLookAt(const LookAt& lookAt, const std::string& name) {
     std::lock_guard<std::mutex> lock(_self->safety);
     auto it = _self->lookAts.find(name);

@@ -48,6 +48,7 @@ HydraViewport::HydraViewport(Model* model, const string label) : View(model, lab
     _isAmbientLightEnabled = true;
     _isDomeLightEnabled = false;
     _isGridEnabled = true;
+    _guiInterceptedMouse = false;
 
     _curOperation = ImGuizmo::TRANSLATE;
     _curMode = ImGuizmo::LOCAL;
@@ -93,6 +94,9 @@ float HydraViewport::_GetViewportHeight()
 void HydraViewport::_Draw()
 {
     // This routine is inside a Begin/End()
+
+    _guiInterceptedMouse = false;
+
     _DrawMenuBar();
 
     if (_GetViewportWidth() <= 0 || _GetViewportHeight() <= 0) return;
@@ -129,26 +133,36 @@ void HydraViewport::_Draw()
     static float x = 0;
     static float y = 0;
     ImGui::SetCursorPos(dollyWidgetPos);
-    imgui_dpad("dolly", &x, &y, false, dpad_width, 0.1);
+    if (imgui_dpad("dolly", &x, &y, false, dpad_width, 0.1)) {
+        _guiInterceptedMouse = true;
+    }
     static float cx = 0;
     static float cy = 0;
     ImGui::SetCursorPos(craneWidgetPos);
-    imgui_dpad("crane", &cx, &cy, false, dpad_width, 0.1);
+    if (imgui_dpad("crane", &cx, &cy, false, dpad_width, 0.1)) {
+        _guiInterceptedMouse = true;
+    }
     static float px = 0;
     static float py = 0;
     ImGui::SetCursorPos(panWidgetPos);
-    imgui_dpad("pan", &px, &py, false, dpad_width, 0.1);
+    if (imgui_dpad("pan", &px, &py, false, dpad_width, 0.1)) {
+        _guiInterceptedMouse = true;
+    }
 
     ImGui::SetCursorPos(upperLeft);
     static bool centerLocked = true;
     // checkbox
-    ImGui::Checkbox("lock center", &centerLocked);
+    if (ImGui::Checkbox("lock center", &centerLocked)) {
+        _guiInterceptedMouse = true;
+    }
 
     if (ImGui::Button("Home")) {
+        _guiInterceptedMouse = true;
         auto cp = CameraProvider::instance();
         cp->SetLookAt(cp->GetHome().lookAt, "interactive");
     }
     if (ImGui::Button("Center")) {
+        _guiInterceptedMouse = true;
         auto cp = CameraProvider::instance();
         auto lookAt = cp->GetLookAt("interactive").lookAt;
 
@@ -160,19 +174,54 @@ void HydraViewport::_Draw()
             auto box = ComputeWorldBounds(model->GetStage(), UsdTimeCode::Default(), selection);
             GfVec3d center = box.ComputeCentroid();
             lookAt.center = { (float) center[0], (float) center[1], (float) center[2] };
+            cp->LerpLookAt(lookAt, 0.25f, "interactive");
         }
         else {
-            lookAt.center = { 0, 0, 0 };
+            //lookAt.center = { 0, 0, 0 };
         }
-        cp->LerpLookAt(lookAt, 0.25f, "interactive");
     }
     if (ImGui::Button("Frame")) {
+        _guiInterceptedMouse = true;
         auto cp = CameraProvider::instance();
-        auto lookAt = cp->GetLookAt("interactive").lookAt;
-        lookAt.eye = { 0, 3, 10 };
-        lookAt.center = { 0, 0, 0 };
-        lookAt.up = { 0, 1, 0 };
-        cp->SetLookAt(lookAt, "interactive");
+        auto camData = cp->GetLookAt("interactive");
+        auto& lookAt = camData.lookAt;
+
+        auto usd = OpenUSDProvider::instance();
+        auto model = usd->Model();
+        auto selection = model->GetSelection();
+
+        if (selection.size()) {
+            auto box = ComputeWorldBounds(model->GetStage(), UsdTimeCode::Default(), selection);
+            GfVec3d center = box.ComputeCentroid();
+            if (true || (box.GetVolume() > 0)) {
+                printf("Selection extent, framing\n");
+                auto bboxRange = box.ComputeAlignedRange();
+                GfVec3d rect = bboxRange.GetMax() - bboxRange.GetMin();
+                float selectionSize = std::max(rect[0], rect[1]) * 2; // This reset the selection size
+                lc_radians fov = camData.HFOV;
+                auto lengthToFit = selectionSize * 0.5;
+                float dist = lengthToFit / atan(fov.rad * 0.5);
+
+                GfVec3d eye(lookAt.eye.x, lookAt.eye.y, lookAt.eye.z);
+                GfVec3d eyeToCenter = eye - center;
+                eyeToCenter.Normalize();
+                eyeToCenter *= dist;
+                eye = center + eyeToCenter;
+
+                lookAt.eye = { (float) eye[0], (float) eye[1], (float) eye[2] };
+                lookAt.center = { (float) center[0], (float) center[1], (float) center[2] };
+                lookAt.up = { 0, 1, 0 };
+                cp->LerpLookAt(lookAt, 0.25f, "interactive");
+            }
+            else {
+                printf("Selection has no extent, look at\n");
+                lookAt.center = { (float) center[0], (float) center[1], (float) center[2] };
+                cp->LerpLookAt(lookAt, 0.25f, "interactive");
+            }
+        }
+        else {
+            // no selection, nothing to do
+        }
     }
 
     ImGui::EndChild();
@@ -510,22 +559,6 @@ void HydraViewport::_OrbitActiveCam(ImVec2 mouseDeltaPos)
 
     _UpdateActiveCamFromViewport();
 }
-/*
-
- const lc_rigid_transform* cmt = &camera.mount.transform;
- lc_v3f pos = cmt->position;
- lc_v3f camera_to_focus = pos - _orbit_center;
- float distance_to_focus = length(camera_to_focus);
- const float feel = 0.02f;
- float scale = std::max(0.01f, logf(distance_to_focus) * feel);
- lc_v3f deltaX = lc_rt_right(cmt) * -delta.x * scale;
- lc_v3f dP = lc_rt_forward(cmt) * -delta.z * scale - deltaX - lc_rt_up(cmt) * -delta.y * scale;
- if (!_orbit_fixed)
-     _orbit_center += dP;
- lc_mount_set_view_transform_quat_pos(&camera.mount, cmt->orientation, cmt->position + dP);
-
- */
-
 
 void HydraViewport::_ZoomActiveCam(ImVec2 mouseDeltaPos)
 {
@@ -596,20 +629,16 @@ void HydraViewport::_UpdateViewportFromActiveCam()
     auto model = GetModel();
     model->SetActiveCamera(_activeCam);
 
-    printf("at_0 %g %g %g\n", lookAt.center.x, lookAt.center.y, lookAt.center.z);
-
     HdSceneIndexPrim prim = model->GetFinalSceneIndex()->GetPrim(_activeCam);
     GfCamera gfCam = _ToGfCamera(prim);
     GfFrustum frustum = gfCam.GetFrustum();
     eye = frustum.GetPosition();
     at = frustum.ComputeLookAtPoint();
 
-    printf("at_1 %g %g %g\n", lookAt.center.x, lookAt.center.y, lookAt.center.z);
-
-
     lookAt.eye = { (float)eye[0], (float)eye[1], (float)eye[2] };
     lookAt.center = { (float)at[0], (float)at[1], (float)at[2] };
     cp->SetLookAt(lookAt, "interactive");
+    cp->SetHFOV({ (float)gfCam.GetFieldOfView(GfCamera::FOVHorizontal) }, "interactive");
 }
 
 GfMatrix4d HydraViewport::_getCurViewMatrix()
@@ -746,6 +775,9 @@ void HydraViewport::_FocusOnPrim(SdfPath primPath)
 
 void HydraViewport::_KeyPressEvent(ImGuiKey key)
 {
+    if (_guiInterceptedMouse)
+        return;
+
     if (key == ImGuiKey_F) {
         SdfPathVector primPaths = GetModel()->GetSelection();
         if (primPaths.size() > 0) _FocusOnPrim(primPaths[0]);
@@ -766,6 +798,9 @@ void HydraViewport::_KeyPressEvent(ImGuiKey key)
 
 void HydraViewport::_MouseMoveEvent(ImVec2 prevPos, ImVec2 curPos)
 {
+    if (_guiInterceptedMouse)
+        return;
+
     ImVec2 deltaMousePos = curPos - prevPos;
 
     ImGuiIO& io = ImGui::GetIO();
@@ -790,6 +825,9 @@ void HydraViewport::_MouseMoveEvent(ImVec2 prevPos, ImVec2 curPos)
 
 void HydraViewport::_MouseReleaseEvent(ImGuiMouseButton_ button, ImVec2 mousePos)
 {
+    if (_guiInterceptedMouse)
+        return;
+
     if (button == ImGuiMouseButton_Left) {
         ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
         if (fabs(delta.x) + fabs(delta.y) < 0.001f) {
