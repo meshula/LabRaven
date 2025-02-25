@@ -64,6 +64,9 @@ struct OpenUSDProvider::Self {
     pxr::UsdStageRefPtr templateStage;
     int stage_generation = 0;
 
+    int camera_generation = -1;
+    std::vector<pxr::UsdPrim> cameras;
+
     // list of all the schema types, and a string buffer for dear ImGui
     std::set<TfType> schemaTypes;
     std::map<std::string, TfType> primTypes;
@@ -157,6 +160,31 @@ void OpenUSDProvider::ReleaseInstance()
     gInstance.reset();
 }
 
+const std::vector<pxr::UsdPrim>& OpenUSDProvider::GetCameras()
+{
+    pxr::UsdStageRefPtr stage = Stage();
+    if (!stage) {
+        static std::vector<pxr::UsdPrim> empty;
+        return empty;
+    }
+
+    if (self->camera_generation == self->stage_generation) {
+        return self->cameras;
+    }
+
+    pxr::UsdPrimSubtreeRange prims = stage->GetPseudoRoot().GetAllDescendants();
+
+    self->cameras.clear();
+    for (auto prim : prims) {
+        if (prim.GetTypeName().GetString() == pxr::UsdGeomTokens->Camera) {
+            self->cameras.push_back(prim);
+        }
+    }
+
+    self->camera_generation = self->stage_generation;
+    return self->cameras;
+}
+
 pxr::SdfPath OpenUSDProvider::CreateCamera(const std::string& name) {
     pxr::UsdStageRefPtr stage = Stage();
     if (!stage)
@@ -175,6 +203,7 @@ pxr::SdfPath OpenUSDProvider::CreateCamera(const std::string& name) {
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Camera: " + r.GetString();
     console->Info(msg);
+    self->camera_generation = -1;
     return r;
 }
 

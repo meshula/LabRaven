@@ -17,6 +17,7 @@
 #include <imgui_internal.h>
 // clang-format on
 #include <ImGuizmo.h>
+#include <pxr/base/gf/camera.h>
 #include <pxr/usd/usd/prim.h>
 
 #include "engine.h"
@@ -63,16 +64,25 @@ class HydraViewport : public pxr::View {
          */
         ImGuiWindowFlags _GetGizmoWindowFlags() override;
 
+        PXR_NS::GfVec2d GetNearFar() const { return { _zNear, _zFar }; }
+        void SetNearFar(float n, float f) { _zNear = n; _zFar = f; }
+        float GetAspect();
+        PXR_NS::GfCamera GetGfCamera() const { return _cam; }
+        void SetCameraFromGfCamera(const PXR_NS::GfCamera& gfCam);
+
+
     private:
         const float _FREE_CAM_FOV = 45.f;
-        const float _FREE_CAM_NEAR = 0.1f;
-        const float _FREE_CAM_FAR = 10000.f;
+
+        float _zNear = 0.1f;
+        float _zFar = 1.0e4f;
 
         bool _isAmbientLightEnabled, _isDomeLightEnabled, _isGridEnabled;
 
         bool _guiInterceptedMouse = false;
 
-        pxr::SdfPath _activeCam;
+        PXR_NS::SdfPath _activeCam;
+        PXR_NS::GfCamera _cam;  // cached whenever it's computed for the viewport
 
         pxr::GfMatrix4d _proj;
 

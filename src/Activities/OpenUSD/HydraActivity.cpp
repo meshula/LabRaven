@@ -10,6 +10,8 @@
 
 namespace lab {
 
+PXR_NAMESPACE_USING_DIRECTIVE
+
 struct HydraActivity::data {
     data() = default;
     ~data() = default;
@@ -64,5 +66,26 @@ void HydraActivity::RunUI(const LabViewInteraction&) {
 
 void HydraActivity::Menu() {
 }
+
+void HydraActivity::SetNearFar(float znear, float zfar) {
+    _self->viewport->SetNearFar(znear, zfar);
+}
+
+GfVec2d HydraActivity::GetNearFar() const {
+    return _self->viewport->GetNearFar();
+}
+
+float HydraActivity::GetAspect() const {
+    return _self->viewport->GetAspect();
+}
+
+PXR_NS::GfCamera HydraActivity::GetGfCamera() const {
+    return _self->viewport->GetGfCamera();
+}
+
+void HydraActivity::SetCameraFromGfCamera(const GfCamera& gfCam) {
+    _self->viewport->SetCameraFromGfCamera(gfCam);
+}
+
 
 } // lab

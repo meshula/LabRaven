@@ -9,6 +9,7 @@
 #define TimelineActivity_hpp
 
 #include "Lab/StudioCore.hpp"
+#include <opentime/rationalTime.h>
 
 namespace lab {
 
@@ -26,6 +27,8 @@ public:
 
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "Timeline"; }
+
+    opentime::OPENTIME_VERSION::RationalTime Playhead() const;
 };
 
 } // lab

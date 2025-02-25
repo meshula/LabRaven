@@ -4,6 +4,7 @@
 #include "Lab/StudioCore.hpp"
 #include <memory>
 #include <string>
+#include <vector>
 #include <pxr/base/gf/vec3d.h>
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/usd/stage.h>
@@ -34,6 +35,8 @@ public:
     void ExportSessionLayer(std::string const& path);
 
     void SetEmptyStage();
+
+    const std::vector<pxr::UsdPrim>& GetCameras();
 
     void CreateShotFromTemplate(const std::string& dst, 
                                 const std::string& shotname);

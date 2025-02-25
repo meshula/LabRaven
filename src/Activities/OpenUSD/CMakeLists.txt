@@ -5,6 +5,7 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST
              OpenUSD/OpenUSD;\
              OpenUSD/Hydra;\
              OpenUSD/Properties;\
+             OpenUSD/Scout;\
              OpenUSD/Session;\
              OpenUSD/TfDebug;\
              OpenUSD/UsdCreate;\
@@ -16,6 +17,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     HydraActivity.cpp HydraActivity.hpp
     HydraViewport.cpp HydraViewport.hpp
     PropertiesActivity.cpp PropertiesActivity.hpp
+    ScoutActivity.cpp ScoutActivity.hpp
     SessionActivity.cpp SessionActivity.hpp
     TfDebugActivity.cpp TfDebugActivity.hpp
     UsdCreateActivity.cpp UsdCreateActivity.hpp

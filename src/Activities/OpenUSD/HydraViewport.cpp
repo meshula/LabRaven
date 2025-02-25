@@ -273,7 +273,7 @@ void HydraViewport::_DrawMenuBar()
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("cameras")) {
+        if (ImGui::BeginMenu("hd cameras")) {
             bool enabled = (_activeCam.IsEmpty());
             if (ImGui::MenuItem("free camera", NULL, &enabled)) {
                 _SetFreeCamAsActive();
@@ -674,22 +674,44 @@ void HydraViewport::_UpdateActiveCamFromViewport()
 void HydraViewport::_UpdateProjection()
 {
     float fov = _FREE_CAM_FOV;
-    float nearPlane = _FREE_CAM_NEAR;
-    float farPlane = _FREE_CAM_FAR;
 
     if (!_activeCam.IsEmpty()) {
         HdSceneIndexPrim prim = GetModel()->GetFinalSceneIndex()->GetPrim(_activeCam);
         GfCamera gfCam = _ToGfCamera(prim);
         fov = gfCam.GetFieldOfView(GfCamera::FOVVertical);
-        nearPlane = gfCam.GetClippingRange().GetMin();
-        farPlane = gfCam.GetClippingRange().GetMax();
+        _zNear = gfCam.GetClippingRange().GetMin();
+        _zFar = gfCam.GetClippingRange().GetMax();
     }
 
     GfFrustum frustum;
     double aspectRatio = _GetViewportWidth() / _GetViewportHeight();
-    frustum.SetPerspective(fov, true, aspectRatio, nearPlane, farPlane);
+    frustum.SetPerspective(fov, true, aspectRatio, _zNear, _zFar);
     _proj = frustum.ComputeProjectionMatrix();
 }
+
+float HydraViewport::GetAspect()
+{
+    return _GetViewportWidth() / _GetViewportHeight();
+}
+
+
+void HydraViewport::SetCameraFromGfCamera(const GfCamera& gfCam) {
+    _zNear = gfCam.GetClippingRange().GetMin();
+    _zFar = gfCam.GetClippingRange().GetMax();
+    GfFrustum frustum = gfCam.GetFrustum();     /// @TODO need to respect the camera's aspect ratio and fit it in the view port and set up reticle
+    _proj = frustum.ComputeProjectionMatrix();
+
+    GfVec3d eye = frustum.GetPosition();
+    GfVec3d at = frustum.ComputeLookAtPoint();
+    CameraProvider::LookAt lookAt;
+    auto cp = CameraProvider::instance();
+    lookAt.eye = { (float)eye[0], (float)eye[1], (float)eye[2] };
+    lookAt.center = { (float)at[0], (float)at[1], (float)at[2] };
+    lookAt.up = { 0, 1, 0 };
+    cp->SetLookAt(lookAt, "interactive");
+    cp->SetHFOV({ (float) (gfCam.GetFieldOfView(GfCamera::FOVVertical) * 2.0 * M_PI / 360.0) }, "interactive");
+}
+
 
 GfCamera HydraViewport::_ToGfCamera(HdSceneIndexPrim prim)
 {
@@ -733,6 +755,7 @@ GfCamera HydraViewport::_ToGfCamera(HdSceneIndexPrim prim)
     cam.SetFocalLength(focalLength / GfCamera::FOCAL_LENGTH_UNIT);
     cam.SetClippingRange(GfRange1f(clippingRange[0], clippingRange[1]));
 
+    _cam = cam;
     return cam;
 }
 
