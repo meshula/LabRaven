@@ -9,9 +9,11 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST
              OpenUSD/Session;\
              OpenUSD/TfDebug;\
              OpenUSD/UsdCreate;\
-             OpenUSD/UsdOutliner")
+             OpenUSD/UsdOutliner;\
+             OpenUSD/Component")
 
 target_sources(${PROJECT_NAME} PUBLIC 
+    ComponentActivity.cpp ComponentActivity.hpp
     UsdFileDialogModules.hpp
     OpenUSDActivity.cpp OpenUSDActivity.hpp
     HydraActivity.cpp HydraActivity.hpp

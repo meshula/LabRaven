@@ -23,6 +23,7 @@ OpenUSDStudio::~OpenUSDStudio() {
 
 static const std::vector<std::string> activities = {
     "Console",
+    "Component",
     "Hydra",
     "Journal",
     "OpenUSD",
