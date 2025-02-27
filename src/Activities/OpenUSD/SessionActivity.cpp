@@ -4,14 +4,19 @@
 #endif
 #include "imgui.h"
 
-#include "ImGuiHydraEditor/src/views/editor.h"
+#include "Activities/OpenUSD/HydraEditor.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
+#include "UsdSessionLayer.hpp"
 
 namespace lab {
 
 struct SessionActivity::data {
-    data() = default;
+    data() {
+        sessionLayer = std::unique_ptr<UsdSessionLayer>(new UsdSessionLayer());
+    }
     ~data() = default;
+
+    std::unique_ptr<UsdSessionLayer> sessionLayer;
 };
 
 SessionActivity::SessionActivity() : Activity(SessionActivity::sname()) {
@@ -28,8 +33,8 @@ SessionActivity::~SessionActivity() {
 
 void SessionActivity::RunUI(const LabViewInteraction&) {
     auto usd = OpenUSDProvider::instance();
-    auto model = usd->Model();
-    if (!model) {
+    auto stage = usd->Stage();
+    if (!stage) {
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin("Session Editor##A1");
         ImGui::TextUnformatted("Session Editor: No stage opened yet.");
@@ -37,7 +42,7 @@ void SessionActivity::RunUI(const LabViewInteraction&) {
     }
     else {
         ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-        usd->GetSessionLayerManager()->Update();
+        _self->sessionLayer->Update();
     }
 }
 

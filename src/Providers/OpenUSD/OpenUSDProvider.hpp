@@ -8,8 +8,6 @@
 #include <pxr/base/gf/vec3d.h>
 #include <pxr/usd/sdf/layer.h>
 #include <pxr/usd/usd/stage.h>
-#include "ImGuiHydraEditor/src/models/model.h"
-#include "ImGuiHydraEditor/src/views/usdsessionlayer.h"
 
 namespace lab {
 
@@ -21,20 +19,18 @@ public:
     OpenUSDProvider();
     ~OpenUSDProvider();
 
-    pxr::Model* Model();
-
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "OpenUSD"; }
 
     static OpenUSDProvider* instance();
     static void ReleaseInstance();
 
+    int StageGeneration() const;
+    void SetEmptyStage();
     void LoadStage(std::string const& filePath);
     void SaveStage();
     void ExportStage(std::string const& path);
     void ExportSessionLayer(std::string const& path);
-
-    void SetEmptyStage();
 
     const std::vector<pxr::UsdPrim>& GetCameras();
 
@@ -45,9 +41,8 @@ public:
                     const std::string& filePath);
 
     PXR_NS::UsdStageRefPtr Stage() const;
+    void SetStage(PXR_NS::UsdStageRefPtr stage);
     PXR_NS::SdfLayerRefPtr GetSessionLayer();
-
-    pxr::UsdSessionLayer* GetSessionLayerManager();
 
     void ReferenceLayer(PXR_NS::UsdStageRefPtr stage,
                                     const std::string& layerFilePath,

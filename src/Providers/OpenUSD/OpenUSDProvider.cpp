@@ -18,10 +18,8 @@
 
 
 
-#include "ImGuiHydraEditor/src/models/model.h"
 #include "ImGuiHydraEditor/src/engine.h"
 #include "ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.h"
-#include "ImGuiHydraEditor/src/views/usdsessionlayer.h"
 
 #include <pxr/base/plug/registry.h>
 #include <pxr/base/tf/fileUtils.h>
@@ -56,10 +54,6 @@ PXR_NAMESPACE_USING_DIRECTIVE
 namespace lab {
 
 struct OpenUSDProvider::Self {
-    // things related to the stage and hydra
-    std::unique_ptr<pxr::Model> model;
-    std::unique_ptr<UsdSessionLayer> sessionLayer;
-
     // things related to the templating utility
     pxr::UsdStageRefPtr templateStage;
     int stage_generation = 0;
@@ -73,6 +67,12 @@ struct OpenUSDProvider::Self {
     char* primTypesMenuData = nullptr;
 
     UsdTemplater* templater = nullptr;
+
+/* session layer things */
+    pxr::SdfLayerRefPtr _rootLayer, _sessionLayer;
+    pxr::UsdStageRefPtr _stage;
+
+    /* session layer things */
 
     Self() {
         auto& kr = KindRegistry::GetInstance();
@@ -98,21 +98,14 @@ struct OpenUSDProvider::Self {
                 curr += i.first.length() + 1;
             }
         }
-        model = std::unique_ptr<pxr::Model>(new pxr::Model());
-        sessionLayer = std::unique_ptr<UsdSessionLayer>(new UsdSessionLayer(model.get()));
     }
 
     ~Self() {
-        sessionLayer.reset();
-        model.reset();
         delete templater;
     }
 
 };
 
-pxr::Model* OpenUSDProvider::Model() {
-    return self->model.get();
-}
 
 OpenUSDProvider::OpenUSDProvider()
 : Provider(OpenUSDProvider::sname())
@@ -127,19 +120,34 @@ OpenUSDProvider::~OpenUSDProvider()
 {
 }
 
-UsdSessionLayer* OpenUSDProvider::GetSessionLayerManager() {
-    return self->sessionLayer.get();    
+int OpenUSDProvider::StageGeneration() const {
+    return self->stage_generation;
 }
 
-void OpenUSDProvider::SetEmptyStage() {
+void OpenUSDProvider::SetEmptyStage()
+{
     //PXR_NS::TfDebug::SetDebugSymbolsByName("USD_STAGE_LIFETIMES", true);
-    self->sessionLayer->SetEmptyStage();
+    auto stage = UsdStage::CreateInMemory();
+    UsdGeomSetStageUpAxis(stage, UsdGeomTokens->y);
+    SetStage(stage);
 }
+
+void OpenUSDProvider::SetStage(UsdStageRefPtr stage)
+{
+    self->_stage = stage;
+    self->_rootLayer = stage->GetRootLayer();
+    self->_sessionLayer = stage->GetSessionLayer();
+    if (!self->_sessionLayer) {
+        self->_sessionLayer = SdfLayer::CreateAnonymous();
+    }
+
+    self->_stage->SetEditTarget(self->_sessionLayer);
+    self->stage_generation++;
+}
+
 
 UsdStageRefPtr OpenUSDProvider::Stage() const {
-    if (self->model)
-        return self->model->GetStage();
-    return {};
+    return self->_stage;
 }
 
 namespace {
@@ -227,8 +235,6 @@ pxr::SdfPath OpenUSDProvider::CreateCapsule(PXR_NS::GfVec3d pos)
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
 
-    self->sessionLayer->UpdateStageSceneIndex();
-
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Capsule: " + r.GetString();
@@ -255,8 +261,6 @@ pxr::SdfPath OpenUSDProvider::CreateCone(PXR_NS::GfVec3d pos)
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
 
-    self->sessionLayer->UpdateStageSceneIndex();
-
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Cone: " + r.GetString();
@@ -281,8 +285,6 @@ pxr::SdfPath OpenUSDProvider::CreateCube(PXR_NS::GfVec3d pos) {
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
-
-    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -356,8 +358,6 @@ PXR_NS::SdfPath OpenUSDProvider::CreateHilbertCurve(int iterations, PXR_NS::GfVe
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
 
-    self->sessionLayer->UpdateStageSceneIndex();
-
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Hilbert Curve: " + r.GetString();
@@ -403,7 +403,6 @@ pxr::SdfPath OpenUSDProvider::CreateTestData() {
     cubeRed.GetPrim().ApplyAPI<UsdShadeMaterialBindingAPI>();
     auto redBinding = UsdShadeMaterialBindingAPI(cubeRed);
     redBinding.Bind(material);
-    self->sessionLayer->UpdateStageSceneIndex();
     return SdfPath("/CubeRed");
 }
 
@@ -493,8 +492,6 @@ pxr::SdfPath OpenUSDProvider::CreateMacbethChart(const std::string& chipsColorsp
         xformable.AddTranslateOp().Set(GfVec3d(x + 1.0, y + 1.0, z + 1.0));
     }
 
-    self->sessionLayer->UpdateStageSceneIndex();
-
     std::string msg = "Created Macbeth Chart: " + r.GetString();
     console->Info(msg);
     return r;
@@ -502,7 +499,6 @@ pxr::SdfPath OpenUSDProvider::CreateMacbethChart(const std::string& chipsColorsp
 
 pxr::SdfPath OpenUSDProvider::CreateDemoText(const std::string& text, PXR_NS::GfVec3d pos) {
     auto path = CreateC64DemoText(*this, text, pos);
-    self->sessionLayer->UpdateStageSceneIndex();
     return path;
 }
 
@@ -524,8 +520,6 @@ pxr::SdfPath OpenUSDProvider::CreateCylinder(PXR_NS::GfVec3d pos)
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
-
-    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -599,8 +593,6 @@ PXR_NS::SdfPath OpenUSDProvider::CreateGroundGrid(PXR_NS::GfVec3d pos, int x, in
         }
     }
 
-    self->sessionLayer->UpdateStageSceneIndex();
-
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Ground Grid: " + r.GetString();
@@ -626,8 +618,6 @@ pxr::SdfPath OpenUSDProvider::CreatePlane(PXR_NS::GfVec3d pos)
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(prim, m, UsdTimeCode::Default());
-
-    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -655,8 +645,6 @@ pxr::SdfPath OpenUSDProvider::CreateSphere(PXR_NS::GfVec3d pos, float radius)
     GfMatrix4d m;
     m.SetTranslate(pos);
     SetTransformMatrix(sphere, m, UsdTimeCode::Default());
-
-    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -801,8 +789,6 @@ pxr::SdfPath OpenUSDProvider::CreateParGeometry(const std::string& shape,
 
     // free the mesh
     par_shapes_free_mesh(mesh);
-
-    self->sessionLayer->UpdateStageSceneIndex();
 
     auto mm = lab::Orchestrator::Canonical();
     std::weak_ptr<ConsoleActivity> cap;
@@ -954,8 +940,6 @@ pxr::SdfPath OpenUSDProvider::CreateParHeightfield(PXR_NS::GfVec3d pos) {
     heman_image_destroy(albedo);
     heman_image_destroy(final);
 
-    self->sessionLayer->UpdateStageSceneIndex();
-
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
     std::string msg = "Created Par Heightfield: " + r.GetString();
@@ -997,8 +981,6 @@ pxr::SdfPath OpenUSDProvider::CreatePrimShape(const std::string& shape,
     else {
         return {};
     }
-
-    self->sessionLayer->UpdateStageSceneIndex();
 
     std::weak_ptr<ConsoleActivity> cap;
     auto console = mm->LockActivity(cap);
@@ -1042,8 +1024,8 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
                 printf("\tChild path: %s\n", c.GetPath().GetString().c_str());
             }
         }
- 
-        self->sessionLayer->SetStage(stage);
+
+        SetStage(stage);
     }
     else {
         fprintf(stderr, "Stage was not loaded at %s\n", filePath.c_str());
@@ -1051,21 +1033,18 @@ void OpenUSDProvider::LoadStage(std::string const& filePath)
 }
 
 void OpenUSDProvider::SaveStage() {
-    if (self->model) {
-        auto stage = self->model->GetStage();
-        if (stage)
-            stage->GetRootLayer()->Save();
+    if (self->_stage) {
+        self->_stage->GetRootLayer()->Save();
     }
 }
 
 void OpenUSDProvider::ExportStage(std::string const& path)
 {
-    if (!self->model) {
+    if (!self->_stage) {
         fprintf(stderr, "No stage to export\n");
         return;
     }
-    auto stage = self->model->GetStage();
-    if (!stage) {
+    if (!self->_stage) {
         fprintf(stderr, "No stage to export\n");
         return;
     }
@@ -1092,7 +1071,7 @@ void OpenUSDProvider::ExportStage(std::string const& path)
         }
 
         std::string temp_usdc_path = "contents.usdc";
-        stage->GetRootLayer()->Export(temp_usdc_path);
+        self->_stage->GetRootLayer()->Export(temp_usdc_path);
         if (!pxr::UsdUtilsCreateNewUsdzPackage(pxr::SdfAssetPath(temp_usdc_path), "new.usdz")) {
             // report error
         }
@@ -1109,21 +1088,17 @@ void OpenUSDProvider::ExportStage(std::string const& path)
         free(cwd_buffer);
     }
     else {
-        stage->GetRootLayer()->Export(path);
+        self->_stage->GetRootLayer()->Export(path);
     }
 }
 
 PXR_NS::SdfLayerRefPtr OpenUSDProvider::GetSessionLayer() {
-    if (self->sessionLayer) {
-        return self->sessionLayer->GetSessionLayer();
-    }
-    return {};
+    return self->_sessionLayer;
 }
 
 void OpenUSDProvider::ExportSessionLayer(std::string const& path) {
-    auto sl = GetSessionLayer();
-    if (sl) {
-        sl->Export(path);
+    if (self->_sessionLayer) {
+        self->_sessionLayer->Export(path);
     }
 }
 
@@ -1161,8 +1136,6 @@ void OpenUSDProvider::CreateShotFromTemplate(const std::string& directory_,
 
     UsdPrim prim = self->templater->GetTemplatePrim("/Shot");
     self->templater->InstantiateTemplate(100, td, prim, prim);
-
-    self->sessionLayer->UpdateStageSceneIndex();
 }
 
 
@@ -1178,7 +1151,6 @@ void OpenUSDProvider::CreateCard(const std::string& scope,
     td.dict["IMAGE_FILE"] = VtValue(imagePath);
     td.templateStage = Stage();
     self->templater->InstantiateTemplate(100, td, prim, prim);
-    self->sessionLayer->UpdateStageSceneIndex();
 }
 
 void OpenUSDProvider::TestReferencing() {
@@ -1336,8 +1308,6 @@ void OpenUSDProvider::ReferenceLayer(PXR_NS::UsdStageRefPtr stage,
             std::cout << "Inserted rotation to make the referenced layer, " << name << " Y-up." << std::endl;
         }
     }
-
-    self->sessionLayer->UpdateStageSceneIndex();
 }
 
 string OpenUSDProvider::GetNextAvailableIndexedPath(string const& primPath) {

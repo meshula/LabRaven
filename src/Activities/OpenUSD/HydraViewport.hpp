@@ -19,15 +19,16 @@
 #include <ImGuizmo.h>
 #include <pxr/base/gf/camera.h>
 #include <pxr/usd/usd/prim.h>
+#include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
+#include <pxr/usdImaging/usdImaging/sceneIndices.h>
 
 #include "engine.h"
-#include "models/model.h"
 #include "sceneindices/gridsceneindex.h"
 #include "sceneindices/xformfiltersceneindex.h"
 #include "views/view.h"
 
-namespace lab {
 
+namespace lab {
 /**
  * @brief HydraViewport view acts as a viewport for the data within the current
  * Model. It allows to visualize the USD data with the current Model using an
@@ -44,7 +45,7 @@ class HydraViewport : public pxr::View {
          * @param model the Model of the new HydraViewport view
          * @param label the ImGui label of the new HydraViewport view
          */
-        HydraViewport(pxr::Model* model, const std::string label = VIEW_TYPE);
+        HydraViewport(const std::string label = VIEW_TYPE);
 
         /**
          * @brief Destroy the HydraViewport object
@@ -69,9 +70,21 @@ class HydraViewport : public pxr::View {
         float GetAspect();
         PXR_NS::GfCamera GetGfCamera() const { return _cam; }
         void SetCameraFromGfCamera(const PXR_NS::GfCamera& gfCam);
+        PXR_NS::SdfPathVector GetHdSelection();
+        void RemoveSceneIndex(pxr::HdSceneIndexBaseRefPtr);
+    void SetHdSelection(const PXR_NS::SdfPathVector& spv);
+    PXR_NS::HdSceneIndexBaseRefPtr GetFinalSceneIndex();
 
+    int GetHit(PXR_NS::GfVec3f& hitPoint, PXR_NS::GfVec3f& hitNormal);
+    void SetStage(PXR_NS::UsdStageRefPtr stage);
+
+    PXR_NS::HdSceneIndexBaseRefPtr GetEditableSceneIndex();
+    void SetEditableSceneIndex(PXR_NS::HdSceneIndexBaseRefPtr sceneIndex);
+    void SetTime(PXR_NS::UsdTimeCode);
 
     private:
+    class Self;
+        std::unique_ptr<Self> _model;
         const float _FREE_CAM_FOV = 45.f;
 
         float _zNear = 0.1f;
@@ -84,11 +97,14 @@ class HydraViewport : public pxr::View {
         PXR_NS::SdfPath _activeCam;
         PXR_NS::GfCamera _cam;  // cached whenever it's computed for the viewport
 
-        pxr::GfMatrix4d _proj;
+    PXR_NS::GfMatrix4d _proj;
 
         pxr::Engine* _engine;
-        pxr::GridSceneIndexRefPtr _gridSceneIndex;
-        pxr::XformFilterSceneIndexRefPtr _xformSceneIndex;
+    PXR_NS::GridSceneIndexRefPtr _gridSceneIndex;
+    PXR_NS::XformFilterSceneIndexRefPtr _xformSceneIndex;
+
+    PXR_NS::UsdImagingSceneIndices _sceneIndices;
+
         ImGuiWindowFlags _gizmoWindowFlags;
 
         ImGuizmo::OPERATION _curOperation;

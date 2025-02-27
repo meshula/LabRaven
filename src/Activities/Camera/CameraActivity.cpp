@@ -13,6 +13,7 @@
 #include "CameraActivity.hpp"
 #include "imgui.h"
 #include "imgui-knobs.hpp"
+#include "Activities/OpenUSD/HydraActivity.hpp"
 #include "Providers/Camera/LabCamera.h"
 #include "LabCameraImGui.h"
 #include "ImGuizmo.h"
@@ -445,10 +446,12 @@ void CameraActivity::ViewportDragging(const LabViewInteraction& vi) {
     
     auto raycast = [&]() -> bool {
         auto usd = OpenUSDProvider::instance();
-        auto model = usd->Model();
         PXR_NS::GfVec3f point;
         PXR_NS::GfVec3f normal;
-        _self->check_hydra_pick = model->GetHit(point, normal); // find out the current hit, we're going to wait for the next
+        Orchestrator* mm = Orchestrator::Canonical();
+        std::weak_ptr<HydraActivity> hact;
+        auto hydra = mm->LockActivity(hact);
+        _self->check_hydra_pick = hydra->GetHit(point, normal); // find out the current hit, we're going to wait for the next
         state = CameraDraggingStates::Decide;
         return true; // continue to next state
     };
@@ -456,11 +459,13 @@ void CameraActivity::ViewportDragging(const LabViewInteraction& vi) {
     auto decide = [&]() -> bool {
         _self->hitPointValid = false;
         auto usd = OpenUSDProvider::instance();
-        auto model = usd->Model();
+        Orchestrator* mm = Orchestrator::Canonical();
+        std::weak_ptr<HydraActivity> hact;
+        auto hydra = mm->LockActivity(hact);
         PXR_NS::GfVec3f point;
         PXR_NS::GfVec3f normal;
-        int hitGeneration = model->GetHit(point, normal);
-        auto selectedPrims = model->GetSelection();
+        int hitGeneration = hydra->GetHit(point, normal);
+        auto selectedPrims = hydra->GetHdSelection();
         PXR_NS::SdfPath prim;
         if (selectedPrims.size() > 0)
             selectedPrims[0];
@@ -489,7 +494,7 @@ void CameraActivity::ViewportDragging(const LabViewInteraction& vi) {
                     else {
                         selectedPrims.clear();
                         selectedPrims.push_back(prim);
-                        model->SetSelection(selectedPrims);
+                        hydra->SetHdSelection(selectedPrims);
                         return false; // break out
                     }
                 }
@@ -593,12 +598,14 @@ void CameraActivity::Render(const LabViewInteraction& vi) {
 #endif
 
     auto& d = vi.view;
+    Orchestrator* mm = Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
 
     auto usd = OpenUSDProvider::instance();
-    auto model = usd->Model();
     PXR_NS::GfVec3f point;
     PXR_NS::GfVec3f normal;
-    int gen = model->GetHit(point, normal);
+    int gen = hydra->GetHit(point, normal);
     GfRotation rot({0,1,0}, normal);
     GfMatrix3f m(rot);
     m = m.GetInverse();
@@ -811,8 +818,12 @@ void CameraActivity::ToolBar() {
     //---------------------------
 
     auto usd = OpenUSDProvider::instance();
-    auto model = usd->Model();
-    auto selection = model->GetSelection();
+
+    Orchestrator* mm = Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
+
+    auto selection = hydra->GetHdSelection();
 
     PXR_NS::SdfPath prim;
     bool have_selection = selection.size() > 0;
@@ -866,11 +877,13 @@ void CameraActivity::Menu() {
 
 void CameraActivity::FrameSelection() {
     lc_i_sync_constraints(_self->ttl_controller, _self->interactive_controller);
+    Orchestrator* mm = Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
 
     auto usd = OpenUSDProvider::instance();
-    auto model = usd->Model();
-    auto selection = model->GetSelection();
-    auto bbox = ComputeWorldBounds(model->GetStage(), {}, selection);
+    auto selection = hydra->GetHdSelection();
+    auto bbox = ComputeWorldBounds(usd->Stage(), {}, selection);
 
     GfVec3d center = bbox.ComputeCentroid();
     if (bbox.GetVolume() > 0) {
@@ -922,10 +935,13 @@ void CameraActivity::LookAt(const PXR_NS::GfVec3d& center) {
 void CameraActivity::LookAtSelection() {
     lc_i_sync_constraints(_self->ttl_controller, _self->interactive_controller);
 
+    Orchestrator* mm = Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
+
     auto usd = OpenUSDProvider::instance();
-    auto model = usd->Model();
-    auto selection = model->GetSelection();
-    auto box = ComputeWorldBounds(model->GetStage(), {}, selection);
+    auto selection = hydra->GetHdSelection();
+    auto box = ComputeWorldBounds(usd->Stage(), {}, selection);
 
     GfVec3d center = box.ComputeCentroid();
     _self->hit_point = center;

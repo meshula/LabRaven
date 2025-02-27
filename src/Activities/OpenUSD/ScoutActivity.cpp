@@ -69,8 +69,7 @@ namespace lab {
         auto hydra = mm->LockActivity(hact);
 
         auto usd = OpenUSDProvider::instance();
-        auto model = usd->Model();
-        auto stage = model->GetStage();
+        auto stage = usd->Stage();
         double tcps = stage->GetTimeCodesPerSecond();
         const UsdTimeCode timeCode = timeline->Playhead().to_seconds() * tcps;
 

@@ -15,6 +15,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     UsdFileDialogModules.hpp
     OpenUSDActivity.cpp OpenUSDActivity.hpp
     HydraActivity.cpp HydraActivity.hpp
+    HydraEditor.cpp HydraEditor.hpp
     HydraViewport.cpp HydraViewport.hpp
     PropertiesActivity.cpp PropertiesActivity.hpp
     ScoutActivity.cpp ScoutActivity.hpp
@@ -22,4 +23,5 @@ target_sources(${PROJECT_NAME} PUBLIC
     TfDebugActivity.cpp TfDebugActivity.hpp
     UsdCreateActivity.cpp UsdCreateActivity.hpp
     UsdOutlinerActivity.cpp UsdOutlinerActivity.hpp
+    UsdSessionLayer.cpp UsdSessionLayer.hpp
 )

@@ -24,7 +24,7 @@ namespace lab {
         explicit TfDebugActivity();
         virtual ~TfDebugActivity();
         virtual const std::string Name() const override { return sname(); }
-        static constexpr const char* sname() { return "TfDebug"; }
+        static constexpr const char* sname() { return "TfDebugger"; }
     };
 }
 

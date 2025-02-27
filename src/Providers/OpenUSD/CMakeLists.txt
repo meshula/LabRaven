@@ -68,14 +68,8 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/kazmath/vec4.c
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/engine.cpp
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/editor.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/editor.cpp
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/usdsessionlayer.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/usdsessionlayer.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/views/view.cpp
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/models/model.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/models/model.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/colorfiltersceneindex.h
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/colorfiltersceneindex.cpp
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/gridsceneindex.h

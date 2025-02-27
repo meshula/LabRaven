@@ -9,14 +9,24 @@
 #include <pxr/base/gf/camera.h>
 #include <pxr/base/gf/frustum.h>
 #include <pxr/base/gf/matrix4f.h>
+#include <pxr/base/gf/vec3d.h>
 #include <pxr/base/plug/plugin.h>
 #include <pxr/imaging/cameraUtil/framing.h>
 #include <pxr/imaging/hd/cameraSchema.h>
 #include <pxr/imaging/hd/extentSchema.h>
-#include <pxr/usd/usd/stage.h>
+#include <pxr/imaging/hd/mergingSceneIndex.h>
+#include <pxr/imaging/hd/sceneIndex.h>
+#include <pxr/imaging/hd/sceneIndexPrimView.h>
 #include <pxr/imaging/hgi/blitCmdsOps.h>
 #include <pxr/imaging/hgi/texture.h>
 #include <pxr/imaging/hdSt/renderBuffer.h>
+#include <pxr/usd/usd/prim.h>
+#include <pxr/usd/usd/primRange.h>
+#include <pxr/usd/usd/stage.h>
+#include <pxr/usdImaging/usdImaging/sceneIndices.h>
+#include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
+
+#include <vector>
 
 extern "C"
 int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels);
@@ -27,7 +37,6 @@ void LabRemoveTexture(int texture);
 extern "C"
 void LabUpdateRGBAf16Texture(int texture, uint8_t* rgba_pixels);
 
-
 struct TextureCapture {
     int width = 0;
     int height = 0;
@@ -36,14 +45,94 @@ struct TextureCapture {
 
 TextureCapture texcap;
 PXR_NAMESPACE_USING_DIRECTIVE
+using namespace std;
 
 namespace lab {
 
-using std::string;
-using pxr::Model;
+class HydraViewport::Self {
+public:
+    Self() {
+        _sceneIndexBases = HdMergingSceneIndex::New();
+        _finalSceneIndex = HdMergingSceneIndex::New();
+        _editableSceneIndex = _sceneIndexBases;
+        SetEditableSceneIndex(_editableSceneIndex);
 
-HydraViewport::HydraViewport(Model* model, const string label) : View(model, label)
+        UsdImagingCreateSceneIndicesInfo info;
+        info.displayUnloadedPrimsWithBounds = false;
+        const UsdImagingSceneIndices sceneIndices =  UsdImagingCreateSceneIndices(info);
+        _stageSceneIndex = sceneIndices.stageSceneIndex;
+        AddSceneIndexBase(sceneIndices.finalSceneIndex);
+    }
+
+    UsdPrim GetUsdPrim(UsdStageRefPtr stage, SdfPath path)
+    {
+        return stage->GetPrimAtPath(path);
+    }
+
+    UsdPrimRange GetAllPrims(UsdStageRefPtr stage)
+    {
+        return stage->Traverse();
+    }
+
+    void AddSceneIndexBase(HdSceneIndexBaseRefPtr sceneIndex)
+    {
+        _sceneIndexBases->AddInputScene(sceneIndex, SdfPath::AbsoluteRootPath());
+    }
+
+    void SetEditableSceneIndex(HdSceneIndexBaseRefPtr sceneIndex)
+    {
+        _finalSceneIndex->RemoveInputScene(_editableSceneIndex);
+        _editableSceneIndex = sceneIndex;
+        _finalSceneIndex->AddInputScene(_editableSceneIndex,
+                                        SdfPath::AbsoluteRootPath());
+    }
+
+    HdSceneIndexPrim GetPrim(SdfPath primPath)
+    {
+        return _finalSceneIndex->GetPrim(primPath);
+    }
+
+    SdfPathVector GetCameras()
+    {
+        SdfPath root = SdfPath::AbsoluteRootPath();
+        HdSceneIndexPrimView primView(_finalSceneIndex, root);
+        SdfPathVector camPaths;
+        for (auto primPath : primView) {
+            HdSceneIndexPrim prim = _finalSceneIndex->GetPrim(primPath);
+            if (prim.primType == HdPrimTypeTokens->camera) {
+                camPaths.push_back(primPath);
+            }
+        }
+        return camPaths;
+    }
+
+    void SetHit(GfVec3f hitPoint, GfVec3f hitNormal)
+    {
+        _hitPoint = hitPoint;
+        _hitNormal = hitNormal;
+        _hitGeneration++;
+    }
+
+    int GetHit(GfVec3f& hitPoint, GfVec3f& hitNormal)
+    {
+        hitPoint = _hitPoint;
+        hitNormal = _hitNormal;
+        return _hitGeneration;
+    }
+
+     int _hitGeneration = 0;
+     GfVec3f _hitPoint, _hitNormal;
+     UsdStageWeakPtr _stage;
+     SdfPathVector _hdSelection;
+     UsdImagingStageSceneIndexRefPtr _stageSceneIndex;
+     HdSceneIndexBaseRefPtr _editableSceneIndex;
+     HdMergingSceneIndexRefPtr _sceneIndexBases, _finalSceneIndex;
+     SdfPath _activeCamera;
+};
+
+HydraViewport::HydraViewport(const string label) : View(label)
 {
+    _model = std::make_unique<Self>();
     _gizmoWindowFlags = ImGuiWindowFlags_MenuBar;
     _isAmbientLightEnabled = true;
     _isDomeLightEnabled = false;
@@ -56,20 +145,70 @@ HydraViewport::HydraViewport(Model* model, const string label) : View(model, lab
     _UpdateActiveCamFromViewport();
 
     _gridSceneIndex = GridSceneIndex::New();
-    GetModel()->AddSceneIndexBase(_gridSceneIndex);
+    _model->AddSceneIndexBase(_gridSceneIndex);
 
-    auto editableSceneIndex = GetModel()->GetEditableSceneIndex();
-    _xformSceneIndex = XformFilterSceneIndex::New(editableSceneIndex);
-    GetModel()->SetEditableSceneIndex(_xformSceneIndex);
+    _xformSceneIndex = XformFilterSceneIndex::New(_model->_editableSceneIndex);
+    _model->SetEditableSceneIndex(_xformSceneIndex);
 
     TfToken plugin = Engine::GetDefaultRendererPlugin();
-    _engine = new Engine(GetModel()->GetFinalSceneIndex(), plugin);
+    _engine = new Engine(_model->_finalSceneIndex, plugin);
 };
 
 HydraViewport::~HydraViewport()
 {
     delete _engine;
 }
+
+void HydraViewport::RemoveSceneIndex(HdSceneIndexBaseRefPtr p) {
+    _engine->RemoveSceneIndex(p);
+}
+
+SdfPathVector HydraViewport::GetHdSelection() {
+    return _model->_hdSelection;
+}
+
+void HydraViewport::SetHdSelection(const SdfPathVector& spv) {
+    _model->_hdSelection = spv;
+}
+
+int HydraViewport::GetHit(GfVec3f& hitPoint, GfVec3f& hitNormal) {
+    return _model->GetHit(hitPoint, hitNormal);
+}
+
+HdSceneIndexBaseRefPtr HydraViewport::GetEditableSceneIndex() {
+    return _model->_editableSceneIndex;
+}
+
+PXR_NS::HdSceneIndexBaseRefPtr HydraViewport::GetFinalSceneIndex() {
+    return _model->_finalSceneIndex;
+}
+
+void HydraViewport::SetEditableSceneIndex(PXR_NS::HdSceneIndexBaseRefPtr sceneIndex) {
+    _model->_editableSceneIndex = sceneIndex;
+}
+
+
+void HydraViewport::SetStage(UsdStageRefPtr stage) {
+
+    if (_sceneIndices.finalSceneIndex) {
+        RemoveSceneIndex(_sceneIndices.finalSceneIndex);
+    }
+
+    // create scene index for the first time
+    UsdImagingCreateSceneIndicesInfo info;
+    info.displayUnloadedPrimsWithBounds = false;
+    _sceneIndices = UsdImagingCreateSceneIndices(info);
+    _model->_stageSceneIndex = _sceneIndices.stageSceneIndex;
+    _model->AddSceneIndexBase(_sceneIndices.finalSceneIndex);
+
+    _model->_stageSceneIndex->SetStage(stage);
+    _model->_stageSceneIndex->SetTime(UsdTimeCode::Default());
+}
+
+void HydraViewport::SetTime(UsdTimeCode tc) {
+    _model->_stageSceneIndex->SetTime(tc);
+}
+
 
 const string HydraViewport::GetViewType()
 {
@@ -93,13 +232,19 @@ float HydraViewport::_GetViewportHeight()
 
 void HydraViewport::_Draw()
 {
+    if (_model->_stageSceneIndex) {
+        _model->_stageSceneIndex->ApplyPendingUpdates();
+    }
+
     // This routine is inside a Begin/End()
 
     _guiInterceptedMouse = false;
+    if (_GetViewportWidth() <= 0 || _GetViewportHeight() <= 0) {
+        return;
+    }
 
     _DrawMenuBar();
 
-    if (_GetViewportWidth() <= 0 || _GetViewportHeight() <= 0) return;
 
     ImGui::BeginChild("GameRender");
 
@@ -167,11 +312,12 @@ void HydraViewport::_Draw()
         auto lookAt = cp->GetLookAt("interactive").lookAt;
 
         auto usd = OpenUSDProvider::instance();
-        auto model = usd->Model();
-        auto selection = model->GetSelection();
+        auto& selection = _model->_hdSelection;
 
         if (selection.size()) {
-            auto box = ComputeWorldBounds(model->GetStage(), UsdTimeCode::Default(), selection);
+            auto usd = OpenUSDProvider::instance();
+
+            auto box = ComputeWorldBounds(usd->Stage(), UsdTimeCode::Default(), selection);
             GfVec3d center = box.ComputeCentroid();
             lookAt.center = { (float) center[0], (float) center[1], (float) center[2] };
             cp->LerpLookAt(lookAt, 0.25f, "interactive");
@@ -187,11 +333,11 @@ void HydraViewport::_Draw()
         auto& lookAt = camData.lookAt;
 
         auto usd = OpenUSDProvider::instance();
-        auto model = usd->Model();
-        auto selection = model->GetSelection();
+        auto& selection = _model->_hdSelection;
 
         if (selection.size()) {
-            auto box = ComputeWorldBounds(model->GetStage(), UsdTimeCode::Default(), selection);
+            auto usd = OpenUSDProvider::instance();
+            auto box = ComputeWorldBounds(usd->Stage(), UsdTimeCode::Default(), selection);
             GfVec3d center = box.ComputeCentroid();
             if (true || (box.GetVolume() > 0)) {
                 printf("Selection extent, framing\n");
@@ -267,7 +413,7 @@ void HydraViewport::_DrawMenuBar()
                 string name = _engine->GetRendererPluginName(p);
                 if (ImGui::MenuItem(name.c_str(), NULL, enabled)) {
                     delete _engine;
-                    _engine = new Engine(GetModel()->GetFinalSceneIndex(), p);
+                    _engine = new Engine(_model->_finalSceneIndex, p);
                 }
             }
             ImGui::EndMenu();
@@ -278,7 +424,7 @@ void HydraViewport::_DrawMenuBar()
             if (ImGui::MenuItem("free camera", NULL, &enabled)) {
                 _SetFreeCamAsActive();
             }
-            for (SdfPath path : GetModel()->GetCameras()) {
+            for (SdfPath path : _model->GetCameras()) {
                 bool enabled = (path == _activeCam);
                 if (ImGui::MenuItem(path.GetName().c_str(), NULL, enabled)) {
                     _SetActiveCam(path);
@@ -368,8 +514,7 @@ GetGPUTexture(
 
 void HydraViewport::_UpdateHydraRender()
 {
-    auto model = GetModel();
-    if (!model)
+    if (!_model)
         return;
 
     GfMatrix4d view = _getCurViewMatrix();
@@ -378,7 +523,7 @@ void HydraViewport::_UpdateHydraRender()
 
     // set selection
     SdfPathVector paths;
-    for (auto&& prim : model->GetSelection())
+    for (auto&& prim : _model->_hdSelection)
         paths.push_back(prim.GetPrimPath());
 
     _engine->SetSelection(paths);
@@ -427,7 +572,7 @@ void HydraViewport::_UpdateHydraRender()
 
 void HydraViewport::_UpdateTransformGuizmo()
 {
-    SdfPathVector primPaths = GetModel()->GetSelection();
+    SdfPathVector& primPaths = _model->_hdSelection;
     if (primPaths.size() == 0 || primPaths[0].IsEmpty()) return;
 
     SdfPath primPath = primPaths[0];
@@ -626,10 +771,9 @@ void HydraViewport::_UpdateViewportFromActiveCam()
     GfVec3d eye(lookAt.eye.x, lookAt.eye.y, lookAt.eye.z);
     GfVec3d up(lookAt.up.x, lookAt.up.y, lookAt.up.z);
 
-    auto model = GetModel();
-    model->SetActiveCamera(_activeCam);
+    _model->_activeCamera = _activeCam;
 
-    HdSceneIndexPrim prim = model->GetFinalSceneIndex()->GetPrim(_activeCam);
+    HdSceneIndexPrim prim = _model->_finalSceneIndex->GetPrim(_activeCam);
     GfCamera gfCam = _ToGfCamera(prim);
     GfFrustum frustum = gfCam.GetFrustum();
     eye = frustum.GetPosition();
@@ -656,7 +800,7 @@ void HydraViewport::_UpdateActiveCamFromViewport()
     if (_activeCam.IsEmpty())
         return;
 
-    HdSceneIndexPrim prim = GetModel()->GetFinalSceneIndex()->GetPrim(_activeCam);
+    HdSceneIndexPrim prim = _model->_finalSceneIndex->GetPrim(_activeCam);
     GfCamera gfCam = _ToGfCamera(prim);
 
     GfFrustum prevFrustum = gfCam.GetFrustum();
@@ -676,7 +820,7 @@ void HydraViewport::_UpdateProjection()
     float fov = _FREE_CAM_FOV;
 
     if (!_activeCam.IsEmpty()) {
-        HdSceneIndexPrim prim = GetModel()->GetFinalSceneIndex()->GetPrim(_activeCam);
+        HdSceneIndexPrim prim = _model->_finalSceneIndex->GetPrim(_activeCam);
         GfCamera gfCam = _ToGfCamera(prim);
         fov = gfCam.GetFieldOfView(GfCamera::FOVVertical);
         _zNear = gfCam.GetClippingRange().GetMin();
@@ -763,7 +907,7 @@ void HydraViewport::_FocusOnPrim(SdfPath primPath)
 {
     if (primPath.IsEmpty()) return;
 
-    HdSceneIndexPrim prim = GetModel()->GetFinalSceneIndex()->GetPrim(primPath);
+    HdSceneIndexPrim prim = _model->_finalSceneIndex->GetPrim(primPath);
 
     HdExtentSchema extentSchema =
         HdExtentSchema::GetFromParent(prim.dataSource);
@@ -802,7 +946,7 @@ void HydraViewport::_KeyPressEvent(ImGuiKey key)
         return;
 
     if (key == ImGuiKey_F) {
-        SdfPathVector primPaths = GetModel()->GetSelection();
+        SdfPathVector primPaths = _model->_hdSelection;
         if (primPaths.size() > 0) _FocusOnPrim(primPaths[0]);
     }
     else if (key == ImGuiKey_W) {
@@ -857,11 +1001,12 @@ void HydraViewport::_MouseReleaseEvent(ImGuiMouseButton_ button, ImVec2 mousePos
             GfVec2f gfMousePos(mousePos[0], mousePos[1]);
             Engine::IntersectionResult intr = _engine->FindIntersection(gfMousePos);
 
-            if (intr.path.IsEmpty())
-                GetModel()->SetSelection({});
+            if (intr.path.IsEmpty()) {
+                _model->_hdSelection = {};
+            }
             else {
-                GetModel()->SetSelection({intr.path});
-                GetModel()->SetHit(intr.worldSpaceHitPoint, intr.worldSpaceHitNormal);
+                _model->_hdSelection = {intr.path};
+                _model->SetHit(intr.worldSpaceHitPoint, intr.worldSpaceHitNormal);
             }
         }
     }

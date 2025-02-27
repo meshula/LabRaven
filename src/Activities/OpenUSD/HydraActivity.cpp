@@ -16,10 +16,16 @@ struct HydraActivity::data {
     data() = default;
     ~data() = default;
     std::unique_ptr<HydraViewport> viewport;
+    int stage_signature = 0;
 };
 
 HydraActivity::HydraActivity() : Activity(HydraActivity::sname()) {
     _self = new HydraActivity::data();
+
+    _self->viewport = std::unique_ptr<HydraViewport>(
+                             new HydraViewport("Hydra Viewport##A1"));
+
+    SetTime(UsdTimeCode::Default());
 
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
         static_cast<HydraActivity*>(instance)->RunUI(*vi);
@@ -37,31 +43,62 @@ HydraActivity::HydraActivity() : Activity(HydraActivity::sname()) {
 HydraActivity::~HydraActivity() {
     delete _self;
 }
+PXR_NS::HdSceneIndexBaseRefPtr HydraActivity::GetFinalSceneIndex() {
+    return _self->viewport->GetFinalSceneIndex();
+}
+
+SdfPathVector HydraActivity::GetHdSelection() {
+    return _self->viewport->GetHdSelection();
+}
+
+void HydraActivity::SetHdSelection(const SdfPathVector& spv) {
+    _self->viewport->SetHdSelection(spv);
+}
+
+void HydraActivity::RemoveSceneIndex(HdSceneIndexBaseRefPtr p) {
+    _self->viewport->RemoveSceneIndex(p);
+}
+
+void HydraActivity::SetStage(UsdStageRefPtr stage) {
+    _self->viewport->SetStage(stage);
+}
+
+int HydraActivity::GetHit(GfVec3f& hitPoint, GfVec3f& hitNormal) {
+    _self->viewport->GetHit(hitPoint, hitNormal);
+}
+
+void HydraActivity::SetTime(UsdTimeCode tc) {
+    _self->viewport->SetTime(tc);
+}
+
+HdSceneIndexBaseRefPtr HydraActivity::GetEditableSceneIndex() {
+    _self->viewport->GetEditableSceneIndex();
+}
+
+void HydraActivity::SetEditableSceneIndex(PXR_NS::HdSceneIndexBaseRefPtr sceneIndex) {
+    _self->viewport->SetEditableSceneIndex(sceneIndex);
+}
 
 void HydraActivity::RunUI(const LabViewInteraction&) {
     if (!_self->viewport) {
-        auto usd = OpenUSDProvider::instance();
-        auto model = usd->Model();
-        if (model) {
-            ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-            _self->viewport = std::unique_ptr<HydraViewport>(
-                                     new HydraViewport(model, "Hydra Viewport##A1"));
-        }
-    }
-
-    // make a window 800, 600
-    if (_self->viewport) {
-        ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-        _self->viewport->Update();
-    }
-    else {
         ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Hydra Viewport##A2")) {
             ImGui::Text("No USD stage loaded.");
         }
         ImGui::End();
-
+        return;
     }
+
+    auto usd = OpenUSDProvider::instance();
+    int current_gen = usd->StageGeneration();
+    if (current_gen != _self->stage_signature) {
+        SetStage(usd->Stage());
+        _self->stage_signature = current_gen;
+    }
+
+    // make a window 800, 600
+    ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
+    _self->viewport->Update();
 }
 
 void HydraActivity::Menu() {

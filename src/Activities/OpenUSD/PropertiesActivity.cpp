@@ -6,9 +6,10 @@
 #include "ImGuizmo.h"
 #include "Activities/Color/UIElements.hpp"
 
-#include "ImGuiHydraEditor/src/views/editor.h"
+#include "Activities/OpenUSD/HydraEditor.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include "Providers/OpenUSD/UsdUtils.hpp"
+#include "Providers/Selection/SelectionProvider.hpp"
 #include "Providers/Color/nanocolor.h"
 
 #include <pxr/base/gf/matrix4d.h>
@@ -38,6 +39,8 @@ struct PropertiesActivity::data {
 
 PropertiesActivity::PropertiesActivity() : Activity(PropertiesActivity::sname()) {
     _self = new PropertiesActivity::data();
+    _self->editor = std::unique_ptr<pxr::Editor>(
+                            new pxr::Editor("Hd Properties Editor##A1"));
 
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
         static_cast<PropertiesActivity*>(instance)->RunUI(*vi);
@@ -53,15 +56,8 @@ PropertiesActivity::~PropertiesActivity() {
 
 void PropertiesActivity::RunUI(const LabViewInteraction&) {
     auto usd = OpenUSDProvider::instance();
-    auto model = usd->Model();
 
     if (_self->hdPropertyEditorVisible) {
-        if (!_self->editor) {
-            if (model) {
-                _self->editor = std::unique_ptr<pxr::Editor>(
-                                        new pxr::Editor(model, "Hd Properties Editor##A1"));
-            }
-        }
         // make a window 800, 600
         if (_self->editor) {
             ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
@@ -95,9 +91,10 @@ void PropertiesActivity::RunUI(const LabViewInteraction&) {
         UsdTimeCode timeCode; // default timecode @TODO wire it up to a TimeProvider
         Orchestrator* mm = Orchestrator::Canonical();
 
-        auto selection = model->GetSelection();
+        auto sp = SelectionProvider::instance();
+        auto selection = sp->GetSelectionPrims();
         if (selection.size()) {
-            selectedPrim = stage->GetPrimAtPath(selection[0]);
+            selectedPrim = selection[0];
             if (selectedPrim.IsValid()) {
                 // stash display colour
                 UsdGeomGprim gprim(selectedPrim);

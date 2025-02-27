@@ -15,7 +15,10 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include "imgui.h"
+#include "Lab/App.h"
+#include "Lab/StudioCore.hpp"
 #include "Lab/ImguiExt.hpp"
+#include "Activities/OpenUSD/HydraActivity.hpp"
 #include "Providers/Assets/AssetsProvider.hpp"
 #include "Providers/Selection/SelectionProvider.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
@@ -47,7 +50,9 @@ namespace {
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-Outliner::Outliner(Model* model, const string label) : View(model, label) {}
+using namespace lab;
+
+Outliner::Outliner(const string label) : View(label) {}
 
 const string Outliner::GetViewType()
 {
@@ -57,7 +62,10 @@ const string Outliner::GetViewType()
 void Outliner::_Draw()
 {
     SdfPath root = SdfPath::AbsoluteRootPath();
-    SdfPathVector paths = GetModel()->GetFinalSceneIndex()->GetChildPrimPaths(root);
+    lab::Orchestrator* mm = lab::Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
+    SdfPathVector paths = hydra->GetFinalSceneIndex()->GetChildPrimPaths(root);
     for (auto primPath : paths)
         _DrawPrimHierarchy(primPath);
 }
@@ -68,7 +76,10 @@ ImRect Outliner::_DrawPrimHierarchy(SdfPath primPath)
     bool recurse = _DrawHierarchyNode(primPath);
 
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
-       GetModel()->SetSelection({primPath});
+        lab::Orchestrator* mm = lab::Orchestrator::Canonical();
+        std::weak_ptr<HydraActivity> hact;
+        auto hydra = mm->LockActivity(hact);
+        hydra->SetHdSelection({primPath});
     }
 
     const ImRect curItemRect =
@@ -76,9 +87,11 @@ ImRect Outliner::_DrawPrimHierarchy(SdfPath primPath)
 
     if (recurse) {
         // draw all children and store their rect position
+        lab::Orchestrator* mm =lab:: Orchestrator::Canonical();
+        std::weak_ptr<HydraActivity> hact;
+        auto hydra = mm->LockActivity(hact);
         vector<ImRect> rects;
-        SdfPathVector primPaths =
-            GetModel()->GetFinalSceneIndex()->GetChildPrimPaths(primPath);
+        SdfPathVector primPaths = hydra->GetFinalSceneIndex()->GetChildPrimPaths(primPath);
 
         for (auto child : primPaths) {
             ImRect childRect = _DrawPrimHierarchy(child.GetPrimPath());
@@ -99,9 +112,12 @@ ImRect Outliner::_DrawPrimHierarchy(SdfPath primPath)
 ImGuiTreeNodeFlags Outliner::_ComputeDisplayFlags(SdfPath primPath)
 {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
+    lab::Orchestrator* mm =lab:: Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
 
     // set the flag if leaf or not
-    SdfPathVector primPaths = GetModel()->GetFinalSceneIndex()->GetChildPrimPaths(primPath);
+    SdfPathVector primPaths = hydra->GetFinalSceneIndex()->GetChildPrimPaths(primPath);
 
     if (primPaths.size() == 0) {
         flags |= ImGuiTreeNodeFlags_Leaf;
@@ -190,8 +206,11 @@ bool Outliner::IsParentOf(SdfPath primPath, SdfPath childPrimPath)
 
 bool Outliner::_IsParentOfModelSelection(SdfPath primPath)
 {
+    lab::Orchestrator* mm =lab:: Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
     // check if primPath is parent of selection
-    for (auto&& p : GetModel()->GetSelection())
+    for (auto&& p : hydra->GetHdSelection())
         if (IsParentOf(primPath, p)) return true;
 
     return false;
@@ -199,7 +218,10 @@ bool Outliner::_IsParentOfModelSelection(SdfPath primPath)
 
 bool Outliner::_IsInModelSelection(SdfPath primPath)
 {
-    SdfPathVector sel = GetModel()->GetSelection();
+    lab::Orchestrator* mm =lab:: Orchestrator::Canonical();
+    std::weak_ptr<HydraActivity> hact;
+    auto hydra = mm->LockActivity(hact);
+    SdfPathVector sel = hydra->GetHdSelection();
     // check if primPath in model selection
     return find(sel.begin(), sel.end(), primPath) != sel.end();
 }
@@ -249,8 +271,7 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
         return;
 
     pxr::UsdStageRefPtr stage = OpenUSDProvider::instance()->Stage();
-    pxr::Model* model = OpenUSDProvider::instance()->Model();
-    if (!stage || !model) {
+    if (!stage) {
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin("Hydra Outliner##A1");
         ImGui::TextUnformatted("Hydra Outliner: No stage opened yet.");
@@ -258,7 +279,7 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
     }
     else {
         if (!_self->outliner) {
-            _self->outliner = std::make_unique<pxr::Outliner>(model, "Hydra Outliner##A2");
+            _self->outliner = std::make_unique<pxr::Outliner>("Hydra Outliner##A2");
         }
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
@@ -276,10 +297,13 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin("Stage Outliner");
+        lab::Orchestrator* mm =lab:: Orchestrator::Canonical();
+        std::weak_ptr<HydraActivity> hact;
+        auto hydra = mm->LockActivity(hact);
 
         SelectionHash sh = 0;
         Selection selection;
-        SdfPathVector sel = model->GetSelection();
+        SdfPathVector sel = hydra->GetHdSelection();
         selection.Clear(stage);
         for (auto& s : sel) {
             selection.AddSelected(stage, s);
@@ -287,7 +311,7 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
         selection.UpdateSelectionHash(stage, sh);
         DrawStageOutliner(stage, selection);
         if (selection.UpdateSelectionHash(stage, sh)) {
-            model->SetSelection(selection.GetSelectedPaths(stage));
+            hydra->SetHdSelection(selection.GetSelectedPaths(stage));
         }
 
         ImGui::End();
