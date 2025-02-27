@@ -51,32 +51,24 @@ namespace lab {
 
 class HydraViewport::Self {
 public:
+    UsdStageWeakPtr _stage;
+    SdfPathVector _hdSelection;
+    UsdImagingStageSceneIndexRefPtr _stageSceneIndex;
+    HdSceneIndexBaseRefPtr _editableSceneIndex;
+    HdMergingSceneIndexRefPtr _sceneIndexBases, _finalSceneIndex;
+    SdfPath _activeCamera;
+
     Self() {
         _sceneIndexBases = HdMergingSceneIndex::New();
         _finalSceneIndex = HdMergingSceneIndex::New();
         _editableSceneIndex = _sceneIndexBases;
-        SetEditableSceneIndex(_editableSceneIndex);
-
+        _finalSceneIndex->AddInputScene(_editableSceneIndex,
+                                        SdfPath::AbsoluteRootPath());
         UsdImagingCreateSceneIndicesInfo info;
         info.displayUnloadedPrimsWithBounds = false;
         const UsdImagingSceneIndices sceneIndices =  UsdImagingCreateSceneIndices(info);
         _stageSceneIndex = sceneIndices.stageSceneIndex;
-        AddSceneIndexBase(sceneIndices.finalSceneIndex);
-    }
-
-    UsdPrim GetUsdPrim(UsdStageRefPtr stage, SdfPath path)
-    {
-        return stage->GetPrimAtPath(path);
-    }
-
-    UsdPrimRange GetAllPrims(UsdStageRefPtr stage)
-    {
-        return stage->Traverse();
-    }
-
-    void AddSceneIndexBase(HdSceneIndexBaseRefPtr sceneIndex)
-    {
-        _sceneIndexBases->AddInputScene(sceneIndex, SdfPath::AbsoluteRootPath());
+        _sceneIndexBases->AddInputScene(sceneIndices.finalSceneIndex, SdfPath::AbsoluteRootPath());
     }
 
     void SetEditableSceneIndex(HdSceneIndexBaseRefPtr sceneIndex)
@@ -85,11 +77,6 @@ public:
         _editableSceneIndex = sceneIndex;
         _finalSceneIndex->AddInputScene(_editableSceneIndex,
                                         SdfPath::AbsoluteRootPath());
-    }
-
-    HdSceneIndexPrim GetPrim(SdfPath primPath)
-    {
-        return _finalSceneIndex->GetPrim(primPath);
     }
 
     SdfPathVector GetCameras()
@@ -106,6 +93,10 @@ public:
         return camPaths;
     }
 
+    //--------------------------------------------------------------------------
+    int _hitGeneration = 0;
+    GfVec3f _hitPoint, _hitNormal;
+
     void SetHit(GfVec3f hitPoint, GfVec3f hitNormal)
     {
         _hitPoint = hitPoint;
@@ -119,15 +110,6 @@ public:
         hitNormal = _hitNormal;
         return _hitGeneration;
     }
-
-     int _hitGeneration = 0;
-     GfVec3f _hitPoint, _hitNormal;
-     UsdStageWeakPtr _stage;
-     SdfPathVector _hdSelection;
-     UsdImagingStageSceneIndexRefPtr _stageSceneIndex;
-     HdSceneIndexBaseRefPtr _editableSceneIndex;
-     HdMergingSceneIndexRefPtr _sceneIndexBases, _finalSceneIndex;
-     SdfPath _activeCamera;
 };
 
 HydraViewport::HydraViewport(const string label) : View(label)
@@ -145,7 +127,7 @@ HydraViewport::HydraViewport(const string label) : View(label)
     _UpdateActiveCamFromViewport();
 
     _gridSceneIndex = GridSceneIndex::New();
-    _model->AddSceneIndexBase(_gridSceneIndex);
+    _model->_sceneIndexBases->AddInputScene(_gridSceneIndex, SdfPath::AbsoluteRootPath());
 
     _xformSceneIndex = XformFilterSceneIndex::New(_model->_editableSceneIndex);
     _model->SetEditableSceneIndex(_xformSceneIndex);
@@ -199,7 +181,7 @@ void HydraViewport::SetStage(UsdStageRefPtr stage) {
     info.displayUnloadedPrimsWithBounds = false;
     _sceneIndices = UsdImagingCreateSceneIndices(info);
     _model->_stageSceneIndex = _sceneIndices.stageSceneIndex;
-    _model->AddSceneIndexBase(_sceneIndices.finalSceneIndex);
+    _model->_sceneIndexBases->AddInputScene(_sceneIndices.finalSceneIndex, SdfPath::AbsoluteRootPath());
 
     _model->_stageSceneIndex->SetStage(stage);
     _model->_stageSceneIndex->SetTime(UsdTimeCode::Default());
