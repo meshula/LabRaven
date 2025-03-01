@@ -13,6 +13,7 @@
 #include "Providers/Camera/CameraProvider.hpp"
 #include "Providers/Selection/SelectionProvider.hpp"
 
+#include "Lab/App.h"
 #include "imgui.h"
 #include "Lab/ImguiExt.hpp"
 #include <pxr/base/gf/frustum.h>
@@ -23,7 +24,14 @@
 #include <pxr/usd/usdGeom/gprim.h>
 #include <pxr/usd/usdGeom/metrics.h>
 
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <algorithm>
+#include <cmath>
+
 namespace lab {
+
     using namespace PXR_NS;
 
     struct ScoutRecord {
@@ -70,6 +78,10 @@ namespace lab {
 
         auto usd = OpenUSDProvider::instance();
         auto stage = usd->Stage();
+
+        if (!stage)
+            return;
+
         double tcps = stage->GetTimeCodesPerSecond();
         const UsdTimeCode timeCode = timeline->Playhead().to_seconds() * tcps;
 

@@ -122,6 +122,14 @@ namespace lab {
 
         auto usd = OpenUSDProvider::instance();
         auto stage = usd->Stage();
+
+        if (!stage) {
+            ImGui::Begin("Component Explorer", &_self->ui_visible);
+            ImGui::Text("No USD stage loaded.");
+            ImGui::End();
+            return;
+        }
+
         double tcps = stage->GetTimeCodesPerSecond();
         const UsdTimeCode timeCode = timeline->Playhead().to_seconds() * tcps;
 
