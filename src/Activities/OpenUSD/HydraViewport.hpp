@@ -74,18 +74,41 @@ class HydraViewport : public pxr::View {
         void RemoveSceneIndex(pxr::HdSceneIndexBaseRefPtr);
     void SetHdSelection(const PXR_NS::SdfPathVector& spv);
     PXR_NS::HdSceneIndexBaseRefPtr GetFinalSceneIndex();
-
-    int GetHit(PXR_NS::GfVec3f& hitPoint, PXR_NS::GfVec3f& hitNormal);
     void SetStage(PXR_NS::UsdStageRefPtr stage);
 
     PXR_NS::HdSceneIndexBaseRefPtr GetEditableSceneIndex();
     void SetEditableSceneIndex(PXR_NS::HdSceneIndexBaseRefPtr sceneIndex);
     void SetTime(PXR_NS::UsdTimeCode);
 
+
+    //--------------------------------------------------------------------------
+
+    void SetHit(PXR_NS::GfVec3f hitPoint, PXR_NS::GfVec3f hitNormal)
+    {
+        _hitPoint = hitPoint;
+        _hitNormal = hitNormal;
+        _hitGeneration++;
+    }
+
+    int GetHit(PXR_NS::GfVec3f& hitPoint, PXR_NS::GfVec3f& hitNormal)
+    {
+        hitPoint = _hitPoint;
+        hitNormal = _hitNormal;
+        return _hitGeneration;
+    }
+
     private:
     class Self;
         std::unique_ptr<Self> _model;
-        const float _FREE_CAM_FOV = 45.f;
+
+    int _hitGeneration = 0;
+    PXR_NS::GfVec3f _hitPoint, _hitNormal;
+    
+    PXR_NS::SdfPathVector _hdSelection;
+    PXR_NS::SdfPath _activeCamera;
+
+
+    const float _FREE_CAM_FOV = 45.f;
 
         float _zNear = 0.1f;
         float _zFar = 1.0e4f;
