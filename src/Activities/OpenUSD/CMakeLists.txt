@@ -8,6 +8,7 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST
              OpenUSD/Properties;\
              OpenUSD/Scout;\
              OpenUSD/Session;\
+             OpenUSD/Statistics;\
              OpenUSD/TfDebug;\
              OpenUSD/UsdCreate;\
              OpenUSD/UsdOutliner;\
@@ -24,6 +25,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     PropertiesActivity.cpp PropertiesActivity.hpp
     ScoutActivity.cpp ScoutActivity.hpp
     SessionActivity.cpp SessionActivity.hpp
+    StatisticsActivity.cpp StatisticsActivity.hpp
     TfDebugActivity.cpp TfDebugActivity.hpp
     UsdCreateActivity.cpp UsdCreateActivity.hpp
     UsdOutlinerActivity.cpp UsdOutlinerActivity.hpp

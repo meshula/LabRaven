@@ -28,6 +28,8 @@ static const std::vector<std::string> activities = {
     "Journal",
     "OpenUSD",
     "Outliner",
+    "Usd Statistics",
+    "Scout",
     "TfDebugger",
     "UsdProperties",
 };
