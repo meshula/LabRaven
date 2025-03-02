@@ -90,7 +90,7 @@ void UsdSessionLayer::_Draw()
     _editor.Render("TextEditor");
 };
 
-string UsdSessionLayer::_GetNextAvailableIndexedPath(string primPath)
+string UsdSessionLayer::_GetNextAvailableIndexedPath(const string& primPath)
 {
     auto usd = OpenUSDProvider::instance();
     auto stage = usd->Stage();

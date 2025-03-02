@@ -26,7 +26,7 @@ struct PropertiesActivity::data {
     ~data() = default;
 
     // hd properties editor
-    std::unique_ptr<pxr::Editor> editor;
+    std::unique_ptr<Editor> editor;
 
     // usd properties editor
     ImVec4 displayColor = ImVec4(0.5f, 0.5f, 0.5f, 1.f);
@@ -39,8 +39,8 @@ struct PropertiesActivity::data {
 
 PropertiesActivity::PropertiesActivity() : Activity(PropertiesActivity::sname()) {
     _self = new PropertiesActivity::data();
-    _self->editor = std::unique_ptr<pxr::Editor>(
-                            new pxr::Editor("Hd Properties Editor##A1"));
+    _self->editor = std::unique_ptr<Editor>(
+                            new Editor("Hd Properties Editor##A1"));
 
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
         static_cast<PropertiesActivity*>(instance)->RunUI(*vi);

@@ -10,6 +10,7 @@
 
 
 #include "UsdOutlinerActivity.hpp"
+#include "HydraViewport.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -26,7 +27,6 @@
 #include "Providers/Sprite/SpriteProvider.hpp"
 #include <pxr/usd/usd/stage.h>
 
-#include "ImGuiHydraEditor/src/views/outliner.h"
 #include "usdtweak/src/Selection.h"
 #include "usdtweak/src/widgets/StageOutliner.h"
 
@@ -48,9 +48,124 @@ namespace {
     void* gGhostTextures[2];
 }
 
-PXR_NAMESPACE_OPEN_SCOPE
+namespace lab {
 
-using namespace lab;
+
+
+/**
+ * @brief Outliner view that acts as an outliner. it allows to preview and
+ * navigate into the UsdStage hierarchy.
+ *
+ */
+class Outliner : public View {
+    public:
+        inline static const string VIEW_TYPE = "Outliner";
+
+        /**
+         * @brief Construct a new Outliner object
+         *
+         * @param model the Model of the new Outliner view
+         * @param label the ImGui label of the new Outliner view
+         */
+        Outliner(const string label = VIEW_TYPE);
+
+        /**
+         * @brief Override of the View::GetViewType
+         *
+         */
+        const string GetViewType() override;
+
+    private:
+        /**
+         * @brief Override of the View::Draw
+         *
+         */
+        void _Draw() override;
+
+        /**
+         * @brief Draw the hierarchy of all the descendant UsdPrims of the
+         * given UsdPrim in the outliner
+         *
+         * @param primPath the SdfPath of the prim for which all the descendant
+         * hierarchy will be drawn in the outliner
+         * @return the ImRect rectangle of the tree node corresponding to the
+         * given 'primPath'
+         */
+        ImRect _DrawPrimHierarchy(pxr::SdfPath primPath);
+
+        /**
+         * @brief Compute the display flags of the given UsdPrim
+         *
+         * @param primPath the SdfPath of the prim to compute the dislay flags
+         * from
+         * @return an ImGuiTreeNodeFlags object.
+         * Default is ImGuiTreeNodeFlags_None.
+         * If 'primPath' has no children, flag contains ImGuiTreeNodeFlags_Leaf
+         * If 'primPath' has children, flags contains
+         * ImGuiTreeNodeFlags_OpenOnArrow
+         * if 'primPath' is part of selection, flags
+         * contains ImGuiTreeNodeFlags_Selected
+         *
+         */
+        ImGuiTreeNodeFlags _ComputeDisplayFlags(pxr::SdfPath primPath);
+
+        /**
+         * @brief Draw the hierarchy tree node of the given UsdPrim. The color
+         * and the behavior of the node will bet set accordingly.
+         *
+         * @param primPath the SdfPath of the prim that will be drawn next on
+         * the outliner
+         * @return true if children 'primPath' must be drawn too
+         * @return false otherwise
+         */
+        bool _DrawHierarchyNode(pxr::SdfPath primPath);
+
+        /**
+         * @brief Check if a given prim path is parent of another prim path
+         *
+         * @param primPath SdfPath to check if it is parent of
+         * 'childPrimPath'
+         * @param childPrimPath the SdfPath that acts as the child prim path
+         * @return true if 'primPath' is parent of 'childPrimPath'
+         * @return false otherwise
+         */
+        bool IsParentOf(pxr::SdfPath primPath, pxr::SdfPath childPrimPath);
+
+        /**
+         * @brief Check if the given UsdPrim is parent of a UsdPrim within the
+         * current Model Selection.
+         *
+         * @param primPath SdfPath to check with
+         * @return true if 'primPath' is parent of a prim within the current
+         * Model selection
+         * @return false otherwise
+         */
+        bool _IsParentOfModelSelection(pxr::SdfPath primPath);
+
+        /**
+         * @brief Check if the given UsdPrim is part of the current Model
+         * selection
+         *
+         * @param prim SdfPath to check with
+         * @return true if 'primPath' is part of the current Model selection
+         * @return false otherwise
+         */
+        bool _IsInModelSelection(pxr::SdfPath primPath);
+
+        /**
+         * @brief Draw the children hierarchy decoration of the outliner view
+         * (aka the vertical and horizontal lines that connect parent and child
+         * nodes).
+         *
+         * @param parentRect the ImRect rectangle of the parent node
+         * @param childrenRects a vector of ImRect rectangles of the direct
+         * children node of 'parentRect'
+         */
+        void _DrawChildrendHierarchyDecoration(ImRect parentRect,
+                                               vector<ImRect> childrenRects);
+};
+
+
 
 Outliner::Outliner(const string label) : View(label) {}
 
@@ -255,15 +370,12 @@ void Outliner::_DrawChildrendHierarchyDecoration(ImRect parentRect,
     drawList->AddLine(lineStart, lineEnd, lineColor);
 }
 
-PXR_NAMESPACE_CLOSE_SCOPE
-
-namespace lab {
 
 struct UsdOutlinerActivity::data {
     data() {
         memset(&gGhost, 0, sizeof(gGhost));
     }
-    std::unique_ptr<pxr::Outliner> outliner;
+    std::unique_ptr<Outliner> outliner;
 };
 
 void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
@@ -279,7 +391,7 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
     }
     else {
         if (!_self->outliner) {
-            _self->outliner = std::make_unique<pxr::Outliner>("Hydra Outliner##A2");
+            _self->outliner = std::make_unique<Outliner>("Hydra Outliner##A2");
         }
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);

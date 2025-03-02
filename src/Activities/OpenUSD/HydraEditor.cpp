@@ -21,10 +21,9 @@
 
 #include <sstream>
 
-PXR_NAMESPACE_OPEN_SCOPE
+PXR_NAMESPACE_USING_DIRECTIVE
 
-using namespace lab;
-
+namespace lab {
 Editor::Editor(const string label) : View(label)
 {
 }
@@ -98,10 +97,10 @@ void Editor::_AppendDataSourceAttrs(HdContainerDataSourceHandle containerDataSou
         const char* tokenText = token.GetText();
 
         auto containerDataSource =
-            HdContainerDataSource::Cast(dataSource);
+        HdContainerDataSource::Cast(dataSource);
         if (containerDataSource) {
             bool clicked =
-                ImGui::TreeNodeEx(tokenText, ImGuiTreeNodeFlags_OpenOnArrow);
+            ImGui::TreeNodeEx(tokenText, ImGuiTreeNodeFlags_OpenOnArrow);
 
             if (clicked) {
                 _AppendDataSourceAttrs(containerDataSource);
@@ -134,7 +133,7 @@ void Editor::_AppendAllPrimAttrs(SdfPath primPath)
     HdSceneIndexPrim prim = hydra->GetFinalSceneIndex()->GetPrim(primPath);
     if (!prim.dataSource)
         return;
-    
+
     TfTokenVector tokens = prim.dataSource->GetNames();
 
     if (tokens.size() < 1)
@@ -145,4 +144,4 @@ void Editor::_AppendAllPrimAttrs(SdfPath primPath)
     }
 }
 
-PXR_NAMESPACE_CLOSE_SCOPE
+} // lab

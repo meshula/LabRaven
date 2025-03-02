@@ -16,20 +16,18 @@
 #include <TextEditor.h>
 #include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
 
-#include "ImGuiHydraEditor/src/views/view.h"
+#include "HydraViewport.hpp"
 
 namespace lab {
-
-using namespace std;
 
 /**
  * @brief UsdSessionLayer view acts as a text editor for the session layer of
  * the current UsdStage. It allows to preview and edit the USD session layer.
  *
  */
-class UsdSessionLayer : public pxr::View {
+class UsdSessionLayer : public View {
 public:
-    inline static const string VIEW_TYPE = "Session Layer";
+    inline static const std::string VIEW_TYPE = "Session Layer";
 
     /**
      * @brief Construct a new UsdSessionLayer object
@@ -37,13 +35,13 @@ public:
      * @param model the Model of the new UsdSessionLayer view
      * @param label the ImGui label of the new UsdSessionLayer view
      */
-    UsdSessionLayer(const string label = VIEW_TYPE);
+    UsdSessionLayer(const std::string label = VIEW_TYPE);
 
     /**
      * @brief Override of the View::GetViewType
      *
      */
-    const string GetViewType() override;
+    const std::string GetViewType() override;
 
     /**
      * @brief Override of the View::_GetGizmoWindowFlags
@@ -57,7 +55,7 @@ public:
 private:
     TextEditor _editor;
     bool _isEditing;
-    string _lastLoadedText;
+    std::string _lastLoadedText;
     ImGuiWindowFlags _gizmoWindowFlags;
 
     /**
@@ -98,7 +96,7 @@ private:
      * Model
      * @return string the next index prim path
      */
-    string _GetNextAvailableIndexedPath(string primPath);
+    std::string _GetNextAvailableIndexedPath(const std::string& primPath);
 
     /**
      * @brief Create a new prim to the current state
