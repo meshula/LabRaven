@@ -267,6 +267,7 @@ void PropertiesActivity::Menu() {
             // toggle the visibility of the USD Properties Editor
             _self->usdPropertyEditorVisible = !_self->usdPropertyEditorVisible;
         }
+        ImGui::EndMenu();
     }
 }
 

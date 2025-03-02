@@ -167,6 +167,54 @@ lab::Orchestrator* gOrchestrator() {
     return nullptr;
 }
 
+// Undock all docked windows
+void UndockAllWindows()
+{
+    ImGuiContext& g = *ImGui::GetCurrentContext();
+    for (ImGuiWindow* window : g.Windows)
+    {
+        if (window->DockNode)
+            ImGui::DockBuilderDockWindow(window->Name, 0); // Move to no dockspace
+    }
+}
+
+// Reset docking layout
+void ResetLayout()
+{
+    ImGui::DockBuilderRemoveNode(ImGui::GetID("MainDockspace"));
+}
+
+// Render the Window Menu dynamically
+void ShowWindowMenu()
+{
+    if (ImGui::BeginMenu("Window"))
+    {
+        if (ImGui::MenuItem("Undock All"))
+            UndockAllWindows();
+
+        if (ImGui::MenuItem("Reset Layout"))
+            ResetLayout();
+
+        ImGui::Separator();
+
+        // Iterate over all windows in ImGui
+        ImGuiContext& g = *ImGui::GetCurrentContext();
+        for (ImGuiWindow* window : g.Windows)
+        {
+            if (!(window->Flags & ImGuiWindowFlags_NoTitleBar)) // Ignore hidden/internal windows
+            {
+                if (ImGui::MenuItem(window->Name)) {
+                    window->Hidden = false; // Ensure it's not marked as hidden
+                    ImGui::BringWindowToFocusFront(window);
+                }
+            }
+        }
+
+        ImGui::EndMenu();
+    }
+}
+
+
 void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dragging)
 {
     auto& mm = _self->_mm;
@@ -236,6 +284,9 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
         }
 
         mm.RunMainMenu();
+
+        ShowWindowMenu();
+
         ImGui::EndMainMenuBar();
     }
 

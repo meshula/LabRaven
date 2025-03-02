@@ -3,7 +3,8 @@ add_subdirectory(Color)
 add_subdirectory(Texture)
 
 if (HAVE_OPENUSD)
-    add_subdirectory(OpenUSD)
+add_subdirectory(OpenUSD)
+add_subdirectory(OpenUSDInsights)
 endif()
 
 # if STUDIOS is empty, report that.
