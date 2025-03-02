@@ -1,6 +1,7 @@
 #include "HydraViewport.hpp"
 
 #include "Lab/App.h"
+#include "Activities/Camera/ReticleActivity.hpp"
 #include "Providers/Camera/CameraProvider.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include "Providers/OpenUSD/UsdUtils.hpp"
@@ -213,6 +214,13 @@ void HydraViewport::_Draw()
     _UpdateProjection();
     _UpdateGrid();
     _UpdateHydraRender();
+
+    Orchestrator* mm = Orchestrator::Canonical();
+    std::weak_ptr<ReticleActivity> ract;
+    auto reticle = mm->LockActivity(ract);
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    reticle->Render(draw_list, _GetViewportWidth(), _GetViewportHeight());
+
     _UpdateTransformGuizmo();
     _UpdateCubeGuizmo();
     _UpdatePluginLabel();
