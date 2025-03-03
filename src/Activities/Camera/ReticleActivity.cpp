@@ -49,16 +49,18 @@ ReticleActivity::~ReticleActivity() {
     delete _self;
 }
 
-void ReticleActivity::Render(ImDrawList* draw_list, float w, float h)
+void ReticleActivity::Render(ImDrawList* draw_list, const LabViewInteraction& vi)
 {
     const ImU32 RED = ImGui::ColorConvertFloat4ToU32(ImVec4(1, 0, 0, 1));
     const ImU32 BLACK = ImGui::ColorConvertFloat4ToU32(ImVec4(0, 0, 0, 1));
 
     ImU32 bar_color = ImGui::ColorConvertFloat4ToU32(_self->letterboxColor);
 
+    auto& d = vi.view;
+
     bool draw_vertical_bars = false;
     bool draw_horizontal_bars = false;
-    float aspect = w / h;
+    float aspect = d.w / d.h;
     if (_self->letterbox) {
         if (aspect > _self->desired_aspect) {
             draw_vertical_bars = true;
@@ -68,16 +70,11 @@ void ReticleActivity::Render(ImDrawList* draw_list, float w, float h)
         }
     }
 
-    struct {
-        float wx;
-        float wy;
-        float wh;
-        float ww;
-    } d;
-    d = { 0, 0, w, h };
+    float h = d.wh;
+    float w = d.ww;
 
     if (draw_horizontal_bars) {
-        h = d.ww / _self->desired_aspect;
+        h = d.wh / _self->desired_aspect;
         w = d.ww;
         const float bar_h = (d.wh - h) * 0.5f;
         draw_list->AddRectFilled(

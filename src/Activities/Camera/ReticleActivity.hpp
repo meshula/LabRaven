@@ -28,7 +28,7 @@ public:
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "Reticle"; }
 
-    void Render(ImDrawList* draw_list, float w, float h);
+    void Render(ImDrawList* draw_list, const LabViewInteraction& vi);
 };
 }
 
