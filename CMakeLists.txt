@@ -18,7 +18,7 @@ include(CheckLanguage)
 include(MetalShaderSupport)
 check_language(Metal)
 if(CMAKE_Metal_COMPILER)
-    enable_language(Metal)
+  enable_language(Metal)
 endif()
 
 #---------------------------------------------------
@@ -56,21 +56,21 @@ endfunction()
 #---------------------------------------------------
 # options
 if (APPLE)
-    option(APPLE_MAKE_BUNDLE "Create a macOS bundle" ON)
+  option(APPLE_MAKE_BUNDLE "Create a macOS bundle" ON)
 endif()
 
 option(HAVE_OPENUSD "Enable OpenUSD support" OFF)
 
 if (HAVE_OPENUSD)
-    find_package(pxr QUIET)
-    if (pxr_FOUND)
-        message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
-    else()
-        message(FATAL_ERROR "OpenUSD support is enabled, but the pxr package was not found. Please set the Pxr_DIR to point to the root of the USD installation.")
-    endif()
+  find_package(pxr QUIET)
+  if (pxr_FOUND)
+    message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
+  else()
+    message(FATAL_ERROR "OpenUSD support is enabled, but the pxr package was not found. Please set the Pxr_DIR to point to the root of the USD installation.")
+  endif()
 
-    # garch needs OpenGL.
-    find_package(OpenGL REQUIRED)
+  # garch needs OpenGL.
+  find_package(OpenGL REQUIRED)
 endif()
 
 option(HAVE_MIDI "Enable MIDI support" ON)
@@ -103,32 +103,27 @@ add_subdirectory("ext/libzmq" EXCLUDE_FROM_ALL)
 #---------------------------------------------------
 
 if(WIN32)
-    target_compile_definitions(${PROJECT_NAME}
+  target_compile_definitions(${PROJECT_NAME}
         PRIVATE
             NOMINMAX
             _USE_MATH_DEFINES
     )
 endif()
 
-# add HAVE_OPENUSD set to 1 to the compile definitions
-if (NOT HAVE_OPENUSD)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_NO_USD)
-endif()
-
 set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
 if (APPLE)
-    enable_language(OBJC)
-    enable_language(OBJCXX)
-    enable_language(Metal)
-    set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
-    set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
+  enable_language(OBJC)
+  enable_language(OBJCXX)
+  enable_language(Metal)
+  set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
+  set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
 endif()
 
 message(STATUS ": Creating executable ${PROJECT_NAME}")
 add_executable(${PROJECT_NAME})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-target_include_directories(${PROJECT_NAME} PUBLIC 
+target_include_directories(${PROJECT_NAME} PUBLIC
     src
     ext
     ext/cppzmq
@@ -140,16 +135,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${PXR_INCLUDE_DIRS})
 
 if (APPLE)
-    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/MacOS/plugins")
-    set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/Resources")
+  set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/MacOS/plugins")
+  set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/${PROJECT_NAME}.app/Contents/Resources")
 else()
-    set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/plugins")
-    set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources")
+  set(PLUGINS_DIR "${CMAKE_CURRENT_BINARY_DIR}/plugins")
+  set(RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/Resources")
 endif()
 
 if (APPLE)
-    # enable ARC
-    set_target_properties(${PROJECT_NAME} PROPERTIES
+  # enable ARC
+  set_target_properties(${PROJECT_NAME} PROPERTIES
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC TRUE
     )
 endif()
@@ -163,8 +158,8 @@ endif()
 # app a command line program without a bundle, the MACOX_BUNDLE property can
 # be set to FALSE.
 if (APPLE_MAKE_BUNDLE)
-    set(PRODUCT_BUNDLE_IDENTIFIER "com.planetix.${PROJECT_NAME}")
-    set_target_properties(${PROJECT_NAME} PROPERTIES
+  set(PRODUCT_BUNDLE_IDENTIFIER "com.planetix.${PROJECT_NAME}")
+  set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/src/Info.plist
         MACOSX_BUNDLE_GUI_IDENTIFIER "com.${PROJECT_NAME}.app"
@@ -221,14 +216,19 @@ endif()
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
 
+# add HAVE_OPENUSD set to 1 to the compile definitions
+if (NOT HAVE_OPENUSD)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_NO_USD)
+endif()
+
 set(HAVE_OPENGL NO)
 if (HAVE_OPENGL)
-    find_package(OpenGL REQUIRED) # Note: Hydra has no way to opt out of Metal GL Interop on apple.
-    message(STATUS "Found OpenGL: ${OPENGL_LIBRARIES}")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE
+  find_package(OpenGL REQUIRED) # Note: Hydra has no way to opt out of Metal GL Interop on apple.
+  message(STATUS "Found OpenGL: ${OPENGL_LIBRARIES}")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE
         USE_GLINTEROP=1
     )
-    target_link_libraries(${PROJECT_NAME} PUBLIC
+  target_link_libraries(${PROJECT_NAME} PUBLIC
         ${OPENGL_LIBRARIES}
     )
 endif()
@@ -241,7 +241,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     libzmq-static
     Tilengine
     ImGuizmo::ImGuizmo
-    usdtweak::usdtweak
     ImGuiColorTextEdit::ImGuiColorTextEdit
     ${PXR_LIBRARIES}
 )
@@ -251,17 +250,17 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 )
 
 if (HAVE_MIDI)
-    target_link_libraries(${PROJECT_NAME} PUBLIC Lab::Midi)
+  target_link_libraries(${PROJECT_NAME} PUBLIC Lab::Midi)
 endif()
 
 if (APPLE)
-    find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-    find_library(METAL_LIBRARY Metal)
-    find_library(METALKIT_LIBRARY MetalKit)
-    find_library(QUARTZCORE_LIBRARY QuartzCore)
-    find_library(GAMECONTROLLER_LIBRARY GameController)
-    find_library(CORELOCATION_LIBRARY CoreLocation REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PUBLIC
+  find_library(COREFOUNDATION_LIBRARY CoreFoundation)
+  find_library(METAL_LIBRARY Metal)
+  find_library(METALKIT_LIBRARY MetalKit)
+  find_library(QUARTZCORE_LIBRARY QuartzCore)
+  find_library(GAMECONTROLLER_LIBRARY GameController)
+  find_library(CORELOCATION_LIBRARY CoreLocation REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC
         glfw
         nativefiledialog
         "-framework CoreFoundation"
@@ -315,43 +314,43 @@ set(COPIED_FILES)
 
 # Loop over each file in PLUGIN_FILES to copy them
 foreach(file ${PLUGIN_FILES})
-    # Extract the filename from the path
-    get_filename_component(filename "${file}" NAME)
-    
-    add_custom_command(
+  # Extract the filename from the path
+  get_filename_component(filename "${file}" NAME)
+
+  add_custom_command(
         OUTPUT "${PLUGINS_DIR}/${filename}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${PLUGINS_DIR}/${filename}"
         DEPENDS "${file}"
         COMMENT "Copying ${filename} to plugins directory"
     )
-    list(APPEND COPIED_FILES "${PLUGINS_DIR}/${filename}")
+  list(APPEND COPIED_FILES "${PLUGINS_DIR}/${filename}")
 endforeach()
 
 # Loop over each file in RESOURCES to copy them
 foreach(file ${RESOURCES})
-    # Extract the filename from the path
-    get_filename_component(filename "${file}" NAME)
-    
-    set(dest_file "${RESOURCES_DIR}/${filename}")
-    add_custom_command(
+  # Extract the filename from the path
+  get_filename_component(filename "${file}" NAME)
+
+  set(dest_file "${RESOURCES_DIR}/${filename}")
+  add_custom_command(
         OUTPUT "${RESOURCES_DIR}/${filename}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${dest_file}"
         DEPENDS "${file}"
         COMMENT "Copying ${filename} to resources directory"
     )
-    list(APPEND COPIED_FILES "${dest_file}")
+  list(APPEND COPIED_FILES "${dest_file}")
 endforeach()
 
 # Create a custom target that triggers the copy step
 add_custom_target(copy_plugins ALL DEPENDS ${COPIED_FILES})
 
 if (APPLE)
-    # Set the path to the entitlements file
-    set(ENTITLEMENTS_PATH "${CMAKE_SOURCE_DIR}/src/Lab.entitlements")
-    set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_PATH}")
-    
-    #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Sign to Run Locally")
-    #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual")
+  # Set the path to the entitlements file
+  set(ENTITLEMENTS_PATH "${CMAKE_SOURCE_DIR}/src/Lab.entitlements")
+  set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_PATH}")
+
+  #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "Sign to Run Locally")
+  #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual")
 endif()
 
 # Ensure the plugin build depends on the copy and sign steps
