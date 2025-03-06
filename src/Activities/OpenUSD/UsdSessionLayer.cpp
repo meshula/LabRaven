@@ -42,7 +42,7 @@ ImGuiWindowFlags UsdSessionLayer::_GetGizmoWindowFlags()
     return _gizmoWindowFlags;
 };
 
-void UsdSessionLayer::_Draw()
+void UsdSessionLayer::_Draw(const LabViewInteraction& vi)
 {
     if (ImGui::BeginMenuBar()) {
 #ifdef HAVE_IMGUIFD

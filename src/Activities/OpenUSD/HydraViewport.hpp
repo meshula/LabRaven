@@ -12,6 +12,8 @@
  *
  */
 
+#include "Lab/StudioCore.hpp"
+
  // clang-format off
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -80,7 +82,7 @@ class View {
          * events
          *
          */
-        void Update();
+        void Update(const LabViewInteraction& vi);
 
         /**
          * @brief Check if the current View object is displayed
@@ -109,7 +111,7 @@ class View {
          * @brief Called during the update of the view. Allow for custom draw
          *
          */
-        virtual void _Draw();
+    virtual void _Draw(const LabViewInteraction& vi);
 
         /**
          * @brief Called when the view switch from unfocus to focus
@@ -300,7 +302,7 @@ class HydraViewport : public View {
          * @brief Override of the View::Draw
          *
          */
-        void _Draw() override;
+        void _Draw(const LabViewInteraction& vi) override;
 
         /**
          * @brief Draw the Menu bar of the HydraViewport

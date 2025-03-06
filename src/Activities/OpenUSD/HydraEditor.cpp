@@ -33,7 +33,7 @@ const string Editor::GetViewType()
     return VIEW_TYPE;
 };
 
-void Editor::_Draw()
+void Editor::_Draw(const LabViewInteraction& vi)
 {
     SdfPath primPath = _GetPrimToDisplay();
 

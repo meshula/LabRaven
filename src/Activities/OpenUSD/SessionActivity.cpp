@@ -31,7 +31,7 @@ SessionActivity::~SessionActivity() {
     delete _self;
 }
 
-void SessionActivity::RunUI(const LabViewInteraction&) {
+void SessionActivity::RunUI(const LabViewInteraction& vi) {
     auto usd = OpenUSDProvider::instance();
     auto stage = usd->Stage();
     if (!stage) {
@@ -42,7 +42,7 @@ void SessionActivity::RunUI(const LabViewInteraction&) {
     }
     else {
         ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
-        _self->sessionLayer->Update();
+        _self->sessionLayer->Update(vi);
     }
 }
 

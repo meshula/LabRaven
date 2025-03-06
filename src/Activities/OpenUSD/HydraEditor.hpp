@@ -47,7 +47,7 @@ private:
      * @brief Override of the View::Draw
      *
      */
-    void _Draw() override;
+    void _Draw(const LabViewInteraction& vi) override;
     
     /**
      * @brief Get the SdfPath of the prim to display the attributes in the

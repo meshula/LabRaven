@@ -8,6 +8,10 @@
 #include "Lab/ImguiExt.hpp"
 
 #include <pxr/base/gf/camera.h>
+
+#include <pxr/base/gf/color.h>
+#include <pxr/base/gf/colorSpace.h>
+
 #include <pxr/base/gf/frustum.h>
 #include <pxr/base/gf/matrix4f.h>
 #include <pxr/base/gf/vec3d.h>
@@ -70,7 +74,7 @@ const string View::GetViewLabel()
 {
     return _label;
 }
-void View::Update()
+void View::Update(const LabViewInteraction& vi)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -100,7 +104,7 @@ void View::Update()
         }
     }
 
-    _Draw();
+    _Draw(vi);
 
     // update inner rect size
     _innerRect = ImGui::GetCurrentWindow()->InnerRect;
@@ -157,7 +161,7 @@ ImRect View::GetInnerRect()
     return _innerRect;
 }
 
-void View::_Draw() {};
+void View::_Draw(const LabViewInteraction& vi) {};
 
 void View::_FocusInEvent() {};
 
@@ -305,7 +309,7 @@ float HydraViewport::_GetViewportHeight()
     return GetInnerRect().GetHeight();
 }
 
-void HydraViewport::_Draw()
+void HydraViewport::_Draw(const LabViewInteraction& vi)
 {
     if (_model->_stageSceneIndex) {
         _model->_stageSceneIndex->ApplyPendingUpdates();
@@ -320,6 +324,50 @@ void HydraViewport::_Draw()
 
     _DrawMenuBar();
 
+    GfColorSpace linrec709(TfToken("lin_rec709_scene"));
+    GfColorSpace acescg(TfToken("lin_ap1_scene"));
+
+    GfMatrix3f rm = linrec709.GetRGBToXYZ();
+    printf("709 to xyz\n");
+    for (int i = 0; i < 9; ++i) {
+        printf("%g ", rm[i/3][i%3]);
+        if (i == 2 || i == 5) printf("\n");
+    }
+
+    rm = rm.GetInverse();
+    printf("xyz to 709\n");
+    for (int i = 0; i < 9; ++i) {
+        printf("%g ", rm[i/3][i%3]);
+        if (i == 2 || i == 5) printf("\n");
+    }
+
+    printf("----\nap1 to xyz\n");
+    rm = acescg.GetRGBToXYZ();
+    for (int i = 0; i < 9; ++i) {
+        printf("%g ", rm[i/3][i%3]);
+        if (i == 2 || i == 5) printf("\n");
+    }
+
+
+    GfColor col(GfVec3f(0.3123, 0.2185, 0.0734), acescg);
+    GfColor col709(col, linrec709);
+    GfVec3f rgb = col709.GetRGB();
+    printf("r %f g %f b %f\n", rgb[0], rgb[1], rgb[2]);
+
+    GfColor col2(GfVec3f(0.3123, 0.2185, 0.0734), linrec709);
+    GfColor col3(col2, acescg);
+    rgb = col3.GetRGB();
+    printf("r %f g %f b %f\n", rgb[0], rgb[1], rgb[2]);
+#if 0
+    >>> linrec709 = pxr.Gf.ColorSpace("lin_rec709_scene")
+    >>> acescg = pxr.Gf.ColorSpace("lin_ap1_scene")
+    >>> col = linrec709.Convert(acescg, (0.3123, 0.2185, 0.0734))
+    >>> col
+    Gf.Color(Gf.Vec3f(0.44637531042099, 0.25115352869033813, 0.047788895666599274), Gf.ColorSpace('lin_rec709_scene'))
+    >>> col.GetRGB()
+    Gf.Vec3f(0.44637531042099, 0.25115352869033813, 0.047788895666599274)
+    However, this result is different from what OCIO gives (and which I verified independently is correct):
+#endif
 
     ImGui::BeginChild("GameRender");
 
@@ -349,7 +397,16 @@ void HydraViewport::_Draw()
     std::weak_ptr<ReticleActivity> ract;
     auto reticle = mm->LockActivity(ract);
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    reticle->Render(draw_list, _GetViewportWidth(), _GetViewportHeight());
+
+    LabViewInteraction v2;
+    v2.view.wx = upperLeft.x;
+    v2.view.wy = upperLeft.y;
+    v2.view.wh = _GetViewportWidth();
+    v2.view.ww = _GetViewportHeight();
+    v2.view.w = v2.view.ww;
+    v2.view.h = v2.view.wh;
+
+    reticle->Render(draw_list, v2);
 
     _UpdateTransformGuizmo();
     _UpdateCubeGuizmo();

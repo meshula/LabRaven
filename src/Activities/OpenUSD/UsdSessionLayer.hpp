@@ -62,7 +62,7 @@ private:
      * @brief Override of the View::Draw
      *
      */
-    void _Draw() override;
+    void _Draw(const LabViewInteraction& vi) override;
 
     /**
      * @brief Check if USD session layer was updated since the last load

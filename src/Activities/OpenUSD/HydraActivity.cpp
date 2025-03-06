@@ -79,7 +79,7 @@ void HydraActivity::SetEditableSceneIndex(PXR_NS::HdSceneIndexBaseRefPtr sceneIn
     _self->viewport->SetEditableSceneIndex(sceneIndex);
 }
 
-void HydraActivity::RunUI(const LabViewInteraction&) {
+void HydraActivity::RunUI(const LabViewInteraction& vi) {
     if (!_self->viewport) {
         ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
         if (ImGui::Begin("Hydra Viewport##A2")) {
@@ -98,7 +98,7 @@ void HydraActivity::RunUI(const LabViewInteraction&) {
 
     // make a window 800, 600
     ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-    _self->viewport->Update();
+    _self->viewport->Update(vi);
 }
 
 void HydraActivity::Menu() {

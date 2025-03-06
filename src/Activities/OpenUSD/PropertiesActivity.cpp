@@ -54,14 +54,14 @@ PropertiesActivity::~PropertiesActivity() {
     delete _self;
 }
 
-void PropertiesActivity::RunUI(const LabViewInteraction&) {
+void PropertiesActivity::RunUI(const LabViewInteraction& vi) {
     auto usd = OpenUSDProvider::instance();
 
     if (_self->hdPropertyEditorVisible) {
         // make a window 800, 600
         if (_self->editor) {
             ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-            _self->editor->Update();
+            _self->editor->Update(vi);
         }
         else {
             ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);

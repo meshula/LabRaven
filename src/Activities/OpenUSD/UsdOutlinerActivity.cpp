@@ -80,7 +80,7 @@ class Outliner : public View {
          * @brief Override of the View::Draw
          *
          */
-        void _Draw() override;
+        void _Draw(const LabViewInteraction& vi) override;
 
         /**
          * @brief Draw the hierarchy of all the descendant UsdPrims of the
@@ -174,7 +174,7 @@ const string Outliner::GetViewType()
     return VIEW_TYPE;
 };
 
-void Outliner::_Draw()
+void Outliner::_Draw(const LabViewInteraction& vi)
 {
     SdfPath root = SdfPath::AbsoluteRootPath();
     lab::Orchestrator* mm = lab::Orchestrator::Canonical();
@@ -378,7 +378,7 @@ struct UsdOutlinerActivity::data {
     std::unique_ptr<Outliner> outliner;
 };
 
-void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
+void UsdOutlinerActivity::RunUI(const LabViewInteraction& vi) {
     if (!IsActive())
         return;
 
@@ -405,7 +405,7 @@ void UsdOutlinerActivity::RunUI(const LabViewInteraction&) {
         }
         ImGui::End();
 #endif
-        _self->outliner->Update();
+        _self->outliner->Update(vi);
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
         ImGui::Begin("Stage Outliner");
