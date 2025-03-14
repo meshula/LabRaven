@@ -1,6 +1,6 @@
 #include "App.h"
 #include "RegisterAllActivities.h"
-#include "Providers/Color/glfwColor.h"
+#include "Lab/CoreProviders/Color/glfwColor.h"
 #include "Providers/Metal/MetalProvider.h"
 
 #include "imgui.h"
@@ -8,9 +8,6 @@
 #include "imgui_impl_metal.h"
 #include "implot.h"
 #include "implot3d.h"
-
-#include "usdtweak/src/resources/ResourcesLoader.h"
-
 
 #define GLFW_INCLUDE_NONE
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -54,9 +51,7 @@ int main(int argc, char** argv)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
 
-    // ResourceLoader will load the settings/fonts/textures and create an imgui context (which is not ideal)
-    ResourcesLoader* resourcesLoader = new ResourcesLoader("Lab");
-    //ImGui::CreateContext();
+    ImGui::CreateContext();
     ImPlot::CreateContext();
     ImPlot3D::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -230,8 +225,7 @@ int main(int argc, char** argv)
     ImGui_ImplGlfw_Shutdown();
     ImPlot::DestroyContext();
 
-    delete resourcesLoader; // write the ImGui settings before terminating ImGui.
-    //ImGui::DestroyContext(); // resource loader destructor calls DestroyContext (not ideal)
+    ImGui::DestroyContext(); // resource loader destructor calls DestroyContext (not ideal)
 
     glfwDestroyWindow(window);
     glfwTerminate();

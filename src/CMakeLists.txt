@@ -1,33 +1,12 @@
 
 target_sources(${PROJECT_NAME}
   PUBLIC
-    Lab//App.h Lab/App.cpp
-    Lab/AppTheme.h Lab/AppTheme.cpp
-
-    Lab/CSP.hpp Lab/CSP.cpp
-
-    Lab/LabDirectories.h Lab/LabDirectories.cpp
-    Lab/LabFileDialogManager.hpp
-
-    Lab/IconsFontaudio.h
-    Lab/ImguiExt.hpp Lab/ImguiExt.cpp
-    Lab/imgui_stdlib.h Lab/imgui_stdlib.cpp
-
-    Lab/LabJoystick.h
-
-    Lab/Landru.hpp Lab/Landru.cpp
-    Lab/LabText.h Lab/LabText_odr.cpp
-
-    Lab/StudioCore.hpp Lab/StudioCore.cpp
-
     resources/fonts/embedded_font.inc
 )
 
 if(APPLE)
     target_sources(${PROJECT_NAME} PUBLIC 
         Lab/main_macos.mm
-        Lab/LabFileDialogManager.mm
-        Lab/LabJoystick.mm
     )
 elseif(WIN32)
     target_sources(${PROJECT_NAME} PUBLIC Lab/main_win32.cpp)
@@ -57,6 +36,7 @@ get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
 set_property(GLOBAL PROPERTY STUDIO_LIST "")
 get_property(STUDIOS GLOBAL PROPERTY STUDIO_LIST)
 
+add_subdirectory(Lab)
 add_subdirectory(Activities)
 add_subdirectory(Providers)
 add_subdirectory(Studios)
@@ -116,15 +96,26 @@ foreach(activity ${ACTIVITIES})
 endforeach()
 
 set(PROVIDER_REGISTRATION "")
-# List all providers
-foreach(provider ${PROVIDERS})
-    string(APPEND PROVIDER_REGISTRATION 
-           "    orchestrator.RegisterProvider<${provider}Provider>([](){ return ${provider}Provider::instance(); });\n")
-endforeach()
-
 set(PROVIDER_INCLUDES "")
 foreach(provider ${PROVIDERS})
-    string(APPEND PROVIDER_INCLUDES "#include \"Providers/${provider}/${provider}Provider.hpp\"\n")
+    # Trim whitespace from the provider name
+    string(STRIP "${provider}" provider)
+    
+    # Extract the directory and class name
+    string(FIND "${provider}" "/" DELIMITER_POS)
+    if(DELIMITER_POS GREATER_EQUAL 0)
+        get_filename_component(DIRECTORY "${provider}" DIRECTORY)
+        get_filename_component(CLASS "${provider}" NAME)
+        string(APPEND PROVIDER_INCLUDES "#include \"${DIRECTORY}/${CLASS}/${CLASS}Provider.hpp\"\n")
+        string(APPEND PROVIDER_REGISTRATION 
+            "    orchestrator.RegisterProvider<${CLASS}Provider>([](){ return ${CLASS}Provider::instance(); });\n")
+    else()
+        set(DIRECTORY "${provider}")
+        set(CLASS_NAME "${provider}")
+        string(APPEND PROVIDER_INCLUDES "#include \"Providers/${DIRECTORY}/${CLASS_NAME}Provider.hpp\"\n")
+        string(APPEND PROVIDER_REGISTRATION 
+            "    orchestrator.RegisterProvider<${provider}Provider>([](){ return ${provider}Provider::instance(); });\n")
+    endif()
 endforeach()
 
 set(STUDIO_REGISTRATION "")

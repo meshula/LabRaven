@@ -12,14 +12,25 @@ set(PROJECT_NAME raven)
 project(${PROJECT_NAME} VERSION 1.0)
 #---------------------------------------------------
 
+# Prevent duplicate uninstall targets
+set(RTMIDI_TARGETNAME_UNINSTALL ON CACHE INTERNAL "rtmidi-uninstall")
+set(GLFW_SKIP_UNINSTALL_TARGET ON CACHE INTERNAL "")
+set(SKIP_GLFW_INSTALL ON CACHE INTERNAL "")
+if(POLICY CMP0002)
+  cmake_policy(SET CMP0002 NEW)
+endif()
+
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
 include(CheckLanguage)
 include(MetalShaderSupport)
+include(AppleCodeSigning)
 check_language(Metal)
 if(CMAKE_Metal_COMPILER)
   enable_language(Metal)
 endif()
+
+set(EXT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext")
 
 #---------------------------------------------------
 # Helper function to group sources by folder
@@ -75,30 +86,6 @@ endif()
 
 option(HAVE_MIDI "Enable MIDI support" ON)
 
-#---------------------------------------------------
-# add ext/libzmq as a subdirectory, with EXCLUDE_FROM_ALL.
-# note: EXCLUDE_FROM_ALL is used to indicate that only referenced components
-# should be built.
-# options:
-# ENABLE_DRAFTS ON
-# WITH_TLS OFF ~ requires further investigation on how much burden WSS adds
-# WITH_DOC OFF
-# WITH_PERF_TOOL OFF
-# BUILD_TESTS OFF
-# BUILD_SHARED_LIBS OFF
-# BUILD_STATIC_LIBS ON
-# ENABLE_NO_EXPORT ON
-# set the variables before including the subdirectory
-
-set(ENABLE_DRAFTS ON CACHE BOOL "" FORCE)
-set(WITH_TLS OFF CACHE BOOL "" FORCE)
-set(WITH_DOC OFF CACHE BOOL "" FORCE)
-set(WITH_PERF_TOOL OFF CACHE BOOL "" FORCE)
-set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
-set(ENABLE_NO_EXPORT ON CACHE BOOL "" FORCE)
-add_subdirectory("ext/libzmq" EXCLUDE_FROM_ALL)
 
 #---------------------------------------------------
 
@@ -126,8 +113,8 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
 target_include_directories(${PROJECT_NAME} PUBLIC
     src
     ext
-    ext/cppzmq
-    ext/libzmq/include
+    Lab/cppzmq
+    Lab/libzmq/include
     ext/Tilengine/include
     ext/ImGuiHydraEditor/src
     Imath::Imath
@@ -179,10 +166,6 @@ add_subdirectory("ext")
 
 get_property(RESOURCES GLOBAL PROPERTY RESOURCES_LIST)
 
-include_directories(
-  ${PROJECT_SOURCE_DIR}/ext/nativefiledialog/src/include
-)
-
 GroupSourcesByFolder(${PROJECT_NAME})
 
 add_subdirectory("ext/LabMidi")
@@ -195,14 +178,6 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/ext/opentimelineio/src/deps
   ${PROJECT_SOURCE_DIR}/ext/opentimelineio/src/deps/optional-lite/include
 )
-
-if(NOT EMSCRIPTEN AND NOT WIN32)
-  set(GLFW_BUILD_EXAMPLES OFF)
-  set(GLFW_BUILD_TESTS OFF)
-  set(GLFW_BUILD_DOCS OFF)
-  set(BUILD_SHARED_LIBS OFF)
-  add_subdirectory("ext/glfw")
-endif()
 
 if(NOT EMSCRIPTEN)
   add_custom_command(
@@ -234,8 +209,8 @@ if (HAVE_OPENGL)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
+    LabCore
     OTIO::opentimelineio
-    ImGui::ImGui
     openexr
     sqlite3
     libzmq-static
@@ -262,7 +237,6 @@ if (APPLE)
   find_library(CORELOCATION_LIBRARY CoreLocation REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC
         glfw
-        nativefiledialog
         "-framework CoreFoundation"
         "-framework CoreLocation"
         "-framework GameController"
@@ -353,10 +327,13 @@ if (APPLE)
   #set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Manual")
 endif()
 
+# Apply consistent code signing to the main application
+if (APPLE)
+  apply_apple_code_signing(${PROJECT_NAME})
+endif()
+
 # Ensure the plugin build depends on the copy and sign steps
 add_dependencies(${PROJECT_NAME} copy_plugins)
 
-
 get_target_property(DEFINITIONS ${PROJECT_NAME} COMPILE_DEFINITIONS)
 message(STATUS "Definitions for ${PROJECT_NAME}: ${DEFINITIONS}")
-

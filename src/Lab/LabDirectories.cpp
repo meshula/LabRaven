@@ -1,5 +1,5 @@
 
-#include "Lab/LabDirectories.h"
+#include "LabDirectories.h"
 #include <string.h>
 #include <vector>
 

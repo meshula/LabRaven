@@ -4,9 +4,9 @@
 
 #include "App.h"
 #include "StudioCore.hpp"
-#include "Lab/LabFileDialogManager.hpp"
-#include "Lab/AppTheme.h"
-#include "usdtweak/src/resources/ResourcesLoader.h"
+#include "LabFileDialogManager.hpp"
+#include "AppTheme.h"
+#include "CoreProviders/Color/nanocolor.h"
 
 #include "imgui.h"
 #include "imgui_internal.h" // for DockBuilderGetCentralNode
@@ -224,7 +224,6 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
     auto activityNames = mm.ActivityNames();
 
     if (_self->reset_window_positions) {
-        ResourcesLoader::ResetWindowPositions();
         _self->reset_window_positions = false;
     }
 
@@ -369,6 +368,17 @@ double LabApp::FrameTime_ms() const {
 } // lab
 
 App* gApp() {
+#if 0
+    // create an NcColorSpace for ap1 to ciexyz:
+    const NcColorSpace* src = NcGetNamedColorSpace("lin_ap1");
+    // create one for ciexyz:
+    const NcColorSpace* dst = NcGetNamedColorSpace("identity");
+    // compute the bradford thing
+    const NcColorSpace* dst2 = NcGetNamedColorSpace("lin_rec709");
+    // compute the bradford thing
+    NcM33f bradford = NcGetRGBToRGBMatrixBradford(src, dst);
+    NcM33f bradford2 = NcGetRGBToRGBMatrixBradford(src, dst2);
+#endif
     static std::unique_ptr<App> _app;
     static std::once_flag _app_once_flag;
     std::call_once(_app_once_flag, []() {

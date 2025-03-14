@@ -5,8 +5,8 @@
 #ifndef App_h
 #define App_h
 
-#include "Lab/StudioCore.hpp"
-#include "Lab/CSP.hpp"
+#include "StudioCore.hpp"
+#include "CSP.hpp"
 
 typedef struct App {
     void (*Init)(int argc, char** argv, int width, int height);
