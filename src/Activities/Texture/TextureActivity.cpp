@@ -11,8 +11,8 @@
 #include "Lab/CSP.hpp"
 #include "Lab/LabDirectories.h"
 #include "Lab/LabFileDialogManager.hpp"
-#include "Providers/Color/ColorProvider.hpp"
-#include "Providers/Color/nanocolorUtils.h"
+#include "Lab/CoreProviders/Color/ColorProvider.hpp"
+#include "Lab/CoreProviders/Color/nanocolorUtils.h"
 #include "Providers/Texture/TextureCache.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS

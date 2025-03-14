@@ -1,7 +1,7 @@
 
 #include "UIElements.hpp"
 #include <mutex>
-#include "Providers/Color/nanocolor.h"
+#include "Lab/CoreProviders/Color/nanocolor.h"
 
 void ColorChipWithPicker(ImVec4& color, char id) {
     static ImVec4 saved_palette[32] = {};

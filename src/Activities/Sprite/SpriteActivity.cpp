@@ -1,4 +1,6 @@
 
+#ifndef HAVE_NO_USD
+
 #include "SpriteActivity.hpp"
 #include "Lab/App.h"
 #include "Lab/StudioCore.hpp"
@@ -135,3 +137,5 @@ void SpriteActivity::RunUI(const LabViewInteraction&) {
 }
 
 } // namespace lab
+
+#endif

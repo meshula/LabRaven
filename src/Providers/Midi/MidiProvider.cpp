@@ -4,6 +4,7 @@
 #include "LabMidi/LabMidi.h"
 #include <string>
 #include <strstream>
+#include <sstream>
 
 namespace lab {
 

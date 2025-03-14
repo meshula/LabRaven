@@ -1,6 +1,8 @@
 #ifndef PROVIDERS_SPRITE_VOXEL
 #define PROVIDERS_SPRITE_VOXEL
 
+#ifndef HAVE_NO_USD
+
 #include <vector>
 #include <array>
 #include <algorithm>
@@ -92,4 +94,5 @@ private:
     void ResolveVoxels();
 };
 
+#endif
 #endif

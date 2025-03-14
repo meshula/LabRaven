@@ -29,7 +29,7 @@
 // defined but not referenced or exported.
 
 #include "OpenEXRCoreUnity.h"
-#include "../../src/Providers/Color/nanocolorUtils.h"
+#include "../../src/Lab/CoreProviders/Color/nanocolorUtils.h"
 
 #include <ctype.h>
 #include <math.h>

@@ -2,7 +2,6 @@
 #include "AppActivity.hpp"
 #include "Lab/App.h"
 #include "imgui.h"
-#include "usdtweak/src/resources/ResourcesLoader.h"
 
 namespace lab {
 

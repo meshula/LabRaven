@@ -1,3 +1,5 @@
+
+#ifndef HAVE_NO_USD
 #include "VoxelSprite.hpp"
 
 #include <vector>
@@ -393,3 +395,5 @@ void VoxelRender::Render(const VoxelSprite& sprite, const GfMatrix4f& projection
     ShadeVoxels(sprite, lightDirection);
     ResolveVoxels();
 }
+
+#endif

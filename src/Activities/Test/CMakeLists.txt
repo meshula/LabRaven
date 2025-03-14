@@ -58,21 +58,9 @@ if (TARGET ${PARENT_PROJECT_NAME})
     add_dependencies(${PARENT_PROJECT_NAME} ${PROJECT_NAME})
 endif()
 
-# Configure signing with entitlements for the plugin
+# Apply consistent code signing to the plugin
 if (APPLE)
-    set(ENTITLEMENTS_PATH "${CMAKE_SOURCE_DIR}/src/Lab.entitlements")
-    
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-"
-        //XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO"
-        XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
-        XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "" # Ensure it's empty to let Xcode prompt you
-        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_PATH}"
-        # Inherit bundle identifier prefix from main app
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.planetix.raven.testplugin"
-        # Enable hardened runtime like the main app
-        XCODE_ATTRIBUTE_ENABLE_HARDENED_RUNTIME "YES"
-    )
+    apply_plugin_code_signing(${PROJECT_NAME} raven)
 endif()
 
 GroupSourcesByFolder(TestPlugin)

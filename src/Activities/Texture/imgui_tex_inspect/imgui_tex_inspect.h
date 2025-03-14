@@ -323,7 +323,7 @@ void DrawAnnotations(T drawer, ImU64 maxAnnotatedTexels)
 #include "imgui_internal.h"
 #include "imgui_tex_inspect.h"
 
-#include "Providers/Color/nanocolor.h"
+#include "Lab/CoreProviders/Color/nanocolor.h"
 
 namespace ImGuiTexInspect
 {

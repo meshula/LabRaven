@@ -8,7 +8,6 @@ add_subdirectory(Journal)
 add_subdirectory(Plugin)
 add_subdirectory(Preferences)
 add_subdirectory(Providers)
-add_subdirectory(Sprite)
 add_subdirectory(Test)
 add_subdirectory(Texture)
 add_subdirectory(Tilengine)
@@ -21,6 +20,7 @@ if (HAVE_OPENUSD)
     # then we can move the camera activity out of the USD block.
     add_subdirectory(Camera)
     add_subdirectory(OpenUSD)
+    add_subdirectory(Sprite)
 endif()
 
 # if ACTIVITIES is empty, report that.

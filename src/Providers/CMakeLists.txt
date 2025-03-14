@@ -2,7 +2,6 @@
 add_subdirectory(Assets)
 add_subdirectory(Astro)
 add_subdirectory(Camera)
-add_subdirectory(Color)
 add_subdirectory(Animation)
 add_subdirectory(Selection)
 add_subdirectory(Sprite)

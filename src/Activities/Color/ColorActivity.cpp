@@ -9,8 +9,8 @@
 #include "ColorActivity.hpp"
 #include "UIElements.hpp"
 
-#include "Providers/Color/nanocolorUtils.h"
-#include "Providers/Color/WavelengthToRGB.h"
+#include "Lab/CoreProviders/Color/nanocolorUtils.h"
+#include "Lab/CoreProviders/Color/WavelengthToRGB.h"
 
 #include "imgui.h"
 #include "implot.h"
