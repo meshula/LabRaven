@@ -114,7 +114,6 @@ void TilengineActivity::_deactivate() {
     LabApp::instance()->SetPowerSave(_self->restorePowerSave);
 }
 
-
 void TilengineActivity::RunUI(const LabViewInteraction& interaction) {
     int width = TLN_GetWidth();
     int height = TLN_GetHeight();

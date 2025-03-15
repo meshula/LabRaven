@@ -189,7 +189,10 @@ const char* lab_application_preferences_path(const char* prefFileName) {
 extern "C"
 const char* lab_application_resource_path(const char* argv0, const char* rsrc) {
     static std::string path;
-    
+    if (path.size() > 0) {
+        return path.c_str();
+    }
+
     // Get the main bundle
     CFBundleRef mainBundle = CFBundleGetMainBundle();
     
