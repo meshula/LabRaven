@@ -273,6 +273,7 @@ endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC
     LabCore
     OTIO::opentimelineio
+    LabSound::LabSound
     openexr
     sqlite3
     libzmq-static
@@ -287,26 +288,19 @@ if (HAVE_MIDI)
 endif()
 
 if (APPLE)
-  find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-  find_library(METAL_LIBRARY Metal)
-  find_library(METALKIT_LIBRARY MetalKit)
-  find_library(QUARTZCORE_LIBRARY QuartzCore)
-  find_library(GAMECONTROLLER_LIBRARY GameController)
-  find_library(CORELOCATION_LIBRARY CoreLocation REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC
         glfw
+        "-framework AudioToolbox"
+        "-framework AudioUnit"
+        "-framework Accelerate"
+        "-framework Cocoa"
+        "-framework CoreAudio"
         "-framework CoreFoundation"
         "-framework CoreLocation"
         "-framework GameController"
         "-framework Metal"
         "-framework MetalKit"
         "-framework QuartzCore"
-        #${COREFOUNDATION_LIBRARY}
-        #${CORELOCATION_LIBRARY}
-        #${GAMECONTROLLER_LIBRARY}
-        #${METAL_LIBRARY}
-        #${METALKIT_LIBRARY}
-        #${QUARTZCORE_LIBRARY}
     )
 elseif(WIN32)
   target_link_libraries(${PROJECT_NAME} PUBLIC

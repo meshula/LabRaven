@@ -17,6 +17,7 @@ cmake_policy(SET CMP0072 NEW)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
 include(CheckLanguage)
 #include(GroupSourcesByFolder)
+set(CMAKE_INSTALL_MESSAGE LAZY)
 
 #---------------------------------------------------
 # Project setup

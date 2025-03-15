@@ -6,35 +6,35 @@ if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
 endif()
 
-####################################
+#---------------------------------------------------
 
 add_library(sqlite3 STATIC)
 target_sources(sqlite3 PRIVATE sqlite3/sqlite3.c)
 target_include_directories(sqlite3 PUBLIC sqlite3)
 
-####################################
+#---------------------------------------------------
 
 add_library(openexr STATIC)
 target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
 target_include_directories(openexr PUBLIC OpenEXR)
 
-####################################
+#---------------------------------------------------
 
 add_library(cgltf INTERFACE)
 target_include_directories(cgltf INTERFACE cgltf)
 
-####################################
+#---------------------------------------------------
 
 add_library(cgltf_vrm INTERFACE)
 target_include_directories(cgltf_vrm INTERFACE cgltf_vrm)
 
-####################################
+#---------------------------------------------------
 
 add_subdirectory(Tilengine)
 add_subdirectory(ImGuizmo)
 
-####################################
-# OpenTimelineIO
+#---------------------------------------------------
+
 set(OTIO_BUILD_EXAMPLES OFF)
 set(OTIO_SHARED_LIBS OFF)
 set(BUILD_TESTING OFF)
@@ -45,9 +45,12 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/opentimelineio/src/deps/optional-lite/include
 )
 
-####################################
-# LabMidi
-#
+#---------------------------------------------------
+
+add_subdirectory(LabSound)
+
+#---------------------------------------------------
+
 if (HAVE_MIDI)
     # Prevent duplicate uninstall targets
     set(RTMIDI_TARGETNAME_UNINSTALL ON CACHE INTERNAL "rtmidi-uninstall")
@@ -57,7 +60,8 @@ if (HAVE_MIDI)
     add_subdirectory("LabMidi")
 endif()
 
-####################################
+#---------------------------------------------------
+
 
 # Configure ozz-animation options - disable everything except core library
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build ozz as shared libraries" FORCE)
