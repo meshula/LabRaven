@@ -63,4 +63,5 @@ if (APPLE)
     apply_plugin_code_signing(${PROJECT_NAME} raven)
 endif()
 
-GroupSourcesByFolder(TestPlugin)
+#include(${ROOT_DIR}/cmake/GroupSourcesByFolder.cmake)
+#GroupSourcesByFolder(TestPlugin)

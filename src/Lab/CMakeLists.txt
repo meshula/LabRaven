@@ -1,4 +1,11 @@
 
+#---------------------------------------------------
+# LabCore required dependencies
+#---------------------------------------------------
+
+#---------------------------------------------------
+# add glfw
+#---------------------------------------------------
 
 if(NOT EMSCRIPTEN AND NOT WIN32)
   set(GLFW_BUILD_EXAMPLES OFF)
@@ -8,7 +15,9 @@ if(NOT EMSCRIPTEN AND NOT WIN32)
   add_subdirectory("glfw")
 endif()
 
-####################################
+#---------------------------------------------------
+# add nativefiledialog as a subdirectory
+#---------------------------------------------------
 
 if(NOT EMSCRIPTEN)
   add_library(nativefiledialog STATIC)
@@ -33,22 +42,9 @@ if(NOT EMSCRIPTEN)
   target_link_libraries(nativefiledialog PRIVATE ${LIBRARIES})
 endif()
 
-####################################
-
 #---------------------------------------------------
-# add ext/libzmq as a subdirectory, with EXCLUDE_FROM_ALL.
-# note: EXCLUDE_FROM_ALL is used to indicate that only referenced components
-# should be built.
-# options:
-# ENABLE_DRAFTS ON
-# WITH_TLS OFF ~ requires further investigation on how much burden WSS adds
-# WITH_DOC OFF
-# WITH_PERF_TOOL OFF
-# BUILD_TESTS OFF
-# BUILD_SHARED_LIBS OFF
-# BUILD_STATIC_LIBS ON
-# ENABLE_NO_EXPORT ON
-# set the variables before including the subdirectory
+# add libzmq
+#---------------------------------------------------
 
 set(ENABLE_DRAFTS ON CACHE BOOL "" FORCE)
 set(WITH_TLS OFF CACHE BOOL "" FORCE)
@@ -60,10 +56,11 @@ set(BUILD_STATIC_LIBS ON CACHE BOOL "" FORCE)
 set(ENABLE_NO_EXPORT ON CACHE BOOL "" FORCE)
 add_subdirectory("libzmq" EXCLUDE_FROM_ALL)
 
-####################################
+#---------------------------------------------------
+# add IMGUI
+#---------------------------------------------------
 
 add_library(IMGUI STATIC)
-
 set_property(TARGET IMGUI PROPERTY CXX_STANDARD 14)
 
 # set IMGUI_DIR to root relative path
@@ -108,6 +105,7 @@ if(APPLE)
       ${IMGUI_DIR}/backends/imgui_impl_metal.mm
       #gl3w/GL/gl3w.c
   )
+  target_link_libraries(IMGUI glfw)
 elseif(WIN32)
   target_sources(IMGUI
   PRIVATE
@@ -145,6 +143,7 @@ target_include_directories(IMGUI
   PUBLIC ${IMGUI_DIR}/backends
   PUBLIC ${IMGUI_DIR}/misc/cpp
   PUBLIC glfw/include
+  PUBLIC glfw/include/GLFW
   PUBLIC ${IMPLOT_DIR}
   PUBLIC ${IMPLOT3D_DIR}
   PUBLIC ${TEXTEDIT_DIR}
@@ -159,9 +158,10 @@ target_compile_definitions(IMGUI PUBLIC
 # add an alias library
 add_library(ImGui::ImGui ALIAS IMGUI)
 
-####################################
+#---------------------------------------------------
+# add ImGuiColorTextEdit
+#---------------------------------------------------
 
-# create static library ImGuiTextEditor
 add_library(imguicolortextedit STATIC)
 set_property(TARGET imguicolortextedit PROPERTY CXX_STANDARD 14)
 set(IMGUI_TEXTEDITOR_SRCS 
@@ -176,8 +176,9 @@ target_link_libraries(imguicolortextedit PUBLIC ImGui::ImGui)
 # create alias
 add_library(ImGuiColorTextEdit::ImGuiColorTextEdit ALIAS imguicolortextedit)
 
-
-####################################
+#---------------------------------------------------
+# create binary to compressed
+#---------------------------------------------------
 
 if(NOT EMSCRIPTEN)
   # TODO: Figure out how to tell CMake to build binary_to_compressed_c
@@ -188,8 +189,9 @@ if(NOT EMSCRIPTEN)
   set_property(TARGET binary_to_compressed_c PROPERTY CXX_STANDARD 14)
 endif()
 
-
+#---------------------------------------------------
 # LabCore library
+#---------------------------------------------------
 
 if (APPLE)
     set (PLATFORM_SRCS
@@ -217,9 +219,14 @@ add_library(LabCore
     tinycolormap.hpp
 )
 
+# add Core Providers
+add_subdirectory(CoreProviders/Color)
+
 target_include_directories(LabCore PUBLIC
+    ${SRC_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/cppzmq
     ${CMAKE_CURRENT_SOURCE_DIR}/libzmq/include)
+
 target_include_directories(LabCore PRIVATE
     nativefiledialog/src/include)
 
@@ -234,6 +241,3 @@ set_property(TARGET LabCore PROPERTY C_STANDARD 11)
 target_link_libraries(LabCore PUBLIC ImGui::ImGui)
 target_link_libraries(LabCore PRIVATE libzmq-static)
 target_link_libraries(LabCore PRIVATE nativefiledialog)
-
-# add Core Providers
-add_subdirectory(CoreProviders/Color)

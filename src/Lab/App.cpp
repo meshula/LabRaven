@@ -7,6 +7,7 @@
 #include "LabFileDialogManager.hpp"
 #include "AppTheme.h"
 #include "CoreProviders/Color/nanocolor.h"
+#include "../Providers/Scheme/SchemeProvider.hpp"
 
 #include "imgui.h"
 #include "imgui_internal.h" // for DockBuilderGetCentralNode
@@ -367,7 +368,38 @@ double LabApp::FrameTime_ms() const {
 
 } // lab
 
+
 App* gApp() {
+#if 0
+    auto scheme = lab::SchemeProvider::instance();
+
+    // First, define the function
+    std::string define_test = "(define (test-function x) (* x 2))";
+    scheme->EvalScheme(define_test);
+
+    // Then test it separately
+    std::string test_result = scheme->EvalScheme("(if (procedure? test-function) \"Success\" \"Failure\")");
+    std::cout << "Test result: " << test_result << std::endl;
+
+    // Try calling the function
+    std::string call_result = scheme->EvalScheme("(test-function 21)");
+    std::cout << "Function call result: " << call_result << std::endl;
+
+    // Define make-shader
+    std::string define_make_shader = "(define (make-shader name inputs uniforms varyings body-fn) (list 'shader name inputs uniforms varyings body-fn))";
+    scheme->EvalScheme(define_make_shader);
+
+    // Test if it's defined
+    std::string shader_test = scheme->EvalScheme("(if (procedure? make-shader) \"make-shader is defined\" \"make-shader is NOT defined\")");
+    std::cout << "make-shader test: " << shader_test << std::endl;
+
+    // Try using it
+    std::string use_result = scheme->EvalScheme("(make-shader 'test '() '() '() (lambda () 'dummy))");
+    std::cout << "Using make-shader: " << use_result << std::endl;
+
+    scheme->ExerciseShaderTranspiler("/Users/nporcino/dev/labraven/src/Providers/Scheme/shader-system.scm",
+    "/Users/nporcino/dev/labraven/src/Providers/Scheme/disney-principled-brdf.scm");
+#endif
 #if 0
     // create an NcColorSpace for ap1 to ciexyz:
     const NcColorSpace* src = NcGetNamedColorSpace("lin_ap1");

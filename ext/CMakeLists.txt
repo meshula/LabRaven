@@ -1,5 +1,5 @@
-cmake_policy(SET CMP0076 NEW)
-cmake_policy(SET CMP0072 NEW)
+# This file is used to build third-party libraries that are not available as CMake packages
+# These libraries are built as static libraries and linked to the main project
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
     find_package(PkgConfig REQUIRED)
@@ -19,16 +19,39 @@ target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
 target_include_directories(openexr PUBLIC OpenEXR)
 
 ####################################
-# cgltf and cgltf_vrm are header-only libraries
+
 add_library(cgltf INTERFACE)
 target_include_directories(cgltf INTERFACE cgltf)
+
+####################################
 
 add_library(cgltf_vrm INTERFACE)
 target_include_directories(cgltf_vrm INTERFACE cgltf_vrm)
 
 ####################################
+
 add_subdirectory(Tilengine)
 add_subdirectory(ImGuizmo)
+
+####################################
+# OpenTimelineIO
+set(OTIO_BUILD_EXAMPLES OFF)
+set(OTIO_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
+add_subdirectory("opentimelineio")
+include_directories(
+  ${PROJECT_SOURCE_DIR}/opentimelineio/src
+  ${PROJECT_SOURCE_DIR}/opentimelineio/src/deps
+  ${PROJECT_SOURCE_DIR}/opentimelineio/src/deps/optional-lite/include
+)
+
+####################################
+# LabMidi
+#
+# Prevent duplicate uninstall targets
+set(RTMIDI_TARGETNAME_UNINSTALL ON CACHE INTERNAL "rtmidi-uninstall")
+add_subdirectory("LabMidi")
+
 ####################################
 
 # Configure ozz-animation options - disable everything except core library
@@ -45,5 +68,3 @@ set(ozz_build_postfix OFF CACHE BOOL "Use per config postfix name" FORCE)
 set(ozz_build_msvc_rt_dll OFF CACHE BOOL "Select msvc DLL runtime library" FORCE)
 
 add_subdirectory(ozz-animation EXCLUDE_FROM_ALL)
-####################################
-
