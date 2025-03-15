@@ -5,8 +5,6 @@
 message(STATUS ": Creating executable ${PROJECT_NAME}")
 add_executable(${PROJECT_NAME})
 set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 20)
-set_property(GLOBAL PROPERTY RESOURCES_LIST "")
-get_property(RESOURCES GLOBAL PROPERTY RESOURCES_LIST)
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE BUILT_RESOURCE_PATH=${PROJECT_SOURCE_DIR})
 
@@ -129,9 +127,10 @@ endif()
 #---------------------------------------------------
 
 set_property(              GLOBAL PROPERTY ACTIVITIES_LIST "")
-set_property(              GLOBAL PROPERTY PROVIDERS_LIST "")
-set_property(              GLOBAL PROPERTY PLUGINS_LIST "")
 set_property(              GLOBAL PROPERTY METAL_SHADERS_LIST "")
+set_property(              GLOBAL PROPERTY PLUGINS_LIST "")
+set_property(              GLOBAL PROPERTY PROVIDERS_LIST "")
+set_property(              GLOBAL PROPERTY RESOURCES_LIST "")
 set_property(              GLOBAL PROPERTY STUDIO_LIST "")
 
 #---------------------------------------------------
@@ -144,9 +143,10 @@ add_subdirectory(Providers)
 add_subdirectory(Studios)
 
 get_property(ACTIVITIES    GLOBAL PROPERTY ACTIVITIES_LIST)
-get_property(PROVIDERS     GLOBAL PROPERTY PROVIDERS_LIST)
-get_property(PLUGINS       GLOBAL PROPERTY PLUGINS_LIST)
 get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
+get_property(PLUGINS       GLOBAL PROPERTY PLUGINS_LIST)
+get_property(PROVIDERS     GLOBAL PROPERTY PROVIDERS_LIST)
+get_property(RESOURCES     GLOBAL PROPERTY RESOURCES_LIST)
 get_property(STUDIOS       GLOBAL PROPERTY STUDIO_LIST)
 
 #---------------------------------------------------
