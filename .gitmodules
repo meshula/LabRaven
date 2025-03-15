@@ -26,3 +26,6 @@
 [submodule "ext/cgltf_vrm"]
 	path = ext/cgltf_vrm
 	url = https://github.com/meshula/cgltf_vrm.git
+[submodule "ext/LabSound"]
+	path = ext/LabSound
+	url = git@github.com:LabSound/LabSound.git
