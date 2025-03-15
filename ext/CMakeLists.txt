@@ -48,9 +48,14 @@ include_directories(
 ####################################
 # LabMidi
 #
-# Prevent duplicate uninstall targets
-set(RTMIDI_TARGETNAME_UNINSTALL ON CACHE INTERNAL "rtmidi-uninstall")
-add_subdirectory("LabMidi")
+if (HAVE_MIDI)
+    # Prevent duplicate uninstall targets
+    set(RTMIDI_TARGETNAME_UNINSTALL ON CACHE INTERNAL "rtmidi-uninstall")
+
+    # don't build the rtmidi tests, RTMIDI_BUILD_TESTING
+    set(RTMIDI_BUILD_TESTING OFF CACHE BOOL "Build rtmidi tests" FORCE)
+    add_subdirectory("LabMidi")
+endif()
 
 ####################################
 
