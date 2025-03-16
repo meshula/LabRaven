@@ -274,6 +274,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     LabCore
     OTIO::opentimelineio
     LabSound::LabSound
+    LabSoundRtAudio::LabSoundRtAudio
     openexr
     sqlite3
     libzmq-static
@@ -349,19 +350,40 @@ foreach(file ${PLUGIN_FILES})
   list(APPEND COPIED_FILES "${PLUGINS_DIR}/${filename}")
 endforeach()
 
-# Loop over each file in RESOURCES to copy them
-foreach(file ${RESOURCES})
-  # Extract the filename from the path
-  get_filename_component(filename "${file}" NAME)
-
-  set(dest_file "${RESOURCES_DIR}/${filename}")
-  add_custom_command(
-        OUTPUT "${RESOURCES_DIR}/${filename}"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${file}" "${dest_file}"
-        DEPENDS "${file}"
-        COMMENT "Copying ${filename} to resources directory"
-    )
-  list(APPEND COPIED_FILES "${dest_file}")
+# Process the RESOURCES list which may contain special markers for subdirectories
+set(current_dest_subdir "")
+# Loop over each item in RESOURCES
+foreach(item ${RESOURCES})
+  if(item STREQUAL "PUSH_DEST")
+    # Next item is the destination subdirectory
+    set(next_is_dest TRUE)
+  elseif(next_is_dest)
+    set(current_dest_subdir "${item}")
+    set(next_is_dest FALSE)
+  elseif(item STREQUAL "POP_DEST")
+    set(current_dest_subdir "")
+  else()
+    # This is a regular file to copy
+    # Extract the filename from the path
+    get_filename_component(filename "${item}" NAME)
+    
+    # Set destination based on current_dest_subdir
+    if(current_dest_subdir)
+      # Create the destination directory if it doesn't exist
+      file(MAKE_DIRECTORY "${RESOURCES_DIR}/${current_dest_subdir}")
+      set(dest_file "${RESOURCES_DIR}/${current_dest_subdir}/${filename}")
+    else()
+      set(dest_file "${RESOURCES_DIR}/${filename}")
+    endif()
+    
+    add_custom_command(
+          OUTPUT "${dest_file}"
+          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${item}" "${dest_file}"
+          DEPENDS "${item}"
+          COMMENT "Copying ${filename} to resources directory${current_dest_subdir}"
+      )
+    list(APPEND COPIED_FILES "${dest_file}")
+  endif()
 endforeach()
 
 # Create a custom target that triggers the copy step
