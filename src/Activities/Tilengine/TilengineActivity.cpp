@@ -1,6 +1,6 @@
 
 #include "TilengineActivity.hpp"
-#include "Lab/Providers/Tilengine/TilengineProvider.hpp"
+#include "Providers/Tilengine/TilengineProvider.hpp"
 #include "Lab/StudioCore.hpp"
 #include "Lab/App.h"
 #include "Lab/LabDirectories.h"
@@ -84,9 +84,10 @@ void TilengineActivity::RunUI(const LabViewInteraction& interaction) {
     ImGui::Image((ImTextureID) mtlTexture, ImVec2(width * 2, height * 2));
     // Check focus and update the global input flag
     bool focussed = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
-    TilengineProvider::instance()->SetCaptureInput(focussed);
+    auto tep = TilengineProvider::instance();
+    tep->SetCaptureInput(focussed);
     ShooterRun();
-    gInputFocus = false;
+    tep->SetCaptureInput(false);
     ImGui::End();
 }
 

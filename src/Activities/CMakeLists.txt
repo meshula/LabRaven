@@ -12,7 +12,7 @@ add_subdirectory(Test)
 add_subdirectory(Texture)
 
 if(HAVE_TILENGINE)
-   # add_subdirectory(Tilengine)
+  add_subdirectory(Tilengine)
 endif()
 
 add_subdirectory(Timeline)
