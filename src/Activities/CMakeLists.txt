@@ -10,7 +10,11 @@ add_subdirectory(Preferences)
 add_subdirectory(Providers)
 add_subdirectory(Test)
 add_subdirectory(Texture)
-add_subdirectory(Tilengine)
+
+if(HAVE_TILENGINE)
+   # add_subdirectory(Tilengine)
+endif()
+
 add_subdirectory(Timeline)
 
 if(HAVE_SOUND)

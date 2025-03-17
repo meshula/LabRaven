@@ -1,6 +1,6 @@
 
 #include "TextureCache.hpp"
-#include "Providers/Metal/MetalProvider.h"
+#include "Lab/CoreProviders/Metal/MetalProvider.hpp"
 
 #include <map>
 

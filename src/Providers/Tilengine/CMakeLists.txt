@@ -2,8 +2,7 @@
 get_property(PROVIDERS GLOBAL PROPERTY PROVIDERS_LIST)
 set_property(GLOBAL PROPERTY PROVIDERS_LIST "${PROVIDERS};Tilengine")
 
-set(Tilengine_SRCS
-    TilengineProvider.hpp TilengineProvider.cpp
+set(SAMPLE_SRCS 
     ${PROJECT_SOURCE_DIR}/ext/Tilengine/samples/Shooter.c
     ${PROJECT_SOURCE_DIR}/ext/Tilengine/samples/Actor.c
     ${PROJECT_SOURCE_DIR}/ext/Tilengine/samples/Boss.c
@@ -11,6 +10,10 @@ set(Tilengine_SRCS
     ${PROJECT_SOURCE_DIR}/ext/Tilengine/samples/Explosion.c
     ${PROJECT_SOURCE_DIR}/ext/Tilengine/samples/Ship.c
     ${PROJECT_SOURCE_DIR}/ext/Tilengine/samples/Sin.c
+)
+
+set(Tilengine_SRCS
+    TilengineProvider.hpp TilengineProvider.cpp
 )
 
 set(Tilengine_resources
@@ -30,4 +33,4 @@ set(Tilengine_resources
 get_property(RESOURCES GLOBAL PROPERTY RESOURCES_LIST)
 set_property(GLOBAL PROPERTY RESOURCES_LIST "${RESOURCES};${Tilengine_resources}")
 
-target_sources(${PROJECT_NAME} PUBLIC ${Tilengine_SRCS})
+target_sources(${PROJECT_NAME} PUBLIC ${Tilengine_SRCS} ${SAMPLE_SRCS})

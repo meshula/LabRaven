@@ -84,7 +84,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     #ext
     Lab/cppzmq
     Lab/libzmq/include
-    #${ROOT_DIR}/ext/Tilengine/include
     #${ROOT_DIR}/ext/ImGuiHydraEditor/src
     #Imath::Imath
     #${ROOT_DIR}/ext/opentimelineio/src
@@ -128,6 +127,7 @@ endif()
 #---------------------------------------------------
 
 set_property(              GLOBAL PROPERTY ACTIVITIES_LIST "")
+set_property(              GLOBAL PROPERTY INCLUDES_LIST "")
 set_property(              GLOBAL PROPERTY METAL_SHADERS_LIST "")
 set_property(              GLOBAL PROPERTY PLUGINS_LIST "")
 set_property(              GLOBAL PROPERTY PROVIDERS_LIST "")
@@ -139,16 +139,27 @@ set_property(              GLOBAL PROPERTY STUDIO_LIST "")
 #---------------------------------------------------
 
 add_subdirectory(Lab)
-#add_subdirectory(Activities)
-#add_subdirectory(Providers)
-#add_subdirectory(Studios)
+add_subdirectory(Activities)
+add_subdirectory(Providers)
+add_subdirectory(Studios)
 
 get_property(ACTIVITIES    GLOBAL PROPERTY ACTIVITIES_LIST)
+get_property(INCLUDES      GLOBAL PROPERTY INCLUDES_LIST)
 get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
 get_property(PLUGINS       GLOBAL PROPERTY PLUGINS_LIST)
 get_property(PROVIDERS     GLOBAL PROPERTY PROVIDERS_LIST)
 get_property(RESOURCES     GLOBAL PROPERTY RESOURCES_LIST)
 get_property(STUDIOS       GLOBAL PROPERTY STUDIO_LIST)
+
+#---------------------------------------------------
+# Add Include Directories
+#---------------------------------------------------
+
+# Add all include directories from the INCLUDES_LIST
+if(INCLUDES)
+  message(STATUS ": Adding include directories: ${INCLUDES}")
+  target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDES})
+endif()
 
 #---------------------------------------------------
 # Add Activities

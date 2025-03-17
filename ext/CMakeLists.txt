@@ -14,9 +14,11 @@ target_include_directories(sqlite3 PUBLIC sqlite3)
 
 #---------------------------------------------------
 
-add_library(openexr STATIC)
-target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
-target_include_directories(openexr PUBLIC OpenEXR)
+if(HAVE_OPENEXR)
+    add_library(openexr STATIC)
+    target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
+    target_include_directories(openexr PUBLIC OpenEXR)
+endif()
 
 #---------------------------------------------------
 
@@ -30,20 +32,26 @@ target_include_directories(cgltf_vrm INTERFACE cgltf_vrm)
 
 #---------------------------------------------------
 
-add_subdirectory(Tilengine)
-add_subdirectory(ImGuizmo)
+if(HAVE_TILENGINE)
+    add_subdirectory(Tilengine)
+endif()
+if(HAVE_IMGUIZMO)
+    add_subdirectory(ImGuizmo)
+endif()
 
 #---------------------------------------------------
 
-set(OTIO_BUILD_EXAMPLES OFF)
-set(OTIO_SHARED_LIBS OFF)
-set(BUILD_TESTING OFF)
-add_subdirectory("opentimelineio")
-include_directories(
-  ${PROJECT_SOURCE_DIR}/opentimelineio/src
-  ${PROJECT_SOURCE_DIR}/opentimelineio/src/deps
-  ${PROJECT_SOURCE_DIR}/opentimelineio/src/deps/optional-lite/include
-)
+if(HAVE_OTIO)
+    set(OTIO_BUILD_EXAMPLES OFF)
+    set(OTIO_SHARED_LIBS OFF)
+    set(BUILD_TESTING OFF)
+    add_subdirectory("opentimelineio")
+    include_directories(
+    ${PROJECT_SOURCE_DIR}/opentimelineio/src
+    ${PROJECT_SOURCE_DIR}/opentimelineio/src/deps
+    ${PROJECT_SOURCE_DIR}/opentimelineio/src/deps/optional-lite/include
+    )
+endif()
 
 #---------------------------------------------------
 
@@ -63,7 +71,6 @@ if (HAVE_MIDI)
 endif()
 
 #---------------------------------------------------
-
 
 # Configure ozz-animation options - disable everything except core library
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build ozz as shared libraries" FORCE)

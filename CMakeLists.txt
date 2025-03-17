@@ -96,7 +96,7 @@ endif()
 # Third party libraries
 #---------------------------------------------------
 
-#add_subdirectory("ext")
+add_subdirectory("ext")
 
 #---------------------------------------------------
 # Main products

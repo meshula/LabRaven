@@ -1,12 +1,12 @@
 //
-//  TextureActivityObjC.m
+//  TextureActivity.mm
 //  LabExcelsior
 //
 //  Created by Nick Porcino on 1/12/24.
 //  Copyright © 2024 Nick Porcino. All rights reserved.
 //
 
-#include "Providers/Metal/MetalProvider.h"
+#include "Lab/CoreProviders/Metal/MetalProvider.hpp"
 
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>

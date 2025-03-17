@@ -17,6 +17,8 @@ public:
     static TilengineProvider* instance();
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "Tilengine"; }
+
+    void SetCaptureInput(bool capture);
 };
 
 } // lab
