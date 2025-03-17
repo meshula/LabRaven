@@ -81,15 +81,16 @@ target_sources(${PROJECT_NAME} PRIVATE ${default_ini_header})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ext
+    #ext
     Lab/cppzmq
     Lab/libzmq/include
-    ${ROOT_DIR}/ext/Tilengine/include
-    ${ROOT_DIR}/ext/ImGuiHydraEditor/src
-    Imath::Imath
-    ${ROOT_DIR}/ext/opentimelineio/src
-    ImGuizmo::ImGuizmo
-    ${PXR_INCLUDE_DIRS})
+    #${ROOT_DIR}/ext/Tilengine/include
+    #${ROOT_DIR}/ext/ImGuiHydraEditor/src
+    #Imath::Imath
+    #${ROOT_DIR}/ext/opentimelineio/src
+    #ImGuizmo::ImGuizmo
+    #${PXR_INCLUDE_DIRS}
+)
 
 if(APPLE)
     target_sources(${PROJECT_NAME} PUBLIC 
@@ -138,9 +139,9 @@ set_property(              GLOBAL PROPERTY STUDIO_LIST "")
 #---------------------------------------------------
 
 add_subdirectory(Lab)
-add_subdirectory(Activities)
-add_subdirectory(Providers)
-add_subdirectory(Studios)
+#add_subdirectory(Activities)
+#add_subdirectory(Providers)
+#add_subdirectory(Studios)
 
 get_property(ACTIVITIES    GLOBAL PROPERTY ACTIVITIES_LIST)
 get_property(METAL_SHADERS GLOBAL PROPERTY METAL_SHADERS_LIST)
@@ -270,16 +271,37 @@ if (HAVE_OPENGL)
     )
 endif()
 
+if(HAVE_SOUND)
+    target_link_libraries(${PROJECT_NAME} PUBLIC 
+        LabSound::LabSound
+        LabSoundRtAudio::LabSoundRtAudio)
+
+    if(APPLE)
+        target_link_libraries(${PROJECT_NAME} PUBLIC
+            "-framework AudioToolbox"
+            "-framework AudioUnit"
+            "-framework Accelerate"
+            "-framework CoreAudio"
+        )
+    endif()
+endif()
+
+if(HAVE_OTIO)
+    target_link_libraries(${PROJECT_NAME} PUBLIC OTIO::opentimelineio)
+endif()
+if (HAVE_IMGUIZMO)
+    target_link_libraries(${PROJECT_NAME} PUBLIC ImGuizmo::ImGuizmo)
+endif()
+if (HAVE_OPENEXR)
+    target_link_libraries(${PROJECT_NAME} PUBLIC openexr)
+endif()
+if (HAVE_TILENGINE)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Tilengine)
+endif()
 target_link_libraries(${PROJECT_NAME} PUBLIC
     LabCore
-    OTIO::opentimelineio
-    LabSound::LabSound
-    LabSoundRtAudio::LabSoundRtAudio
-    openexr
     sqlite3
     libzmq-static
-    Tilengine
-    ImGuizmo::ImGuizmo
     ImGuiColorTextEdit::ImGuiColorTextEdit
     ${PXR_LIBRARIES}
 )
@@ -291,11 +313,7 @@ endif()
 if (APPLE)
   target_link_libraries(${PROJECT_NAME} PUBLIC
         glfw
-        "-framework AudioToolbox"
-        "-framework AudioUnit"
-        "-framework Accelerate"
         "-framework Cocoa"
-        "-framework CoreAudio"
         "-framework CoreFoundation"
         "-framework CoreLocation"
         "-framework GameController"

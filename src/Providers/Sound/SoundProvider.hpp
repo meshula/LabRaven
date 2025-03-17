@@ -20,8 +20,6 @@ SoundProvider();
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "Sound"; }
 
-    void StartAudio();
-
     lab::AudioContext* Context() const;
     std::vector<lab::AudioDeviceInfo>& DeviceInfo() const;
 };

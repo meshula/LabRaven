@@ -1,7 +1,7 @@
 #include "App.h"
 #include "RegisterAllActivities.h"
 #include "Lab/CoreProviders/Color/glfwColor.h"
-#include "Providers/Metal/MetalProvider.h"
+#include "Lab/CoreProviders/Metal/MetalProvider.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"

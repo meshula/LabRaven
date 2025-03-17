@@ -1,5 +1,5 @@
 
-#import "MetalProvider.h"
+#import "MetalProvider.hpp"
 
 
 id<MTLTexture> CreateRGBA8Texture(id<MTLDevice> device, int width, int height,
@@ -498,3 +498,70 @@ void* LabTextureHardwareHandle(int texture) {
     id<MTLTexture> tx = [gLabMetalProvider Texture:texture];
     return (__bridge void*)tx;
 }
+
+namespace lab {
+
+    struct MetalProvider::data {
+    };
+
+    MetalProvider::MetalProvider(): Provider(MetalProvider::sname()) {
+        _self = new MetalProvider::data();
+        _instance = this;
+        provider.Documentation = [](void* instance) -> const char* {
+            return "Provides Metal services";
+        };
+    }
+
+    MetalProvider::~MetalProvider() {
+        delete _self;
+    }
+
+    MetalProvider* MetalProvider::_instance = nullptr;
+
+    MetalProvider* MetalProvider::instance() {
+        return _instance;
+    }
+
+    // implement all the member functions strictly by calling the C API, no reimplementation, just a wrapper
+    void* MetalProvider::TextureHardwareHandle(int texture) {
+        return LabTextureHardwareHandle(texture);
+    }
+
+    int MetalProvider::CreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels) {
+        return LabCreateRGBA8Texture(width, height, rgba_pixels);
+    }
+
+    int MetalProvider::CreateBGRA8Texture(int width, int height, uint8_t* bgra_pixels) {
+        return LabCreateBGRA8Texture(width, height, bgra_pixels);
+    }
+
+    int MetalProvider::CreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels) {
+        return LabCreateRGBAf16Texture(width, height, rgba_pixels);
+    }
+
+    int MetalProvider::CreateRGBAf32Texture(int width, int height, uint8_t* rgba_pixels) {
+        return LabCreateRGBAf32Texture(width, height, rgba_pixels);
+    }
+
+    int MetalProvider::CreateYf32Texture(int width, int height, uint8_t* rgba_pixels) {
+        return LabCreateYf32Texture(width, height, rgba_pixels);
+    }
+
+    void MetalProvider::UpdateRGBA8Texture(int texture, uint8_t* rgba_pixels) {
+        LabUpdateRGBA8Texture(texture, rgba_pixels);
+    }
+
+    void MetalProvider::UpdateBGRA8Texture(int texture, uint8_t* bgra_pixels) {
+        LabUpdateBGRA8Texture(texture, bgra_pixels);
+    }
+
+    void MetalProvider::UpdateRGBAf16Texture(int texture, uint8_t* rgba_pixels) {
+        LabUpdateRGBAf16Texture(texture, rgba_pixels);
+    }
+
+    void MetalProvider::RemoveTexture(int texture) {
+        LabRemoveTexture(texture);
+    }
+
+
+} // lab

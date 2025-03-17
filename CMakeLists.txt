@@ -38,7 +38,12 @@ set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 if (APPLE)
   option(APPLE_MAKE_BUNDLE "Create a macOS bundle" ON)
 endif()
-option(HAVE_MIDI "Enable MIDI support" ON)
+option(HAVE_MIDI "Enable MIDI support" OFF)
+option(HAVE_OPENEXR "Enable OpenEXR support" OFF)
+option(HAVE_SOUND "Enable sound support" OFF)
+option(HAVE_OTIO "Enable OpenTimelineIO support" OFF)
+option(HAVE_IMGUIZMO "Enable ImGuizmo support" OFF)
+option(HAVE_TILEENGINE "Enable Tilengine support" OFF)
 
 option(HAVE_OPENUSD "Enable OpenUSD support" OFF)
 if (HAVE_OPENUSD)
@@ -91,7 +96,7 @@ endif()
 # Third party libraries
 #---------------------------------------------------
 
-add_subdirectory("ext")
+#add_subdirectory("ext")
 
 #---------------------------------------------------
 # Main products

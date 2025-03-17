@@ -89,12 +89,11 @@ struct TilengineActivity::data
     int frame = 0;
     int fbTexture = 0;
     bool restorePowerSave = true;
+    bool mustInit = true;
 };
 
 TilengineActivity::TilengineActivity() : Activity(TilengineActivity::sname()) {
     _self = new data;
-
-    ShooterInit(lab_application_resource_path(nullptr, nullptr));
 
     activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
         static_cast<TilengineActivity*>(instance)->RunUI(*vi);
@@ -109,7 +108,12 @@ TilengineActivity::~TilengineActivity() {
 void TilengineActivity::_activate() {
     _self->restorePowerSave = LabApp::instance()->PowerSave();
     LabApp::instance()->SetPowerSave(false);
+    if (_self->mustInit) {
+        _self->mustInit = false;
+        ShooterInit(lab_application_resource_path(nullptr, nullptr));
+    }
 }
+
 void TilengineActivity::_deactivate() {
     LabApp::instance()->SetPowerSave(_self->restorePowerSave);
 }

@@ -47,7 +47,9 @@ include_directories(
 
 #---------------------------------------------------
 
-add_subdirectory(LabSound)
+if(HAVE_SOUND)
+    add_subdirectory(LabSound)
+endif()
 
 #---------------------------------------------------
 

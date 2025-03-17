@@ -17,11 +17,13 @@ struct SoundProvider::data {
     std::unique_ptr<lab::AudioContext> context;
 
     data() {
+        auto t = time(NULL);
     }
     ~data() {
     }
 
     void Initialize(bool with_input = true) {
+        auto t = time(NULL);
         if (!audioDevices.empty()) {
             // if devices have been found, audio's been intialized.
             return;
@@ -85,15 +87,12 @@ SoundProvider* SoundProvider::instance() {
     return _instance;
 }
 
-void SoundProvider::StartAudio() {
-    _self->Initialize();
-}
-
 lab::AudioContext* SoundProvider::Context() const { 
     return _self->context.get(); 
 }
 
 std::vector<lab::AudioDeviceInfo>& SoundProvider::DeviceInfo() const {
+    _self->Initialize(true);
     return _self->audioDevices;
 }
 

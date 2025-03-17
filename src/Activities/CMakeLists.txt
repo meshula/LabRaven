@@ -8,11 +8,14 @@ add_subdirectory(Journal)
 add_subdirectory(Plugin)
 add_subdirectory(Preferences)
 add_subdirectory(Providers)
-add_subdirectory(Sound)
 add_subdirectory(Test)
 add_subdirectory(Texture)
 add_subdirectory(Tilengine)
 add_subdirectory(Timeline)
+
+if(HAVE_SOUND)
+    add_subdirectory(Sound)
+endif()
 
 if (HAVE_OPENUSD)
     # strictly speaking the camera mode doesn't really need USD, but in practice

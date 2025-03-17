@@ -1,23 +1,22 @@
-
+xxx
 add_subdirectory(Assets)
 add_subdirectory(Astro)
 add_subdirectory(Camera)
 add_subdirectory(Animation)
 add_subdirectory(Scheme)
 add_subdirectory(Selection)
-add_subdirectory(Sound)
 add_subdirectory(Sprite)
 add_subdirectory(Texture)
 add_subdirectory(Tilengine)
 
-if(APPLE)
-    add_subdirectory(Metal)
-endif()
 if(HAVE_OPENUSD)
     add_subdirectory(OpenUSD)
 endif()
 if(HAVE_MIDI)
     add_subdirectory(Midi)
+endif()
+if(HAVE_SOUND)
+    add_subdirectory(Sound)
 endif()
 
 # if PROVIDERS is empty, report that.

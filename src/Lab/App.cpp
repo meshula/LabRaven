@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <mutex>
+#include <time.h>
 
 using lab::FileDialogManager;
 using lab::Orchestrator;
@@ -411,6 +412,9 @@ App* gApp() {
     NcM33f bradford = NcGetRGBToRGBMatrixBradford(src, dst);
     NcM33f bradford2 = NcGetRGBToRGBMatrixBradford(src, dst2);
 #endif
+
+    auto t = time(NULL);
+
     static std::unique_ptr<App> _app;
     static std::once_flag _app_once_flag;
     std::call_once(_app_once_flag, []() {

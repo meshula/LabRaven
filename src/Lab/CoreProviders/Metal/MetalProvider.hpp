@@ -72,7 +72,6 @@
 void* LabGetEncodedTexture(int texture);
 void LabReleaseEncodedTexture(void* texture);
 
-
 LMR_EXTERN
 int LabCreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels);
 
@@ -106,5 +105,36 @@ void* LabTextureHardwareHandle(int texture);
 typedef struct {
     int texture;
 } LabTextureHandle;
+
+#ifdef __cplusplus
+
+#include "Lab/StudioCore.hpp"
+
+namespace lab {
+class MetalProvider : public Provider {
+    struct data;
+    data* _self;
+    static MetalProvider* _instance;
+public:
+    MetalProvider();
+    ~MetalProvider();
+
+    static MetalProvider* instance();
+    virtual const std::string Name() const override { return sname(); }
+    static constexpr const char* sname() { return "Metal"; }
+
+    void* TextureHardwareHandle(int texture);
+    int CreateRGBA8Texture(int width, int height, uint8_t* rgba_pixels);
+    int CreateBGRA8Texture(int width, int height, uint8_t* bgra_pixels);
+    int CreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels);
+    int CreateRGBAf32Texture(int width, int height, uint8_t* rgba_pixels);
+    int CreateYf32Texture(int width, int height, uint8_t* rgba_pixels);
+    void UpdateRGBA8Texture(int texture, uint8_t* rgba_pixels);
+    void UpdateBGRA8Texture(int texture, uint8_t* bgra_pixels);
+    void UpdateRGBAf16Texture(int texture, uint8_t* rgba_pixels);
+    void RemoveTexture(int texture);
+};
+} // lab
+#endif // __cplusplus
 
 #endif /* MetalResources_h */
