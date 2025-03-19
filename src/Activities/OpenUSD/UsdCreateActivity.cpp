@@ -37,7 +37,7 @@
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include "Providers/OpenUSD/UsdUtils.hpp"
 #include "Providers/OpenUSD/par_heman/include/heman.h"
-#include "Providers/Color/nanocolorUtils.h"
+#include "Lab/CoreProviders/Color/nanocolorUtils.h"
 #include "Providers/OpenUSD/par_shapes.h"
 
 #include <string>

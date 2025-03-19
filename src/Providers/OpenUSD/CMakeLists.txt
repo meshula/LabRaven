@@ -78,7 +78,6 @@ set(OPENUSD_SRCS
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src
-    ${CMAKE_SOURCE_DIR}/ext/
 )
 
 target_sources(${PROJECT_NAME} PUBLIC ${OPENUSD_SRCS})
@@ -101,6 +100,12 @@ target_include_directories(usdtweak PRIVATE
 
 target_link_libraries(usdtweak PRIVATE
     ${PXR_LIBRARIES}
+)
+
+target_include_directories(usdtweak PRIVATE
+    ${PXR_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/src/Lab/imgui
+    ${CMAKE_SOURCE_DIR}/src/Lab/imgui/misc/cpp
 )
 
 target_compile_definitions(usdtweak PRIVATE

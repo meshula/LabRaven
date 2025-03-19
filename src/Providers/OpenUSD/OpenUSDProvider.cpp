@@ -13,8 +13,8 @@
 #include "par_heman/include/heman.h"
 
 #include "Activities/Console/ConsoleActivity.hpp"
-#include "Providers/Color/nanocolor.h"
-#include "Providers/Color/nanocolorUtils.h"
+#include "Lab/CoreProviders/Color/nanocolor.h"
+#include "Lab/CoreProviders/Color/nanocolorUtils.h"
 
 
 

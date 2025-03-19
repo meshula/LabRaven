@@ -43,7 +43,7 @@ option(HAVE_OPENEXR "Enable OpenEXR support" OFF)
 option(HAVE_SOUND "Enable sound support" OFF)
 option(HAVE_OTIO "Enable OpenTimelineIO support" OFF)
 option(HAVE_IMGUIZMO "Enable ImGuizmo support" OFF)
-option(HAVE_TILEENGINE "Enable Tilengine support" OFF)
+option(HAVE_TILENGINE "Enable Tilengine support" OFF)
 
 option(HAVE_OPENUSD "Enable OpenUSD support" OFF)
 if (HAVE_OPENUSD)

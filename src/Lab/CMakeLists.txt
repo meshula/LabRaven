@@ -230,6 +230,7 @@ target_include_directories(LabCore PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/libzmq/include)
 
 target_include_directories(LabCore PRIVATE
+    ${PXR_INCLUDE_DIRS}
     nativefiledialog/src/include)
 
 # add HAVE_OPENUSD set to 1 to the compile definitions

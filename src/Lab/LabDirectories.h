@@ -5,6 +5,8 @@
 extern "C" {
 #endif
 
+const char* lab_temp_directory_path();
+
 // get the path to the executable, including the executable name
 const char* lab_application_executable_path(const char* argv0);
 
@@ -24,6 +26,8 @@ bool lab_reveal_on_desktop(const char* path);
 void lab_set_pref_for_key(const char* key, const char* value);
 const char* lab_pref_for_key(const char* key);
 void lab_close_preferences(); // call as preparation for application exit
+
+const char* lab_temp_directory_path();
 
 #ifdef __cplusplus
 }

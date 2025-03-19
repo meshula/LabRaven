@@ -11,7 +11,7 @@
 #include "imgui.h"
 #include <pxr/base/gf/vec3f.h>
 
-#include "Providers/Metal/MetalProvider.h"
+#include "Lab/CoreProviders/Metal/MetalProvider.hpp"
 
 namespace lab {
 

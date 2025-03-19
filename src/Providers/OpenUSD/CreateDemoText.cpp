@@ -1,8 +1,8 @@
 #include "CreateDemoText.hpp"
 #include "Lab/App.h"
 #include "Activities/Console/ConsoleActivity.hpp"
-#include "Providers/Color/nanocolor.h"
-#include "Providers/Color/nanocolorUtils.h"
+#include "Lab/CoreProviders/Color/nanocolor.h"
+#include "Lab/CoreProviders/Color/nanocolorUtils.h"
 #include "OpenUSDProvider.hpp"
 #include "UsdUtils.hpp"
 #include <pxr/usd/usd/stage.h>

@@ -683,6 +683,12 @@ void LayersActivity::RunUI(const LabViewInteraction& vi) {
     float deltaTime = currentTime - lastFrameTime;
     lastFrameTime = currentTime;
 
+    // ensure that the UI works by forcing the window move behavior off globally.
+    // CBB, implement a large widget that captures the whole window and manages
+    // the interactivity.
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+
     ImGui::SetNextWindowSize(ImVec2(1200, 800), ImGuiCond_FirstUseEver);
     ImGui::Begin("OpenUSD Layer Editor");
 

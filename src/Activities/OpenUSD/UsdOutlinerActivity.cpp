@@ -34,7 +34,7 @@
 
 // on Apple the LabCreateTextues come from the MetalProvider
 #if defined(__APPLE__)
-#include "Providers/Metal/MetalProvider.h"
+#include "Lab/CoreProviders/Metal/MetalProvider.hpp"
 #endif
 
 

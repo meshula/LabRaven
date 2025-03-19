@@ -115,6 +115,41 @@ const char* lab_application_preferences_path(const char* fallbackName) {
     return path.c_str();
 }
 
+extern "C"
+const char* lab_application_resource_path(const char* argv0, const char* rsrc) {
+    static std::string path;
+    if (path.size() > 0) {
+        return path.c_str();
+    }
+
+    // Get the directory containing the executable
+    path = lab_application_executable_path(argv0);
+    remove_filename(path.data());
+
+    // Append the resources directory
+    add_filename(path.data(), rsrc);
+    return path.c_str();
+}
+
+extern "C"
+const char* lab_temp_directory_path() {
+    static std::string path;
+    if (path.size() > 0) {
+        return path.c_str();
+    }
+
+    // Get the temporary directory
+    char tempPath[MAX_PATH];
+    if (GetTempPathA(MAX_PATH, tempPath) == 0) {
+        std::cerr << "Error fetching temporary directory." << std::endl;
+        return nullptr;
+    }
+
+    path = tempPath;
+    std::cout << "Temp Path: " << path << std::endl;
+    return path.c_str();
+}
+
 #elif defined(__APPLE__)
 
 extern "C"
@@ -226,6 +261,25 @@ const char* lab_application_resource_path(const char* argv0, const char* rsrc) {
     return path.c_str();
 }
 
+extern "C"
+const char* lab_temp_directory_path() {
+    static std::string path;
+    if (path.size() > 0) {
+        return path.c_str();
+    }
+
+    // Get the temporary directory
+    char tempPath[PATH_MAX];
+    if (realpath("/tmp", tempPath) == nullptr) {
+        std::cerr << "Error fetching temporary directory." << std::endl;
+        return nullptr;
+    }
+
+    path = tempPath;
+    std::cout << "Temp Path: " << path << std::endl;
+    return path.c_str();
+}
+
 #elif defined(__linux__)
 
 extern "C"
@@ -277,6 +331,40 @@ const char* lab_application_preferences_path(const char* fallbackName) {
         std::cerr << "Error creating directory: " << strerror(errno) << std::endl;
     }
     
+    return path.c_str();
+}
+
+extern "C"
+const char* lab_application_resource_path(const char* argv0, const char* rsrc) {
+    static std::string path;
+    if (path.size() > 0) {
+        return path.c_str();
+    }
+
+    // Get the directory containing the executable
+    path = lab_application_executable_path(argv0);
+    remove_filename(path.data());
+
+    // Append the resources directory
+    add_filename(path.data(), rsrc);
+    return path.c_str();
+}
+
+extern "C"
+const char* lab_temp_directory_path() {
+    static std::string path;
+    if (path.size() > 0) {
+        return path.c_str();
+    }
+
+    // Get the temporary directory
+    const char* tempPath = getenv("TMPDIR");
+    if (tempPath == nullptr) {
+        tempPath = "/tmp";
+    }
+
+    path = tempPath;
+    std::cout << "Temp Path: " << path << std::endl;
     return path.c_str();
 }
 

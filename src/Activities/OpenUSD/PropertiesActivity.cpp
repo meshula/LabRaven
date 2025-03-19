@@ -10,7 +10,7 @@
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include "Providers/OpenUSD/UsdUtils.hpp"
 #include "Providers/Selection/SelectionProvider.hpp"
-#include "Providers/Color/nanocolor.h"
+#include "Lab/CoreProviders/Color/nanocolor.h"
 
 #include <pxr/base/gf/matrix4d.h>
 #include <pxr/base/gf/matrix4f.h>
