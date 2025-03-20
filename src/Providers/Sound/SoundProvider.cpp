@@ -3,6 +3,8 @@
 #include "LabSound/LabSound.h"
 #include "LabSound/extended/Util.h"
 #include "LabSound/backends/AudioDevice_RtAudio.h"
+#include "LabSound/backends/AudioDevice_MockAudio.h"
+#include "Lab/LabDirectories.h"
 
 namespace lab {
 
@@ -14,21 +16,12 @@ struct SoundProvider::data {
     AudioDeviceIndex default_output_device;
     AudioDeviceIndex default_input_device;
     bool hash_input = false;
-    std::unique_ptr<lab::AudioContext> context;
+    std::shared_ptr<lab::AudioContext> context;
+    std::shared_ptr<lab::AudioDevice> device;
+    std::shared_ptr<lab::AudioDestinationNode> destinationNode;
 
     data() {
-        auto t = time(NULL);
-    }
-    ~data() {
-    }
-
-    void Initialize(bool with_input = true) {
-        auto t = time(NULL);
-        if (!audioDevices.empty()) {
-            // if devices have been found, audio's been intialized.
-            return;
-        }
-        const std::vector<AudioDeviceInfo> audioDevices = lab::AudioDevice_RtAudio::MakeAudioDeviceList();
+        audioDevices = lab::AudioDevice_RtAudio::MakeAudioDeviceList();
         AudioDeviceInfo defaultOutputInfo, defaultInputInfo;
         for (auto & info : audioDevices) {
             if (info.is_default_output)
@@ -45,6 +38,7 @@ struct SoundProvider::data {
         }
 
         AudioStreamConfig inputConfig;
+        static bool with_input = true;
         if (with_input) {
             if (defaultInputInfo.index != -1) {
                 inputConfig.device_index = defaultInputInfo.index;
@@ -52,7 +46,7 @@ struct SoundProvider::data {
                 inputConfig.desired_samplerate = defaultInputInfo.nominal_samplerate;
             }
             else {
-                throw std::invalid_argument("the default audio input device was requested but none were found");
+                std::cerr << "the default audio input device was requested but none were found" << std::endl;
             }
         }
 
@@ -63,8 +57,17 @@ struct SoundProvider::data {
             float min_rate = std::min(defaultOutputInfo.nominal_samplerate, defaultInputInfo.nominal_samplerate);
             inputConfig.desired_samplerate = min_rate;
             outputConfig.desired_samplerate = min_rate;
-            printf("Warning ~ input and output sample rates don't match, attempting to set minimum\n");
+            std::cerr << "Warning ~ input and output sample rates don't match, attempting to set minimum" << std::endl;
         }
+
+        std::cout << "SoundProvider: " << audioDevices.size() << " devices found." << std::endl;
+    }
+
+    ~data() {
+        // release all references to the destination node
+        destinationNode.reset();
+        device->setDestinationNode(destinationNode);
+        context->setDestinationNode(destinationNode);
     }
 };
 
@@ -87,14 +90,30 @@ SoundProvider* SoundProvider::instance() {
     return _instance;
 }
 
-lab::AudioContext* SoundProvider::Context() const { 
+lab::AudioContext* SoundProvider::Context() const {
     return _self->context.get(); 
 }
 
-std::vector<lab::AudioDeviceInfo>& SoundProvider::DeviceInfo() const {
-    _self->Initialize(true);
-    return _self->audioDevices;
+void SoundProvider::CreateContext(const AudioStreamConfig& inStream,
+                                  const AudioStreamConfig& outStream) {
+    static bool useMock = false;
+    if (useMock) {
+        std::string outp = lab_temp_directory_path() + std::string("/mock.wav");
+        auto mock =  new lab::AudioDevice_Mockaudio(inStream, outStream, 2 * 1024 * 1024, outp);
+        _self->device = std::shared_ptr<lab::AudioDevice>(mock);
+    }
+    else {
+        _self->device = std::make_shared<lab::AudioDevice_RtAudio>(inStream, outStream);
+    }
+    _self->context = std::make_shared<lab::AudioContext>(false, true);
+    _self->destinationNode =
+        std::make_shared<lab::AudioDestinationNode>(*_self->context.get(), _self->device);
+    _self->device->setDestinationNode(_self->destinationNode);
+    _self->context->setDestinationNode(_self->destinationNode);
 }
 
+std::vector<lab::AudioDeviceInfo>& SoundProvider::DeviceInfo() const {
+    return _self->audioDevices;
+}
 
 } // lab

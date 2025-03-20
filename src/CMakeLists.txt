@@ -285,6 +285,7 @@ endif()
 if(HAVE_SOUND)
     target_link_libraries(${PROJECT_NAME} PUBLIC 
         LabSound::LabSound
+        LabSoundMock::LabSoundMock
         LabSoundRtAudio::LabSoundRtAudio)
 
     if(APPLE)

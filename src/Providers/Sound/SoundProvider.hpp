@@ -13,7 +13,7 @@ class SoundProvider : public Provider {
     data* _self;
     static SoundProvider* _instance;
 public:
-SoundProvider();
+    SoundProvider();
     ~SoundProvider();
 
     static SoundProvider* instance();
@@ -22,6 +22,7 @@ SoundProvider();
 
     lab::AudioContext* Context() const;
     std::vector<lab::AudioDeviceInfo>& DeviceInfo() const;
+    void CreateContext(const AudioStreamConfig& inStream, const AudioStreamConfig& outStream);
 };
 
 } // lab

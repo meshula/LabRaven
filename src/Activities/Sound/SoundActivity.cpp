@@ -39,11 +39,23 @@
 using namespace lab;
 
 
+void Wait(uint32_t ms)
+{
+    int32_t remainder = static_cast<int32_t>(ms);
+    while (remainder > 200) {
+        remainder -= 200;
+        std::chrono::milliseconds t(200);
+        std::this_thread::sleep_for(t);
+    }
+    if (remainder < 200 && remainder > 0) {
+        std::chrono::milliseconds t(remainder);
+        std::this_thread::sleep_for(t);
+    }
+}
 
 
 // Source https://gist.github.com/soufianekhiat/4d937b15bf7290abed9608569d229201
 // Code by Soufiane Khiat
-
 
 /* from ImGui internal */
 namespace ImGui {
@@ -665,15 +677,11 @@ struct NodeLocation
 
 struct Demo
 {
-    lab::AudioContext* ac = nullptr;
     std::map<std::string, std::shared_ptr<AudioBus>> sample_cache;
     std::shared_ptr<RecorderNode> recorder;
     bool use_live = false;
 
-    void shutdown()
-    {
-        ac = nullptr;
-    }
+    void shutdown() {}
 
     std::shared_ptr<AudioBus> MakeBusFromSampleFile(char const* const name, float sampleRate)
     {
@@ -683,7 +691,7 @@ struct Demo
 
         std::string path_prefix = lab_application_resource_path(nullptr, nullptr);
         
-        const std::string path = path_prefix + name;
+        const std::string path = path_prefix + "/" + std::string(name);
         std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, false, sampleRate);
         if (!bus)
             throw std::runtime_error("couldn't open " + path);
@@ -758,6 +766,7 @@ void traverse(ContextRenderLock* r, AudioNode* root, char const* const prefix, i
             }
         }
     }
+
     for (int i = 0; i < root->numberOfInputs(); ++i)
     {
         auto input = root->input(i);
@@ -818,6 +827,9 @@ std::shared_ptr<AudioBus> MakeBusFromSampleFile(char const*const name)
 struct labsound_example
 {
     explicit labsound_example(Demo& demo) : _demo(&demo) {}
+    virtual ~labsound_example() {
+        printf("destructing\n");
+    }
 
     Demo* _demo;
     std::shared_ptr<lab::AudioNode> _root_node;
@@ -827,7 +839,7 @@ struct labsound_example
         if (!_root_node)
             return;
 
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         if (!ac.isConnected(_demo->recorder, _root_node))
         {
             // connect synchronously
@@ -845,7 +857,7 @@ struct labsound_example
         if (!_root_node)
             return;
 
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         if (!ac.isConnected(_demo->recorder, _root_node))
         {
             ac.disconnect(_demo->recorder, _root_node);
@@ -878,7 +890,7 @@ struct labsound_example
 //    ex_simple    //
 /////////////////////
 
-// ex_simple demonstrate the use of an audio clip loaded from disk and a basic sine oscillator. 
+// ex_simple plays a sound file
 struct ex_simple : public labsound_example
 {
     std::shared_ptr<SampledAudioNode> musicClipNode;
@@ -889,29 +901,43 @@ struct ex_simple : public labsound_example
 
     explicit ex_simple(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
-        auto musicClip = demo.MakeBusFromSampleFile("samples/stereo-music-clip.wav", ac.sampleRate());
-        if (!musicClip)
-            return;
-
-        gain = std::make_shared<GainNode>(ac);
-        gain->gain()->setValue(0.5f);
-        peakComp = std::make_shared<PeakCompNode>(ac);
-        _root_node = peakComp;
-        ac.connect(peakComp, gain, 0, 0);
-
-        musicClipNode = std::make_shared<SampledAudioNode>(ac);
-        {
-            ContextRenderLock r(&ac, "ex_simple");
-            musicClipNode->setBus(r, musicClip);
-        }
-        ac.connect(_root_node, musicClipNode, 0, 0);
     }
 
     virtual void play() override final
     {
-        connect();
+        auto& ac = *SoundProvider::instance()->Context();
+        ac.disconnect(ac.destinationNode());
+        ac.synchronizeConnections();
+
+        //auto musicClip = MakeBusFromSampleFile("samples/voice.ogg", argc, argv);
+        auto musicClip = _demo->MakeBusFromSampleFile("samples/stereo-music-clip.wav", ac.sampleRate());
+        if (!musicClip)
+            return;
+
+        std::shared_ptr<SampledAudioNode> musicClipNode;
+        std::shared_ptr<GainNode> gain;
+
+        gain = std::make_shared<GainNode>(ac);
+        gain->gain()->setValue(0.5f);
+
+        musicClipNode = std::make_shared<SampledAudioNode>(ac);
+        {
+            ContextRenderLock r(&ac, "ex_simple");
+            musicClipNode->setBus(musicClip);
+        }
         musicClipNode->schedule(0.0);
+
+        // osc -> gain -> destination
+        ac.connect(gain, musicClipNode, 0, 0);
+        ac.connect(ac.destinationNode(), gain, 0, 0);
+
+        ac.synchronizeConnections();
+
+        printf("------\n");
+        ac.debugTraverse(ac.destinationNode().get());
+        printf("------\n");
+
+        Wait(static_cast<uint32_t>(1000.f * musicClip->length() / musicClip->sampleRate()));
     }
 };
 
@@ -930,7 +956,7 @@ struct ex_sfxr : public labsound_example
 
     explicit ex_sfxr(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         sfxr = std::make_shared<SfxrNode>(ac);
         _root_node = sfxr;
     }
@@ -1022,13 +1048,13 @@ struct ex_osc_pop : public labsound_example
 {
     std::shared_ptr<OscillatorNode> oscillator;
     std::shared_ptr<GainNode> gain;
-//    std::shared_ptr<RecorderNode> recorder;
+    //std::shared_ptr<RecorderNode> recorder;
 
     virtual char const* const name() const override { return "Oscillator"; }
 
     ex_osc_pop(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         oscillator = std::make_shared<OscillatorNode>(ac);
 
         gain = std::make_shared<GainNode>(ac);
@@ -1042,22 +1068,30 @@ struct ex_osc_pop : public labsound_example
         oscillator->frequency()->setValue(1000.f);
         oscillator->setType(OscillatorType::SINE);
 
- //       AudioStreamConfig outputConfig { -1, }
- //       recorder = std::make_shared<RecorderNode>(ac, outputConfig);
+        //AudioStreamConfig outputConfig { -1, }
+        //recorder = std::make_shared<RecorderNode>(ac, outputConfig);
     }
 
     virtual void play() override final
     {
         connect();
-        auto& ac = *_demo->ac;
- //       ac.addAutomaticPullNode(recorder);
         oscillator->start(0);
         oscillator->stop(0.5f);
- //       recorder->startRecording();
- //       ac.connect(recorder, gain, 0, 0);
- //       recorder->stopRecording();
- //       ac.removeAutomaticPullNode(recorder);
- //       recorder->writeRecordingToWav("ex_osc_pop.wav", false);
+
+#if 0
+        auto& ac = *SoundProvider::instance()->Context();
+        auto device = ac.destinationNode()->device();
+        int sz = 44000 * 2; // 2 seconds
+        std::vector<float> buffer(sz);
+        device->render(sz, buffer.data(), nullptr);
+#endif
+
+        //ac.addAutomaticPullNode(recorder);
+        //recorder->startRecording();
+        //ac.connect(recorder, gain, 0, 0);
+        //recorder->stopRecording();
+        //ac.removeAutomaticPullNode(recorder);
+        //recorder->writeRecordingToWav("ex_osc_pop.wav", false);
     }
 
     virtual void ui() override final
@@ -1067,6 +1101,14 @@ struct ex_osc_pop : public labsound_example
         {
             oscillator->start(0);
             oscillator->stop(0.5f);
+
+#if 0
+            auto& ac = *SoundProvider::instance()->Context();
+            auto device = ac.destinationNode()->device();
+            int sz = 44000 * 2; // 2 seconds
+            std::vector<float> buffer(sz);
+            device->render(sz, buffer.data(), nullptr);
+#endif
         }
         static float f = 1000.f;
         if (ImGui::InputFloat("Frequency", &f))
@@ -1094,7 +1136,7 @@ struct ex_playback_events : public labsound_example
 
     explicit ex_playback_events(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         auto musicClip = _demo->MakeBusFromSampleFile("samples/mono-music-clip.wav", ac.sampleRate());
         if (!musicClip)
             return;
@@ -1167,14 +1209,14 @@ struct ex_offline_rendering : public labsound_example
 
     explicit ex_offline_rendering(Demo& demo) : labsound_example(demo) 
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         musicClip = _demo->MakeBusFromSampleFile("samples/stereo-music-clip.wav", ac.sampleRate());
         path = "ex_offiline_rendering.wav";
     }
 
     virtual void play() override
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         ac.disconnect(ac.destinationNode());
         ac.synchronizeConnections();
         nodes.clear();
@@ -1250,7 +1292,7 @@ struct ex_tremolo : public labsound_example
 
     explicit ex_tremolo(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         modulator = std::make_shared<OscillatorNode>(ac);
         modulator->setType(OscillatorType::SINE);
         variance = 8;
@@ -1333,7 +1375,7 @@ struct ex_frequency_modulation : public labsound_example
 
     explicit ex_frequency_modulation(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         modulator = std::make_shared<OscillatorNode>(ac);
         modulator->setType(OscillatorType::SQUARE);
         const float mod_freq = fmrng.random_float(4.f, 512.f);
@@ -1396,7 +1438,7 @@ struct ex_frequency_modulation : public labsound_example
 
         prev = now;
 
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
 
         const float carrier_freq = fmrng.random_float(80.f, 440.f);
         osc->frequency()->setValue(carrier_freq);
@@ -1439,7 +1481,7 @@ struct ex_runtime_graph_update : public labsound_example
 
     explicit ex_runtime_graph_update(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         oscillator1 = std::make_shared<OscillatorNode>(ac);
         oscillator2 = std::make_shared<OscillatorNode>(ac);
 
@@ -1476,7 +1518,7 @@ struct ex_runtime_graph_update : public labsound_example
         auto now = std::chrono::steady_clock::now();
         auto duration = now - prev;
 
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         if (disconnect == 1 && duration > std::chrono::milliseconds(500))
         {
             disconnect = 2;
@@ -1521,7 +1563,7 @@ struct ex_microphone_loopback : public labsound_example
 
     explicit ex_microphone_loopback(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         ac.disconnect(ac.destinationNode());
         ac.synchronizeConnections();
         nodes.clear();
@@ -1575,7 +1617,7 @@ struct ex_microphone_reverb : public labsound_example
 
     explicit ex_microphone_reverb(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         ac.disconnect(ac.destinationNode());
         ac.synchronizeConnections();
         nodes.clear();
@@ -1645,7 +1687,7 @@ struct ex_peak_compressor : public labsound_example
 
     explicit ex_peak_compressor(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         ContextRenderLock r(&ac, "ex_peak_compressor");
         kick_node = std::make_shared<SampledAudioNode>(ac);
         hihat_node = std::make_shared<SampledAudioNode>(ac);
@@ -1715,7 +1757,7 @@ struct ex_stereo_panning : public labsound_example
 
     explicit ex_stereo_panning(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         std::shared_ptr<AudioBus> audioClip = _demo->MakeBusFromSampleFile("samples/trainrolling.wav", ac.sampleRate());
         audioClipNode = std::make_shared<SampledAudioNode>(ac);
         stereoPanner = std::make_shared<StereoPannerNode>(ac);
@@ -1804,7 +1846,7 @@ struct ex_hrtf_spatialization : public labsound_example
         minPos = ImVec4{ -1, -1, -1, 0 };
         maxPos = ImVec4{ 1, 1, 1, 0 };
 
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         std::cout << "Sample Rate is: " << ac.sampleRate() << std::endl;
         audioClip = _demo->MakeBusFromSampleFile("samples/trainrolling.wav", ac.sampleRate());
         audioClipNode = std::make_shared<SampledAudioNode>(ac);
@@ -1827,7 +1869,7 @@ struct ex_hrtf_spatialization : public labsound_example
     {
         connect();
 
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         ac.listener()->setPosition({ 0, 0, 0 });
         panner->setVelocity(4, 0, 0);
         prev = std::chrono::steady_clock::now();
@@ -1889,7 +1931,7 @@ struct ex_convolution_reverb : public labsound_example
 
     explicit ex_convolution_reverb(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         std::shared_ptr<AudioBus> impulseResponseClip = _demo->MakeBusFromSampleFile("impulse/cardiod-rear-levelled.wav", ac.sampleRate());
         std::shared_ptr<AudioBus> voiceClip = _demo->MakeBusFromSampleFile("samples/voice.ogg", ac.sampleRate());
 
@@ -1988,7 +2030,7 @@ struct ex_misc : public labsound_example
 
     explicit ex_misc(Demo& demo) : labsound_example(demo) 
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         audioClip = _demo->MakeBusFromSampleFile("samples/cello_pluck/cello_pluck_As0.wav", ac.sampleRate());
         audioClipNode = std::make_shared<SampledAudioNode>(ac);
         pingping = std::make_shared<PingPongDelayNode>(ac, 240.0f);
@@ -2040,7 +2082,7 @@ struct ex_dalek_filter : public labsound_example
 
     explicit ex_dalek_filter(Demo& demo) : labsound_example(demo)
     {
-        lab::AudioContext& ac = *demo.ac;
+        auto& ac = *SoundProvider::instance()->Context();
         ac.disconnect(ac.destinationNode());
         ac.synchronizeConnections();
         nodes.clear();
@@ -2049,23 +2091,9 @@ struct ex_dalek_filter : public labsound_example
         auto audioClip = MakeBusFromSampleFile("samples/voice.ogg");
         if (!audioClip)
             return;
-        std::shared_ptr<SampledAudioNode> audioClipNode = std::make_shared<SampledAudioNode>(ac);
+
+        audioClipNode = std::make_shared<SampledAudioNode>(ac);
 #endif
-
-        std::shared_ptr<AudioHardwareInputNode> inputNode;
-
-        std::shared_ptr<OscillatorNode> vIn;
-        std::shared_ptr<GainNode> vInGain;
-        std::shared_ptr<GainNode> vInInverter1;
-        std::shared_ptr<GainNode> vInInverter2;
-        std::shared_ptr<GainNode> vInInverter3;
-        std::shared_ptr<DiodeNode> vInDiode1;
-        std::shared_ptr<DiodeNode> vInDiode2;
-        std::shared_ptr<GainNode> vcInverter1;
-        std::shared_ptr<DiodeNode> vcDiode3;
-        std::shared_ptr<DiodeNode> vcDiode4;
-        std::shared_ptr<GainNode> outGain;
-        std::shared_ptr<DynamicsCompressorNode> compressor;
 
         {
             ContextRenderLock r(&ac, "ex_dalek_filter");
@@ -2151,15 +2179,18 @@ struct ex_dalek_filter : public labsound_example
     virtual void play() override
     {
         connect();
-        if (!input)
-            audioClipNode->schedule(0.f);
+        if (!input) {
+            if (audioClipNode) {
+                audioClipNode->schedule(0.f);
+            }
+            else {
+                printf("No audioClipNode to play\n");
+            }
+        }
     }
 
     virtual void ui() override final
     {
-        if (!_root_node || !_root_node->output(0)->isConnected())
-            return;
-
         ImGui::BeginChild("###DALEK", ImVec2{ 0, 100 }, true);
         ImGui::TextUnformatted("Dalek voice changer active");
         if (ImGui::Button("Disconnect mic"))
@@ -2200,7 +2231,7 @@ struct ex_redalert_synthesis : public labsound_example
 
     explicit ex_redalert_synthesis(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         ContextRenderLock r(&ac, "ex_redalert_synthesis");
 
         sweep = std::make_shared<FunctionNode>(ac, 1);
@@ -2493,7 +2524,7 @@ struct ex_wavepot_dsp : public labsound_example
         elapsedTime = 0.;
         songLenSeconds = 12.0f;
 
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         envelope = std::make_shared<ADSRNode>(ac);
         envelope->set(6.0f, 0.75f, 0.125, 14.0f, 0.0f, songLenSeconds);
         envelope->gate()->setValue(1.f);
@@ -2596,7 +2627,7 @@ struct ex_granulation_node : public labsound_example
 
     explicit ex_granulation_node(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         grain_source = _demo->MakeBusFromSampleFile("samples/cello_pluck/cello_pluck_As0.wav", ac.sampleRate());
         if (!grain_source) 
             return;
@@ -2662,7 +2693,7 @@ struct ex_poly_blep : public labsound_example
 
     explicit ex_poly_blep(Demo& demo) : labsound_example(demo)
     {
-        auto& ac = *_demo->ac;
+        auto& ac = *SoundProvider::instance()->Context();
         polyBlep = std::make_shared<PolyBLEPNode>(ac);
         gain = std::make_shared<GainNode>(ac);
 
@@ -2774,7 +2805,7 @@ void instantiate_demos(Demo& demo)
 
 void run_demo_ui(Demo& demo)
 {
-    auto& ac = *demo.ac;
+    auto& ac = *SoundProvider::instance()->Context();
     for (auto& i : examples)
     {
         i->update();
@@ -2804,7 +2835,8 @@ void run_demo_ui(Demo& demo)
 
     if (ImGui::Button("Flush debug data"))
     {
-        ac.flushDebugBuffer("C:\\Projects\\foo.wav");
+        std::string path = std::string(lab_temp_directory_path()) + "/debug_flush.wav";
+        ac.flushDebugBuffer(path.c_str());
     }
 
     if (example_ui && ImGui::Button("Disconnect demo"))
@@ -2818,6 +2850,9 @@ void run_demo_ui(Demo& demo)
         ac.synchronizeConnections();
         traverse_ui(ac);
     }
+
+    ImGui::Separator();
+    ImGui::TextUnformatted("Active Graph:");
 
     ImVec2 pos = ImGui::GetCursorPos();
     float y = 0;
@@ -2849,16 +2884,17 @@ void run_context_ui(Demo& demo)
     {
         info = lab::SoundProvider::instance()->DeviceInfo();
         int reindex = 0;
+        int unique = 0;
         for (auto& i : info)
         {
             if (i.num_input_channels > 0)
             {
-                inputs.push_back(i.identifier);
+                inputs.push_back(i.identifier + "##" + std::to_string(unique++));
                 input_reindex.push_back(reindex);
             }
             if (i.num_output_channels > 0)
             {
-                outputs.push_back(i.identifier);
+                outputs.push_back(i.identifier + "##" + std::to_string(unique++));
                 output_reindex.push_back(reindex);
             }
             ++reindex;
@@ -2906,7 +2942,7 @@ void run_context_ui(Demo& demo)
     if (ImGui::Button("Create Context"))
     {
         AudioStreamConfig inputConfig;
-        for (int i = 0; i < inputs.size(); ++i)
+        for (int i = 0; i < inputs.size(); ++i) {
             if (input_checks[i])
             {
                 int r = input_reindex[i];
@@ -2915,8 +2951,9 @@ void run_context_ui(Demo& demo)
                 inputConfig.desired_samplerate = info[r].nominal_samplerate;
                 break;
             }
+        }
         AudioStreamConfig outputConfig;
-        for (int i = 0; i < outputs.size(); ++i)
+        for (int i = 0; i < outputs.size(); ++i) {
             if (output_checks[i])
             {
                 int r = output_reindex[i];
@@ -2925,14 +2962,16 @@ void run_context_ui(Demo& demo)
                 outputConfig.desired_samplerate = info[r].nominal_samplerate;
                 break;
             }
+        }
+        if (outputConfig.device_index >= 0) {
+            SoundProvider::instance()->CreateContext(inputConfig, outputConfig);
 
-        if (outputConfig.device_index >= 0)
-        {
             demo.use_live = inputConfig.device_index >= 0;
-            auto& ac = *demo.ac;
+            auto& ac = *SoundProvider::instance()->Context();
             demo.recorder = std::make_shared<RecorderNode>(ac, outputConfig);
             ac.connect(ac.destinationNode(), demo.recorder);
             ac.synchronizeConnections();
+
             instantiate_demos(demo);
         }
     }
@@ -2968,17 +3007,15 @@ void SoundActivity::_deactivate() {
 void SoundActivity::RunUI(const LabViewInteraction&) {
     if (!demo) {
         demo = new Demo();
-        demo->ac = SoundProvider::instance()->Context();
     }
 
-    ImGuiIO& io = ImGui::GetIO();
     ImGui::Begin("LabSound Demo");
-
-    if (demo->ac)
+    if (SoundProvider::instance()->Context()) {
         run_demo_ui(*demo);
-    else
+    }
+    else {
         run_context_ui(*demo);
-
+    }
     ImGui::End();
 }
 
