@@ -309,21 +309,7 @@ float HydraViewport::_GetViewportHeight()
     return GetInnerRect().GetHeight();
 }
 
-void HydraViewport::_Draw(const LabViewInteraction& vi)
-{
-    if (_model->_stageSceneIndex) {
-        _model->_stageSceneIndex->ApplyPendingUpdates();
-    }
-
-    // This routine is inside a Begin/End()
-
-    _guiInterceptedMouse = false;
-    if (_GetViewportWidth() <= 0 || _GetViewportHeight() <= 0) {
-        return;
-    }
-
-    _DrawMenuBar();
-
+void testColors() {
     GfColorSpace linrec709(TfToken("lin_rec709_scene"));
     GfColorSpace acescg(TfToken("lin_ap1_scene"));
 
@@ -369,6 +355,25 @@ void HydraViewport::_Draw(const LabViewInteraction& vi)
     However, this result is different from what OCIO gives (and which I verified independently is correct):
 #endif
 
+}
+
+void HydraViewport::_Draw(const LabViewInteraction& vi)
+{
+    if (_model->_stageSceneIndex) {
+        _model->_stageSceneIndex->ApplyPendingUpdates();
+    }
+
+    // This routine is inside a Begin/End()
+
+    _guiInterceptedMouse = false;
+    if (_GetViewportWidth() <= 0 || _GetViewportHeight() <= 0) {
+        return;
+    }
+
+    _DrawMenuBar();
+    
+    //testColors();
+
     ImGui::BeginChild("GameRender");
 
     const float dpad_width = 32;
@@ -386,8 +391,9 @@ void HydraViewport::_Draw(const LabViewInteraction& vi)
     _ConfigureImGuizmo();
 
     // read from active cam in case it was modified by another view
-    if (!ImGui::IsWindowFocused())
+    if (!ImGui::IsWindowFocused()) {
         _UpdateViewportFromActiveCam();
+    }
 
     _UpdateProjection();
     _UpdateGrid();

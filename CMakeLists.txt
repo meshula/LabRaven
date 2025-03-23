@@ -38,17 +38,17 @@ set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 if (APPLE)
   option(APPLE_MAKE_BUNDLE "Create a macOS bundle" ON)
 endif()
-option(HAVE_MIDI "Enable MIDI support" OFF)
-option(HAVE_OPENEXR "Enable OpenEXR support" OFF)
-option(HAVE_SOUND "Enable sound support" OFF)
-option(HAVE_OTIO "Enable OpenTimelineIO support" OFF)
-option(HAVE_IMGUIZMO "Enable ImGuizmo support" OFF)
-option(HAVE_TILENGINE "Enable Tilengine support" OFF)
+option(HAVE_MIDI "Enable MIDI support" ON)
+option(HAVE_OPENEXR "Enable OpenEXR support" ON)
+option(HAVE_SOUND "Enable sound support" ON)
+option(HAVE_OTIO "Enable OpenTimelineIO support" ON)
+option(HAVE_IMGUIZMO "Enable ImGuizmo support" ON)
+option(HAVE_TILENGINE "Enable Tilengine support" ON)
 
-option(HAVE_OPENUSD "Enable OpenUSD support" OFF)
-if (HAVE_OPENUSD)
+option(HAVE_OPENUSD "Enable OpenUSD support" ON)
+if(HAVE_OPENUSD)
   find_package(pxr QUIET)
-  if (pxr_FOUND)
+  if(pxr_FOUND)
     message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
   else()
     message(FATAL_ERROR "OpenUSD support is enabled, but the pxr package was not found. Please set the Pxr_DIR to point to the root of the USD installation.")
@@ -63,21 +63,21 @@ endif()
 #---------------------------------------------------
 
 if(APPLE)
-    include(MetalShaderSupport)
-    include(AppleCodeSigning)
-    include(AppleMakeBundle)
+  include(MetalShaderSupport)
+  include(AppleCodeSigning)
+  include(AppleMakeBundle)
 
-    check_language(Metal)
-    if(CMAKE_Metal_COMPILER)
+  check_language(Metal)
+  if(CMAKE_Metal_COMPILER)
     enable_language(Metal)
-    endif()
-    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+  endif()
+  set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
 
-    enable_language(OBJC)
-    enable_language(OBJCXX)
-    enable_language(Metal)
-    set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
-    set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
+  enable_language(OBJC)
+  enable_language(OBJCXX)
+  enable_language(Metal)
+  set(CMAKE_OBJC_FLAGS "${CMAKE_OBJC_FLAGS} -fobjc-arc")
+  set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
 endif()
 
 #---------------------------------------------------
@@ -85,7 +85,7 @@ endif()
 #---------------------------------------------------
 
 if(WIN32)
-    target_compile_definitions(${PROJECT_NAME}
+  target_compile_definitions(${PROJECT_NAME}
         PRIVATE
             NOMINMAX
             _USE_MATH_DEFINES

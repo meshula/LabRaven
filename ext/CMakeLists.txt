@@ -43,9 +43,17 @@ endif()
 #---------------------------------------------------
 
 if(HAVE_OTIO)
+    # set up imath first
+    add_subdirectory("opentimelineio/src/deps/imath")
+
+    set(OTIO_FIND_IMATH ON)
     set(OTIO_BUILD_EXAMPLES OFF)
     set(OTIO_SHARED_LIBS OFF)
     set(BUILD_TESTING OFF)
+    set(OTIO_DEPENDENCIES_INSTALL OFF)
+    set(OTIO_INSTALL_PYTHON_MODULES OFF)
+    set(OTIO_INSTALL_COMMANDLINE_TOOLS OFF)
+    set(OTIO_INSTALL_CONTRIB OFF)
     add_subdirectory("opentimelineio")
     include_directories(
     ${PROJECT_SOURCE_DIR}/opentimelineio/src
