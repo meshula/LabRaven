@@ -491,6 +491,11 @@ const std::map< std::string, std::shared_ptr<Activity> > Orchestrator::Activitie
 }
 
 const std::vector<std::string>& Orchestrator::ActivityNames() const {
+    static size_t sorted = 0;
+    if (sorted != _self->activity_names.size()) {
+        sorted = _self->activity_names.size();
+        std::sort(_self->activity_names.begin(), _self->activity_names.end());
+    }
     return _self->activity_names;
 }
 
