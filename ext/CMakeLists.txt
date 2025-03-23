@@ -18,6 +18,7 @@ if(HAVE_OPENEXR)
     add_library(openexr STATIC)
     target_sources(openexr PRIVATE OpenEXR/openexr-c.h OpenEXR/openexr-c.c)
     target_include_directories(openexr PUBLIC OpenEXR)
+    target_compile_definitions(openexr PUBLIC HAVE_OPENEXR)
 endif()
 
 #---------------------------------------------------

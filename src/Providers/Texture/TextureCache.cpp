@@ -1,6 +1,10 @@
 
 #include "TextureCache.hpp"
+
+#ifdef HAVE_OPENEXR
 #include "openexr-c.h"
+#endif
+
 #include "stb_image.h"
 #include <map>
 #include <string>
@@ -58,6 +62,7 @@ std::shared_ptr<LabImageData_t> TextureCache::Get(const char* name) {
     return nullptr;
 }
 
+#ifdef HAVE_OPENEXR
 namespace {
     int64_t exr_AssetRead_Func(
             exr_const_context_t ctxt,
@@ -137,6 +142,7 @@ std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheEXR(const char* path) 
     }
     return img0;
 }
+#endif
 
 std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheSTB(const char* path) {
     std::shared_ptr<LabImageData_t> imgData = Get(path);
@@ -221,8 +227,6 @@ std::shared_ptr<LabImageData_t> TextureCache::ReadAndCachePFM(const char* path) 
 }
 
 #if 0
-
-
 nanoexr_ImageData_t TextureActivity::ReadAndCacheAVIF(const char* path) {
     nanoexr_ImageData_t img = Cached(path);
     if (img.channelCount != 0)
@@ -278,8 +282,6 @@ nanoexr_ImageData_t TextureActivity::ReadAndCacheAVIF(const char* path) {
     avifImageDestroy(image);
     return img;
 }
-
-
 #endif
 
 std::shared_ptr<LabImageData_t> TextureCache::ReadAndCache(const char* path) {
