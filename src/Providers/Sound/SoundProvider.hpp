@@ -23,6 +23,9 @@ public:
     lab::AudioContext* Context() const;
     std::vector<lab::AudioDeviceInfo>& DeviceInfo() const;
     void CreateContext(const AudioStreamConfig& inStream, const AudioStreamConfig& outStream);
+
+    void Power(const std::string& path, std::vector<float>& out);
+    std::shared_ptr<AudioBus> MakeBusFromSampleFile(char const* const name, float sampleRate);
 };
 
 } // lab

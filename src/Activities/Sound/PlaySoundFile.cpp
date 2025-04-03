@@ -20,7 +20,6 @@ using namespace lab;
 //-----------------------------------------------------------------------------
 
 struct SoundSampleBase::data {
-    std::map<std::string, std::shared_ptr<AudioBus>> sample_cache;
 };
 
 SoundSampleBase::SoundSampleBase() {
@@ -32,28 +31,83 @@ SoundSampleBase::~SoundSampleBase() {
 
 std::shared_ptr<AudioBus> SoundSampleBase::MakeBusFromSampleFile(char const* const name, float sampleRate)
 {
-    auto it = _self_base->sample_cache.find(name);
-    if (it != _self_base->sample_cache.end())
-        return it->second;
-
-    std::string path_prefix = lab_application_resource_path(nullptr, nullptr);
-    
-    const std::string path = path_prefix + "/" + std::string(name);
-    std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, false, sampleRate);
-    if (!bus)
-        throw std::runtime_error("couldn't open " + path);
-
-        _self_base->sample_cache[name] = bus;
-
-    return bus;
+    return SoundProvider::instance()->MakeBusFromSampleFile(name, sampleRate);
 }
 
 struct PlaySoundFile::data {
     std::shared_ptr<SampledAudioNode> musicClipNode;
     std::shared_ptr<GainNode> gain;
     std::shared_ptr<PeakCompNode> peakComp;
-
     std::shared_ptr<AudioBus> musicClip;
+    std::string file;
+    bool graphMade = false;
+    
+    data() {
+        file = "samples/stereo-music-clip.wav";
+    }
+    ~data() {
+        auto& ac = *SoundProvider::instance()->Context();
+        ac.disconnect(gain);
+        ac.disconnect(peakComp);
+        ac.disconnect(musicClipNode);
+    }
+    
+    void LoadFile() {
+        if (musicClip) { return; }
+
+        auto& ac = *SoundProvider::instance()->Context();
+        if (!musicClipNode) {
+            musicClipNode = std::make_shared<SampledAudioNode>(ac);
+        }
+
+        musicClip = MakeBusFromSampleFile(file.c_str(), ac.sampleRate());
+        if (musicClip) {
+            ContextRenderLock r(&ac, "PlaySoundFile");
+            musicClipNode->setBus(musicClip);
+        }
+    }
+    
+    void MakeGraph() {
+        if (graphMade) { return; }
+        graphMade = true;
+        LoadFile();
+
+        auto& ac = *SoundProvider::instance()->Context();
+        ac.disconnect(ac.destinationNode());
+        ac.synchronizeConnections();
+
+        gain = std::make_shared<GainNode>(ac);
+        gain->gain()->setValue(0.5f);
+        
+        // osc -> gain -> destination
+        ac.connect(gain, musicClipNode, 0, 0);
+        /// @dp ac.connect(ac.destinationNode(), _self->gain, 0, 0);
+
+        ac.synchronizeConnections();
+
+        printf("------\n");
+        ac.debugTraverse(ac.destinationNode().get());
+        printf("------\n");
+    }
+    
+    void Play() {
+        MakeGraph();
+        musicClipNode->schedule(0.f);
+    }
+    
+    void Stop() {
+        if (musicClipNode) {
+            musicClipNode->stop(0.f);
+        }
+    }
+    
+    bool IsPlaying() {
+        MakeGraph();
+        if (!musicClipNode) {
+            return false;
+        }
+        return musicClipNode->isPlayingOrScheduled();
+    }
 };
 
 PlaySoundFile::PlaySoundFile() {
@@ -65,35 +119,33 @@ PlaySoundFile::~PlaySoundFile() {
     delete _self;
 }
 
-void PlaySoundFile::play() {
-    auto& ac = *SoundProvider::instance()->Context();
-    ac.disconnect(ac.destinationNode());
-    ac.synchronizeConnections();
-
-    //auto musicClip = MakeBusFromSampleFile("samples/voice.ogg", argc, argv);
-    auto musicClip = MakeBusFromSampleFile("samples/stereo-music-clip.wav", ac.sampleRate());
-    if (!musicClip)
-        return;
-
-    _self->gain = std::make_shared<GainNode>(ac);
-    _self->gain->gain()->setValue(0.5f);
-
-    _self->musicClipNode = std::make_shared<SampledAudioNode>(ac);
-    {
-        ContextRenderLock r(&ac, "ex_simple");
-        _self->musicClipNode->setBus(musicClip);
+void PlaySoundFile::RunUI() {
+    auto ac = SoundProvider::instance()->Context();
+    ImGui::BeginChild("###PSF-RUI");
+    if (!ac) {
+        ImGui::TextUnformatted("No context");
     }
-    _self->musicClipNode->schedule(0.0);
-
-    // osc -> gain -> destination
-    ac.connect(_self->gain, _self->musicClipNode, 0, 0);
-    ac.connect(ac.destinationNode(), _self->gain, 0, 0);
-
-    ac.synchronizeConnections();
-
-    printf("------\n");
-    ac.debugTraverse(ac.destinationNode().get());
-    printf("------\n");
-
-    Wait(static_cast<uint32_t>(1000.f * musicClip->length() / musicClip->sampleRate()));
+    else {
+        _self->LoadFile();
+        ImGui::Text("Sound file: %s", _self->file.c_str());
+        auto clip = _self->musicClip;
+        float rate = clip? clip->sampleRate() : 0.f;
+        if (rate <= 0) {
+            rate = ac->sampleRate();
+        }
+        float len = clip? (float) clip->length() / rate : 0.f;
+        ImGui::Text(" channels: %d length: %0.3gs", clip? clip->numberOfChannels() : 0, len);
+        bool isPlaying = _self->IsPlaying();
+        if (!isPlaying) {
+            if (ImGui::Button("Play##PSF-RUI")) {
+                _self->Play();
+            }
+        }
+        else {
+            if (ImGui::Button("Pause##PSF-RUI")) {
+                _self->Stop();
+            }
+        }
+    }
+    ImGui::EndChild();
 }

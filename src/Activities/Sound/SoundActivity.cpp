@@ -33,7 +33,6 @@
 
 namespace lab {
 
-
 struct SoundActivity::data {
     data() {
         acm = new AudioContextManager();
@@ -71,7 +70,14 @@ void SoundActivity::RunUI(const LabViewInteraction&) {
     }
 
     ImGui::Begin("LabSound");
+    ImGui::Separator();
+    if (ImGui::Button("Power")) {
+        std::vector<float> power;
+        SoundProvider::instance()->Power("samples/stereo-music-clip.wav", power);
+    }
     _self->acm->RunUI();
+    ImGui::Separator();
+    _self->playSoundFile->RunUI();
     ImGui::End();
 }
 

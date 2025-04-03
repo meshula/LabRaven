@@ -17,8 +17,8 @@ public:
     SoundSampleBase();
     virtual ~SoundSampleBase();
 
-    virtual void play() = 0;
-    virtual void update() {}
+    virtual void Update() {}
+    virtual void RunUI() {}
     virtual char const* const name() const = 0;
 
     static void Wait(uint32_t ms)
@@ -35,8 +35,7 @@ public:
         }
     }
 
-    std::shared_ptr<lab::AudioBus> MakeBusFromSampleFile(char const* const name, float sampleRate);
-
+    static std::shared_ptr<lab::AudioBus> MakeBusFromSampleFile(char const* const name, float sampleRate);
 };
 
 class PlaySoundFile : public SoundSampleBase {
@@ -48,7 +47,7 @@ public:
     explicit PlaySoundFile();
     virtual ~PlaySoundFile();
 
-    virtual void play() override final;
+    virtual void RunUI() override final;
 };
 
 #endif // ACTIVITIES_SOUND_PLAYSOUNDFILE_HPP

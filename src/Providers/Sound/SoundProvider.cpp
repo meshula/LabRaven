@@ -5,6 +5,7 @@
 #include "LabSound/backends/AudioDevice_RtAudio.h"
 #include "LabSound/backends/AudioDevice_MockAudio.h"
 #include "Lab/LabDirectories.h"
+#include "LabSound/extended/PowerMonitorNode.h"
 
 namespace lab {
 
@@ -19,6 +20,9 @@ struct SoundProvider::data {
     std::shared_ptr<lab::AudioContext> context;
     std::shared_ptr<lab::AudioDevice> device;
     std::shared_ptr<lab::AudioDestinationNode> destinationNode;
+    
+    std::map<std::string, std::shared_ptr<AudioBus>> psf_sample_cache;
+
 
     data() {
         audioDevices = lab::AudioDevice_RtAudio::MakeAudioDeviceList();
@@ -115,5 +119,70 @@ void SoundProvider::CreateContext(const AudioStreamConfig& inStream,
 std::vector<lab::AudioDeviceInfo>& SoundProvider::DeviceInfo() const {
     return _self->audioDevices;
 }
+
+std::shared_ptr<AudioBus> SoundProvider::MakeBusFromSampleFile(char const* const name, float sampleRate)
+{
+    auto it = _self->psf_sample_cache.find(name);
+    if (it != _self->psf_sample_cache.end())
+        return it->second;
+    
+    std::string path_prefix = lab_application_resource_path(nullptr, nullptr);
+    
+    const std::string path = path_prefix + "/" + std::string(name);
+    std::shared_ptr<AudioBus> bus = MakeBusFromFile(path, false, sampleRate);
+    if (!bus) {
+        return {};
+        //throw std::runtime_error("couldn't open " + path);
+    }
+    
+    _self->psf_sample_cache[name] = bus;
+    return bus;
+}
+
+
+// analyzes the power of the bus at quantum rate and fills in the vector
+void SoundProvider::Power(const std::string& path, std::vector<float>& out) {
+    out.clear();
+    auto* ac = Context();
+    if (!ac) {
+        return;
+    }
+    
+    const size_t quantum = 128;
+    auto pwn = std::make_shared<PowerMonitorNode>(*ac);
+    auto mc = std::make_shared<SampledAudioNode>(*ac);
+    auto bus = MakeBusFromSampleFile(path.c_str(), ac->sampleRate());
+    out.resize(bus->length());
+    ContextRenderLock r(ac, "PlaySoundFile");
+    mc->setBus(bus);
+    mc >> pwn >> *ac;
+
+    size_t idx = 0;
+    for (size_t i = 0; i < out.size(); i += quantum) {
+        // call the pwn process function, which will fill the output bus with the power
+        // of the input bus at the quantum rate.
+
+        AudioBus* inBus = pwn->input(0)->bus(r);
+        // copy quantum samples starting at idx from bus to the inbus
+        for (size_t j = 0; j < quantum; ++j) {
+            if (idx + j >= bus->length())
+                break;
+            inBus->channel(0)->mutableData()[j] = bus->channel(0)->data()[idx + j];
+        }
+
+        pwn->process(r, quantum);
+
+        // copy the power values from the output bus to the out vector
+        AudioBus* outBus = pwn->output(0)->bus(r);
+        for (size_t j = 0; j < quantum; ++j) {
+            if (idx + j >= out.size())
+                break;
+            out[idx + j] = outBus->channel(0)->data()[j];
+        }
+
+        idx += quantum;
+    }
+}
+
 
 } // lab
