@@ -47,7 +47,7 @@ option(HAVE_TILENGINE "Enable Tilengine support" ON)
 
 option(HAVE_OPENUSD "Enable OpenUSD support" ON)
 if(HAVE_OPENUSD)
-  find_package(pxr QUIET)
+  find_package(pxr)
   if(pxr_FOUND)
     message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
   else()

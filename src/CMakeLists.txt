@@ -300,6 +300,9 @@ endif()
 
 if(HAVE_OTIO)
     target_link_libraries(${PROJECT_NAME} PUBLIC OTIO::opentimelineio)
+    target_include_directories(${PROJECT_NAME} PUBLIC 
+      ${PROJECT_SOURCE_DIR}/ext/opentimelineio
+      ${PROJECT_SOURCE_DIR}/ext/opentimelineio/src/deps/Imath/src)
 endif()
 if (HAVE_IMGUIZMO)
     target_link_libraries(${PROJECT_NAME} PUBLIC ImGuizmo::ImGuizmo)

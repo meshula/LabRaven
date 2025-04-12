@@ -1,7 +1,7 @@
 *.o
 .vscode/
 build
-*.DS_Store
+.DS_Store
 
 # Ignore zig build and output directories
 zig-cache/
