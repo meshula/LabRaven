@@ -13,6 +13,7 @@
  */
 
 #include "Lab/StudioCore.hpp"
+#include "HydraRender.hpp"
 
  // clang-format off
 #include <imgui.h>
@@ -24,7 +25,6 @@
 #include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
 #include <pxr/usdImaging/usdImaging/sceneIndices.h>
 
-#include "engine.h"
 #include "sceneindices/gridsceneindex.h"
 #include "sceneindices/xformfiltersceneindex.h"
 
@@ -34,6 +34,7 @@
 
 
 namespace lab {
+class Engine;
 
 /**
  * @file view.h
@@ -223,13 +224,13 @@ class HydraViewport : public View {
         void SetCameraFromGfCamera(const PXR_NS::GfCamera& gfCam);
         PXR_NS::SdfPathVector GetHdSelection();
         void RemoveSceneIndex(pxr::HdSceneIndexBaseRefPtr);
-    void SetHdSelection(const PXR_NS::SdfPathVector& spv);
-    PXR_NS::HdSceneIndexBaseRefPtr GetFinalSceneIndex();
-    void SetStage(PXR_NS::UsdStageRefPtr stage);
+        void SetHdSelection(const PXR_NS::SdfPathVector& spv);
+        PXR_NS::HdSceneIndexBaseRefPtr GetFinalSceneIndex();
+        void SetStage(PXR_NS::UsdStageRefPtr stage);
 
-    PXR_NS::HdSceneIndexBaseRefPtr GetEditableSceneIndex();
-    void SetEditableSceneIndex(PXR_NS::HdSceneIndexBaseRefPtr sceneIndex);
-    void SetTime(PXR_NS::UsdTimeCode);
+        PXR_NS::HdSceneIndexBaseRefPtr GetEditableSceneIndex();
+        void SetEditableSceneIndex(PXR_NS::HdSceneIndexBaseRefPtr sceneIndex);
+        void SetTime(PXR_NS::UsdTimeCode);
 
 
     //--------------------------------------------------------------------------
@@ -250,7 +251,7 @@ class HydraViewport : public View {
 
     private:
     class Self;
-        std::unique_ptr<Self> _model;
+    std::unique_ptr<Self> _model;
 
     int _hitGeneration = 0;
     PXR_NS::GfVec3f _hitPoint, _hitNormal;
@@ -261,28 +262,28 @@ class HydraViewport : public View {
 
     const float _FREE_CAM_FOV = 45.f;
 
-        float _zNear = 0.1f;
-        float _zFar = 1.0e4f;
+    float _zNear = 0.1f;
+    float _zFar = 1.0e4f;
 
-        bool _isAmbientLightEnabled, _isDomeLightEnabled, _isGridEnabled;
+    bool _isAmbientLightEnabled, _isDomeLightEnabled, _isGridEnabled;
 
-        bool _guiInterceptedMouse = false;
+    bool _guiInterceptedMouse = false;
 
-        PXR_NS::SdfPath _activeCam;
-        PXR_NS::GfCamera _cam;  // cached whenever it's computed for the viewport
+    PXR_NS::SdfPath _activeCam;
+    PXR_NS::GfCamera _cam;  // cached whenever it's computed for the viewport
 
     PXR_NS::GfMatrix4d _proj;
 
-        pxr::Engine* _engine;
+    lab::Engine* _engine;
     PXR_NS::GridSceneIndexRefPtr _gridSceneIndex;
     PXR_NS::XformFilterSceneIndexRefPtr _xformSceneIndex;
 
     PXR_NS::UsdImagingSceneIndices _sceneIndices;
 
-        ImGuiWindowFlags _gizmoWindowFlags;
+    ImGuiWindowFlags _gizmoWindowFlags;
 
-        ImGuizmo::OPERATION _curOperation;
-        ImGuizmo::MODE _curMode;
+    ImGuizmo::OPERATION _curOperation;
+    ImGuizmo::MODE _curMode;
 
         /**
          * @brief Get the width of the HydraViewport

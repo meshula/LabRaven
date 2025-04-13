@@ -22,6 +22,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     HydraActivity.cpp HydraActivity.hpp
     HydraEditor.cpp HydraEditor.hpp
     HydraOutlinerActivity.cpp HydraOutlinerActivity.hpp
+    HydraRender.cpp HydraRender.hpp
     HydraViewport.cpp HydraViewport.hpp
     LayersActivity.cpp LayersActivity.hpp
     PropertiesActivity.cpp PropertiesActivity.hpp

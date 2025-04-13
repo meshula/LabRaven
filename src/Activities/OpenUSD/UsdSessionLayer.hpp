@@ -10,13 +10,10 @@
 #ifndef ACTIVITIES_USDSESSION_LAYER
 #define ACTIVITIES_USDSESSION_LAYER
 
-#ifndef IMGUI_DEFINE_MATH_OPERATORS
-#define IMGUI_DEFINE_MATH_OPERATORS
-#endif
-#include <TextEditor.h>
-#include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
-
 #include "HydraViewport.hpp"
+
+#include <TextEditor.h>
+
 
 namespace lab {
 

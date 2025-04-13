@@ -24,11 +24,11 @@
 PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace lab {
-Editor::Editor(const string label) : View(label)
+Editor::Editor(const std::string label) : View(label)
 {
 }
 
-const string Editor::GetViewType()
+const std::string Editor::GetViewType()
 {
     return VIEW_TYPE;
 };

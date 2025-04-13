@@ -22,6 +22,8 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace lab {
 
+using std::string;
+
 UsdSessionLayer::UsdSessionLayer(const string label)
 : View(label), _isEditing(false)
 {
@@ -100,7 +102,7 @@ string UsdSessionLayer::_GetNextAvailableIndexedPath(const string& primPath)
     do {
         i++;
         if (i == 0) newPath = primPath;
-        else newPath = primPath + to_string(i);
+        else newPath = primPath + std::to_string(i);
         prim = stage->GetPrimAtPath(SdfPath(newPath));
     } while (prim.IsValid());
     return newPath;

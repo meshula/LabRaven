@@ -24,6 +24,7 @@
 #include <pxr/imaging/hd/sceneIndex.h>
 #include <pxr/imaging/hd/sceneIndexPrimView.h>
 #include <pxr/imaging/hgi/blitCmdsOps.h>
+#include <pxr/imaging/hgi/hgi.h>
 #include <pxr/imaging/hgi/texture.h>
 #include <pxr/imaging/hdSt/renderBuffer.h>
 #include <pxr/usd/usd/prim.h>
