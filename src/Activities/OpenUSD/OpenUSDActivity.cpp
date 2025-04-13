@@ -128,9 +128,6 @@ bool DrawPanelHeader(const std::string& title, bool* isLocked, float width, floa
 
 void OpenUSDActivity::RunUI(const LabViewInteraction&) {
     _self->shotTemplateModule.update();
-    ImGui::Begin("Three Panel Demo");
-    ThreePanelLayoutDemo();
-    ImGui::End();
 }
 
 void OpenUSDActivity::Menu() {

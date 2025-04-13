@@ -67,6 +67,10 @@ void ThreePanelLayout(
         availSize.y = height;
     }
     
+    if (availSize.y < 2) {
+        return;
+    }
+    
     // Calculate pixel positions and widths from normalized state
     float totalWidth = availSize.x - state.rightEdgePadding; // Account for right edge padding
     float leftGrabberPosPixels = totalWidth * state.leftGrabberPos;

@@ -55,6 +55,10 @@ PropertiesActivity::~PropertiesActivity() {
 }
 
 void PropertiesActivity::RunUI(const LabViewInteraction& vi) {
+    if (!this->UIVisible()) {
+        return;
+    }
+
     auto usd = OpenUSDProvider::instance();
 
     if (_self->hdPropertyEditorVisible) {

@@ -20,6 +20,7 @@ class StatisticsActivity : public Activity
     
     // activities
     void RunUI(const LabViewInteraction&);
+    void DiscWidget(const LabViewInteraction&);
 
 public:
     explicit StatisticsActivity();

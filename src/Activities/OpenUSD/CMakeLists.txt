@@ -4,6 +4,7 @@ set_property(GLOBAL PROPERTY ACTIVITIES_LIST
              "${ACTIVITIES};\
              OpenUSD/OpenUSD;\
              OpenUSD/Hydra;\
+             OpenUSD/HydraOutliner;\
              OpenUSD/Layers;\
              OpenUSD/Properties;\
              OpenUSD/Scout;\
@@ -20,6 +21,7 @@ target_sources(${PROJECT_NAME} PUBLIC
     OpenUSDActivity.cpp OpenUSDActivity.hpp
     HydraActivity.cpp HydraActivity.hpp
     HydraEditor.cpp HydraEditor.hpp
+    HydraOutlinerActivity.cpp HydraOutlinerActivity.hpp
     HydraViewport.cpp HydraViewport.hpp
     LayersActivity.cpp LayersActivity.hpp
     PropertiesActivity.cpp PropertiesActivity.hpp

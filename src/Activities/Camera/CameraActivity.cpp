@@ -191,6 +191,9 @@ void CameraActivity::SetFrustum(const GfFrustum f) {
 
 void CameraActivity::RunUI(const LabViewInteraction& vi)
 {
+    if (!IsActive() || !UIVisible()) {
+        return;
+    }
     ImGui::Begin("Camera2");
     static float dolly_px = 0;
     static float dolly_py = 0;

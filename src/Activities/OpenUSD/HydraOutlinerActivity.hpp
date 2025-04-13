@@ -1,13 +1,13 @@
 //
-//  UsdOutlinerActivity.hpp
+//  HydraOutlinerActivity.hpp
 //  LabExcelsior
 //
 //  Created by Domenico Porcino on 12/16/23.
 //  Copyright © 2023 Nick Porcino. All rights reserved.
 //
 
-#ifndef UsdOutlinerActivity_hpp
-#define UsdOutlinerActivity_hpp
+#ifndef HydraOutlinerActivity_hpp
+#define HydraOutlinerActivity_hpp
 
 #include "Lab/StudioCore.hpp"
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
@@ -18,7 +18,7 @@
 #include <pxr/usd/usd/stage.h>
 
 namespace lab {
-class UsdOutlinerActivity : public Activity
+class HydraOutlinerActivity : public Activity
 {
     struct data;
     data* _self;
@@ -32,12 +32,11 @@ class UsdOutlinerActivity : public Activity
     void RunUI(const LabViewInteraction&);
 
 public:
-    UsdOutlinerActivity();
-    virtual ~UsdOutlinerActivity();
+    HydraOutlinerActivity();
+    virtual ~HydraOutlinerActivity();
     virtual const std::string Name() const override { return sname(); }
-    static constexpr const char* sname() { return "UsdOutliner"; }
+    static constexpr const char* sname() { return "HydraOutliner"; }
 
-    void USDOutlinerUI(const LabViewInteraction&);
     void HydraOutlinerUI(const LabViewInteraction&);
 };
 }

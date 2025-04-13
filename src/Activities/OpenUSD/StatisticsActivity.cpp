@@ -7,9 +7,11 @@
 //
 
 #include "StatisticsActivity.hpp"
+#include "UsdOutlinerActivity.hpp"
 
 #include "Lab/App.h"
 #include "Lab/tinycolormap.hpp"
+#include "Lab/ThreePanelLayout.h"
 #include "Providers/Selection/SelectionProvider.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 
@@ -274,13 +276,12 @@ StatisticsActivity::~StatisticsActivity() {
     delete _self;
 }
 
-void StatisticsActivity::RunUI(const LabViewInteraction&) {
+void StatisticsActivity::DiscWidget(const LabViewInteraction& vi) {
     bool must_create_slices = false;
 
     auto selection = SelectionProvider::instance();
     auto selectedPrims = selection->GetSelectionPrims();
 
-    ImGui::Begin("Statistics");
     if (ImGui::Button("Gather")) {
         usd_traverse_t traverse;
         if (selectedPrims.size()) {
@@ -351,6 +352,74 @@ void StatisticsActivity::RunUI(const LabViewInteraction&) {
             }
         }
     }
+}
+
+void StatisticsActivity::RunUI(const LabViewInteraction&) {
+    ImGui::Begin("USD Insights");
+
+    static ThreePanelLayoutState layoutState;
+    static bool init = true;
+    if (init) {
+        layoutState.leftPanelTitle = "Stage Outliner";
+        layoutState.middlePanelTitle = "Statistics";
+        layoutState.rightPanelTitle = "Hydra";
+        init = false;
+    }
+    
+    // Setup middle panel tabs
+    const char* tabLabels[] = { "Radial", "Bar", "Baz" };
+    const int tabCount = IM_ARRAYSIZE(tabLabels);
+    
+    // Define panel content functions
+    auto leftPanelFn = []() {
+        lab::Orchestrator* mm =lab:: Orchestrator::Canonical();
+        std::weak_ptr<UsdOutlinerActivity> usdp;
+        auto usd = mm->LockActivity(usdp);
+        if (usd) {
+            usd->USDOutlinerUI(LabViewInteraction());
+        }
+    };
+    
+    // Middle panel tab functions
+    std::function<void()> middlePanelFns[] = {
+        [this]() { // Foo tab
+            DiscWidget(LabViewInteraction());
+        },
+        []() { // Bar tab
+            ImGui::Text("Bar Tab Content");
+            ImGui::Separator();
+            ImGui::Text("This is the Bar tab of the middle panel");
+            float value = 0.5f;
+            ImGui::SliderFloat("Bar Slider", &value, 0.0f, 1.0f);
+        },
+        []() { // Baz tab
+            ImGui::Text("Baz Tab Content");
+            ImGui::Separator();
+            ImGui::Text("This is the Baz tab of the middle panel");
+            if (ImGui::Button("Baz Button")) {
+                // Do something when clicked
+            }
+        }
+    };
+    
+    auto rightPanelFn = []() {
+        ImGui::Text("Right Panel Content");
+        ImGui::Separator();
+        static bool options[5];
+        for (int i = 0; i < 5; i++) {
+            ImGui::Checkbox(("Right panel option " + std::to_string(i)).c_str(), &options[i]);
+        }
+    };
+
+    ThreePanelLayout(
+        layoutState,
+        leftPanelFn,
+        middlePanelFns,
+        rightPanelFn,
+        tabLabels,
+        tabCount
+    );
+
     ImGui::End();
 }
 
