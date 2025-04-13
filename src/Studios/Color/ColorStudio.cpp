@@ -21,11 +21,11 @@ ColorStudio::~ColorStudio() {
     delete _self;
 }
 
-static const std::vector<std::string> activities = {
-    "Color",
+static const std::vector<Studio::ActivityConfig> activities = {
+    {"Color", true}
 };
 
-const std::vector<std::string>& ColorStudio::StudioConfiguration() const {
+const std::vector<Studio::ActivityConfig>& ColorStudio::StudioConfiguration() const {
     return activities;
 }
 

@@ -21,12 +21,12 @@ TextureStudio::~TextureStudio() {
     delete _self;
 }
 
-static const std::vector<std::string> activities = {
-    "Color",
-    "Texture",
+static const std::vector<Studio::ActivityConfig> activities = {
+    {"Color", true},
+    {"Texture", true}
 };
 
-const std::vector<std::string>& TextureStudio::StudioConfiguration() const {
+const std::vector<Studio::ActivityConfig>& TextureStudio::StudioConfiguration() const {
     return activities;
 }
 

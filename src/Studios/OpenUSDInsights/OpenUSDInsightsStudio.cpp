@@ -21,17 +21,17 @@ OpenUSDInsightsStudio::~OpenUSDInsightsStudio() {
     delete _self;
 }
 
-static const std::vector<std::string> activities = {
-    "Camera",
-    "Hydra",
-    "OpenUSD",
-    "Outliner",
-    "Usd Statistics",
-    "TfDebugger",
-    "UsdProperties",
+static const std::vector<Studio::ActivityConfig> activities = {
+    {"Camera", true},
+    {"Hydra", true},
+    {"OpenUSD", true},
+    {"Outliner", true},
+    {"Usd Statistics", true},
+    {"TfDebugger", false},
+    {"UsdProperties", true},
 };
 
-const std::vector<std::string>& OpenUSDInsightsStudio::StudioConfiguration() const {
+const std::vector<Studio::ActivityConfig>& OpenUSDInsightsStudio::StudioConfiguration() const {
     return activities;
 }
 

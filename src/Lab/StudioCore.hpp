@@ -97,6 +97,7 @@ typedef struct LabActivity {
     const char* (*Documentation)(void*) = nullptr;
     const char* name = nullptr; // string is not owned by the activity
     bool active = false;
+    bool uiVisible = true;
 } LabActivity;
 
 typedef struct LabProvider {
@@ -206,6 +207,8 @@ protected:
 
     virtual void Activate()   final { activity.active = true;  _activate();   }
     virtual void Deactivate() final { activity.active = false; _deactivate(); }
+    
+    virtual void SetUIVisible(bool v) { activity.uiVisible = v; }
 
     friend class Orchestrator;
 
@@ -217,6 +220,7 @@ public:
     virtual const std::string Name() const = 0;
 
     bool IsActive() const { return activity.active; }
+    bool UIVisible() const { return activity.uiVisible; }
 
     LabActivity activity;
 };
@@ -241,7 +245,12 @@ public:
 
     bool IsActive() const { return _active; }
 
-    virtual const std::vector<std::string>& StudioConfiguration() const = 0;
+    struct ActivityConfig {
+        std::string name;
+        bool uiInitiallyVisible;
+    };
+    
+    virtual const std::vector<ActivityConfig>& StudioConfiguration() const = 0;
     virtual bool MustDeactivateUnrelatedActivitiesOnActivation() const { return true; }
 };
 

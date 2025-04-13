@@ -15,6 +15,7 @@
 #include "Lab/CSP.hpp"
 #include "Lab/LabFileDialogManager.hpp"
 #include "Lab/LabDirectories.h"
+#include "Lab/ThreePanelLayout.h"
 #include "Activities/Console/ConsoleActivity.hpp"
 #include "HydraActivity.hpp"
 #include "UsdCreateActivity.hpp"
@@ -25,6 +26,10 @@
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 #include "Providers/OpenUSD/ProfilePrototype.hpp"
 #include <pxr/usd/usd/prim.h>
+
+#include <functional>
+#include <string>
+
 
 namespace lab {
 
@@ -64,8 +69,68 @@ OpenUSDActivity::~OpenUSDActivity() {
     delete _self;
 }
 
+
+/**
+ * @brief Helper function to draw a panel header with title, lock, and hide buttons
+ *
+ * @param title Title to display in the header
+ * @param isLocked Pointer to lock state
+ * @param width Width of the header
+ * @param height Height of the header
+ * @return true if the hide button was clicked
+ */
+bool DrawPanelHeader(const std::string& title, bool* isLocked, float width, float height) {
+    ImGuiStyle& style = ImGui::GetStyle();
+    bool hideClicked = false;
+    
+    // Background
+    ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetColorU32(ImGuiCol_MenuBarBg));
+    ImGui::Button("##Header", ImVec2(width, height));
+    ImGui::PopStyleColor();
+    
+    // Title text
+    ImVec2 textSize = ImGui::CalcTextSize(title.c_str());
+    ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX() + 5, ImGui::GetCursorPosY() - height + (height - textSize.y) * 0.5f));
+    ImGui::Text("%s", title.c_str());
+    
+    // Lock button
+    float buttonSize = height - 6;
+    ImGui::SameLine(width - buttonSize * 2 - 10);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() - height + 3);
+    
+    // Use a different ID for each lock button
+    ImGui::PushID((title + "Lock").c_str());
+    if (ImGui::Button(*isLocked ? "L" : "U", ImVec2(buttonSize, buttonSize))) {
+        *isLocked = !(*isLocked);
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip(*isLocked ? "Unlock panel" : "Lock panel");
+    }
+    ImGui::PopID();
+    
+    // Hide button
+    ImGui::SameLine(width - buttonSize - 5);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY());
+    
+    // Use a different ID for each hide button
+    ImGui::PushID((title + "Hide").c_str());
+    if (ImGui::Button("X", ImVec2(buttonSize, buttonSize))) {
+        hideClicked = true;
+    }
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("Hide panel");
+    }
+    ImGui::PopID();
+    
+    return hideClicked;
+}
+
+
 void OpenUSDActivity::RunUI(const LabViewInteraction&) {
     _self->shotTemplateModule.update();
+    ImGui::Begin("Three Panel Demo");
+    ThreePanelLayoutDemo();
+    ImGui::End();
 }
 
 void OpenUSDActivity::Menu() {

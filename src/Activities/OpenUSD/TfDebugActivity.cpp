@@ -28,6 +28,10 @@ TfDebugActivity::~TfDebugActivity()
 
 void TfDebugActivity::RunUI(const LabViewInteraction&)
 {
+    if (!UIVisible()) {
+        return;
+    }
+
     // draw the debugger
     static std::vector<std::string> debugStrings = PXR_NS::TfDebug::GetDebugSymbolNames();
     ImGui::Begin("TfDebugger");

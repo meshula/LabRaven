@@ -266,7 +266,7 @@ void LabApp::UpdateMainWindow(float dt, bool viewport_hovered, bool viewport_dra
                 for (auto m : activityNames) {
                     auto activity = mm.FindActivity(m);
                     if (activity) {
-                        bool active = activity->IsActive();
+                        bool active = activity->IsActive() && activity->UIVisible();
                         ImGui::PushID((int) id);
                         if (ImGui::MenuItem(activity->Name().c_str(), nullptr, active, true)) {
                             if (active) {

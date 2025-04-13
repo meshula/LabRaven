@@ -18,7 +18,7 @@ class TextureStudio : public Studio
 public:
     explicit TextureStudio();
     virtual ~TextureStudio() override;
-    virtual const std::vector<std::string>& StudioConfiguration() const override;
+    virtual const std::vector<ActivityConfig>& StudioConfiguration() const override;
     virtual bool MustDeactivateUnrelatedActivitiesOnActivation() const override { return true; }
 
     virtual const std::string Name() const override { return sname(); }

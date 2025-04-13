@@ -21,20 +21,20 @@ OpenUSDStudio::~OpenUSDStudio() {
     delete _self;
 }
 
-static const std::vector<std::string> activities = {
-    "Console",
-    "Component",
-    "Hydra",
-    "Journal",
-    "OpenUSD",
-    "Outliner",
-    "Usd Statistics",
-    "Scout",
-    "TfDebugger",
-    "UsdProperties",
+static const std::vector<Studio::ActivityConfig> activities = {
+    {"Console", true},
+    {"Component", true},
+    {"Hydra", true},
+    {"Journal", true},
+    {"OpenUSD", true},
+    {"Outliner", true},
+    {"Usd Statistics", true},
+    {"Scout", true},
+    {"TfDebugger", false},
+    {"UsdProperties", true},
 };
 
-const std::vector<std::string>& OpenUSDStudio::StudioConfiguration() const {
+const std::vector<Studio::ActivityConfig>& OpenUSDStudio::StudioConfiguration() const {
     return activities;
 }
 

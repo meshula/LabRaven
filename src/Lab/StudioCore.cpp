@@ -292,8 +292,10 @@ void Orchestrator::ServiceTransactionsAndActivities(float dt) {
         for (auto& i : _activity_pending) {
             auto m = FindActivity(i.first);
             if (m) {
-                if (i.second)
+                if (i.second) {
                     m->Activate();
+                    m->SetUIVisible(true);
+                }
                 else
                     m->Deactivate();
             }
@@ -370,9 +372,9 @@ void Orchestrator::_activate_studio(const std::string& name)
 
     _self->current_studio = maj;
     auto activitiesList = maj->StudioConfiguration();
-    std::set<std::string> activities;
+    std::map<std::string, bool> activities;
     for (auto& i : activitiesList)
-        activities.insert(i);
+        activities[i.name] = i.uiInitiallyVisible;
 
     if (maj->MustDeactivateUnrelatedActivitiesOnActivation()) {
         std::vector<std::string> deactivated;
@@ -393,13 +395,14 @@ void Orchestrator::_activate_studio(const std::string& name)
     }
     
     for (auto& activity : activities) {
-        auto m = FindActivity(activity);
+        auto m = FindActivity(activity.first);
         if (m) {
             std::cout << "Activating " << m->Name() << std::endl;
             m->Activate();
+            m->SetUIVisible(activity.second);
         }
         else {
-            std::cerr << "Could not find Activity: " << activity << std::endl;
+            std::cerr << "Could not find Activity: " << activity.first << std::endl;
         }
     }
 
@@ -419,13 +422,13 @@ void Orchestrator::_deactivate_studio(const std::string& name)
     
     auto activities = maj->StudioConfiguration();
     for (auto& activity : activities) {
-        auto m = FindActivity(activity);
+        auto m = FindActivity(activity.name);
         if (m) {
             std::cout << "Deactivating " << m->Name() << std::endl;
             m->Deactivate();
         }
         else {
-            std::cerr << "Could not find Activity to deactivate: " << activity << std::endl;
+            std::cerr << "Could not find Activity to deactivate: " << activity.name << std::endl;
         }
     }
     maj->Deactivate();

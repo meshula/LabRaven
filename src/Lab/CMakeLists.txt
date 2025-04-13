@@ -175,7 +175,7 @@ target_link_libraries(imguicolortextedit PUBLIC ImGui::ImGui)
 add_library(ImGuiColorTextEdit::ImGuiColorTextEdit ALIAS imguicolortextedit)
 
 #---------------------------------------------------
-# create binary to compressed
+# create binary_to_compressed_c
 #---------------------------------------------------
 
 if(NOT EMSCRIPTEN)
@@ -215,6 +215,7 @@ add_library(LabCore
     Landru.cpp Landru.hpp
     StudioCore.cpp StudioCore.hpp
     tinycolormap.hpp
+    ThreePanelLayout.cpp ThreePanelLayout.h
 )
 
 # add Core Providers
