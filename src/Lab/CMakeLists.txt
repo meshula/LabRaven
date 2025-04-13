@@ -223,7 +223,7 @@ add_subdirectory(CoreProviders/Color)
 if(APPLE)
     add_subdirectory(CoreProviders/Metal)
 endif()
-
+add_subdirectory(CoreProviders/Texture)
 
 target_include_directories(LabCore PUBLIC
     ${SRC_DIR}

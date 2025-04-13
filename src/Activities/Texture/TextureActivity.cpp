@@ -13,7 +13,7 @@
 #include "Lab/LabFileDialogManager.hpp"
 #include "Lab/CoreProviders/Color/ColorProvider.hpp"
 #include "Lab/CoreProviders/Color/nanocolorUtils.h"
-#include "Providers/Texture/TextureCache.hpp"
+#include "Lab/CoreProviders/Texture/TextureCache.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS

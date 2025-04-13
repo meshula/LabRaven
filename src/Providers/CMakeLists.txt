@@ -6,7 +6,6 @@ add_subdirectory(Animation)
 add_subdirectory(Scheme)
 add_subdirectory(Selection)
 add_subdirectory(Sprite)
-add_subdirectory(Texture)
 
 if(HAVE_OPENUSD)
     add_subdirectory(OpenUSD)

@@ -23,7 +23,7 @@
     #define strcasecmp _stricmp
 #endif
 
-#include "Providers/Texture/stb_image_write.h"
+#include "Lab/CoreProviders/Texture/stb_image_write.h"
 
 // #define EDGE_FILL
 

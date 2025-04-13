@@ -1,6 +1,7 @@
 #include "HydraViewport.hpp"
 
 #include "Lab/App.h"
+#include "Lab/CoreProviders/Texture/TextureCache.hpp"
 #include "Activities/Camera/ReticleActivity.hpp"
 #include "Providers/Camera/CameraProvider.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
@@ -33,14 +34,7 @@
 
 #include <vector>
 
-extern "C"
-int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels);
-extern "C"
-void* LabTextureHardwareHandle(int texture);
-extern "C"
-void LabRemoveTexture(int texture);
-extern "C"
-void LabUpdateRGBAf16Texture(int texture, uint8_t* rgba_pixels);
+
 
 struct TextureCapture {
     int width = 0;
@@ -54,8 +48,6 @@ using namespace std;
 
 namespace lab {
 
-
-
 View::View(const string label)
 :     _label(label),
       _wasFocused(false),
@@ -63,7 +55,6 @@ View::View(const string label)
       _wasDisplayed(true)
 {
 }
-
 
 const string View::GetViewType()
 {

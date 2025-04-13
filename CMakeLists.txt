@@ -14,7 +14,7 @@ cmake_policy(SET CMP0002 NEW)
 cmake_policy(SET CMP0076 NEW)
 cmake_policy(SET CMP0072 NEW)
 
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/cmake-scripts")
 include(CheckLanguage)
 #include(GroupSourcesByFolder)
 set(CMAKE_INSTALL_MESSAGE LAZY)

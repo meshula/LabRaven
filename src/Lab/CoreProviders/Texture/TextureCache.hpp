@@ -35,4 +35,13 @@ public:
 
 } // lab
 
+extern "C"
+int LabCreateRGBAf16Texture(int width, int height, uint8_t* rgba_pixels);
+extern "C"
+void* LabTextureHardwareHandle(int texture);
+extern "C"
+void LabRemoveTexture(int texture);
+extern "C"
+void LabUpdateRGBAf16Texture(int texture, uint8_t* rgba_pixels);
+
 #endif // Providers_Texture_hpp
