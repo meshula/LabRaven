@@ -28,7 +28,7 @@ static const std::vector<Studio::ActivityConfig> activities = {
     {"UsdOutliner", false},
     {"Usd Statistics", true},
     {"TfDebugger", false},
-    {"UsdProperties", false},
+    {"Prim Properties", false},
 };
 
 const std::vector<Studio::ActivityConfig>& OpenUSDInsightsStudio::StudioConfiguration() const {

@@ -26,13 +26,14 @@ static const std::vector<Studio::ActivityConfig> activities = {
     {"Component", true},
     {"Hydra", true},
     {"HydraOutliner", true},
+    {"Hydra Properties", true},
     {"Journal", true},
     {"OpenUSD", true},
     {"UsdOutliner", true},
     {"Usd Statistics", true},
     {"Scout", true},
     {"TfDebugger", false},
-    {"UsdProperties", true},
+    {"Prim Properties", true},
 };
 
 const std::vector<Studio::ActivityConfig>& OpenUSDStudio::StudioConfiguration() const {

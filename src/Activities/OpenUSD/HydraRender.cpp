@@ -275,15 +275,12 @@ void Engine::PrepareDefaultLighting()
     _taskController->SetLightingState(lightingContextState);
 }
 
-void Engine::Prepare()
+void Engine::Render()
 {
     PrepareDefaultLighting();
     _taskController->SetFreeCameraMatrices(_camView, _camProj);
-}
 
-void Engine::Render()
-{
-#ifdef USE_GLINTEROP
+    #ifdef USE_GLINTEROP
     _drawTarget->Bind();
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

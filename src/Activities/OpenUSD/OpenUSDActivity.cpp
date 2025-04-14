@@ -20,7 +20,7 @@
 #include "HydraActivity.hpp"
 #include "UsdCreateActivity.hpp"
 #include "UsdOutlinerActivity.hpp"
-#include "PropertiesActivity.hpp"
+#include "PrimPropertiesActivity.hpp"
 #include "SessionActivity.hpp"
 #include "TfDebugActivity.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"

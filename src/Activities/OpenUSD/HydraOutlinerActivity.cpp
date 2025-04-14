@@ -10,11 +10,7 @@
 
 
 #include "HydraOutlinerActivity.hpp"
-#include "HydraViewport.hpp"
 
-#ifndef IMGUI_DEFINE_MATH_OPERATORS
-#define IMGUI_DEFINE_MATH_OPERATORS
-#endif
 #include "imgui.h"
 #include "Lab/App.h"
 #include "Lab/StudioCore.hpp"
@@ -52,7 +48,8 @@ namespace lab {
  * navigate into the UsdStage hierarchy.
  *
  */
-class Outliner : public View {
+class Outliner {
+    std::string _label;
     public:
         inline static const string VIEW_TYPE = "Outliner";
 
@@ -64,18 +61,14 @@ class Outliner : public View {
          */
         Outliner(const string label = VIEW_TYPE);
 
-        /**
-         * @brief Override of the View::GetViewType
-         *
-         */
-        const string GetViewType() override;
+    /**
+     * @brief Override of the View::Draw
+     *
+     */
+    void _Draw(const LabViewInteraction& vi);
+
 
     private:
-        /**
-         * @brief Override of the View::Draw
-         *
-         */
-        void _Draw(const LabViewInteraction& vi) override;
 
         /**
          * @brief Draw the hierarchy of all the descendant UsdPrims of the
@@ -162,12 +155,7 @@ class Outliner : public View {
 
 
 
-Outliner::Outliner(const string label) : View(label) {}
-
-const string Outliner::GetViewType()
-{
-    return VIEW_TYPE;
-};
+Outliner::Outliner(const string label) : _label(label) {}
 
 void Outliner::_Draw(const LabViewInteraction& vi)
 {
@@ -393,17 +381,9 @@ void HydraOutlinerActivity::RunUI(const LabViewInteraction& vi) {
         }
 
         ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
-#if 0
-        ImGui::Begin("Outliner");
-        pxr::UsdStageRefPtr stage = OpenUSDProvider::instance()->Stage();
-        if (stage) {
-            for (auto prim : stage->GetPseudoRoot().GetChildren()) {
-                DrawPrimHierarchy(prim);
-            }
-        }
+        ImGui::Begin("Hydra Outliner##A1");
+        _self->outliner->_Draw(vi);
         ImGui::End();
-#endif
-        _self->outliner->Update(vi);
     }
 }
 

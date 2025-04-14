@@ -44,7 +44,7 @@ public:
      * @brief Construct a new Engine object
      *
      * @param sceneIndex the Scene Index to render
-     * @param plugin the renderer plugin that specify the render
+     * @param plugin the renderer plugin that specifies the render
      */
     Engine(PXR_NS::HdSceneIndexBaseRefPtr sceneIndex, PXR_NS::TfToken plugin);
     
@@ -106,11 +106,6 @@ public:
      * @param height the height of the render
      */
     void SetRenderSize(int width, int height);
-    
-    /**
-     * @brief Prepare the renderer
-     */
-    void Prepare();
     
     /**
      * @brief Render the current state

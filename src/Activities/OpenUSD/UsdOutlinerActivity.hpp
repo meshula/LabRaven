@@ -38,7 +38,6 @@ public:
     static constexpr const char* sname() { return "UsdOutliner"; }
 
     void USDOutlinerUI(const LabViewInteraction&);
-    void HydraOutlinerUI(const LabViewInteraction&);
 };
 }
 

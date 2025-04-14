@@ -49,24 +49,73 @@ using namespace std;
 
 namespace lab {
 
-View::View(const string label)
+class HydraViewport::Self {
+public:
+    UsdImagingStageSceneIndexRefPtr _stageSceneIndex;
+    HdSceneIndexBaseRefPtr _editableSceneIndex;
+    HdMergingSceneIndexRefPtr _sceneIndexBases;
+    HdMergingSceneIndexRefPtr _finalSceneIndex;
+
+    Self() {
+        _sceneIndexBases = HdMergingSceneIndex::New();
+        _finalSceneIndex = HdMergingSceneIndex::New();
+        _editableSceneIndex = _sceneIndexBases;
+        _finalSceneIndex->AddInputScene(_editableSceneIndex,
+                                        SdfPath::AbsoluteRootPath());
+        UsdImagingCreateSceneIndicesInfo info;
+        info.displayUnloadedPrimsWithBounds = false;
+        const UsdImagingSceneIndices sceneIndices =  UsdImagingCreateSceneIndices(info);
+        _stageSceneIndex = sceneIndices.stageSceneIndex;
+        _sceneIndexBases->AddInputScene(sceneIndices.finalSceneIndex, SdfPath::AbsoluteRootPath());
+    }
+
+    void SetEditableSceneIndex(HdSceneIndexBaseRefPtr sceneIndex)
+    {
+        _finalSceneIndex->RemoveInputScene(_editableSceneIndex);
+        _editableSceneIndex = sceneIndex;
+        _finalSceneIndex->AddInputScene(_editableSceneIndex,
+                                        SdfPath::AbsoluteRootPath());
+    }
+};
+
+HydraViewport::HydraViewport(const string label)
 :     _label(label),
       _wasFocused(false),
       _wasHovered(false),
-      _wasDisplayed(true)
+      _wasDisplayed(true) {
+    _model = std::make_unique<Self>();
+    _gizmoWindowFlags = ImGuiWindowFlags_MenuBar;
+    _isAmbientLightEnabled = true;
+    _isDomeLightEnabled = false;
+    _isGridEnabled = true;
+    _guiInterceptedMouse = false;
+
+    _curOperation = ImGuizmo::TRANSLATE;
+    _curMode = ImGuizmo::LOCAL;
+
+    _UpdateActiveCamFromViewport();
+
+    _gridSceneIndex = GridSceneIndex::New();
+    _model->_sceneIndexBases->AddInputScene(_gridSceneIndex, SdfPath::AbsoluteRootPath());
+
+    _xformSceneIndex = XformFilterSceneIndex::New(_model->_editableSceneIndex);
+    _model->SetEditableSceneIndex(_xformSceneIndex);
+
+    TfToken plugin = Engine::GetDefaultRendererPlugin();
+    _engine = new Engine(_model->_finalSceneIndex, plugin);
+};
+
+HydraViewport::~HydraViewport()
 {
+    delete _engine;
 }
 
-const string View::GetViewType()
-{
-    return VIEW_TYPE;
-}
-
-const string View::GetViewLabel()
+const string HydraViewport::GetViewLabel()
 {
     return _label;
 }
-void View::Update(const LabViewInteraction& vi)
+
+void HydraViewport::Update(const LabViewInteraction& vi)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -143,96 +192,21 @@ void View::Update(const LabViewInteraction& vi)
     ImGui::PopStyleVar(2);
 };
 
-bool View::IsDisplayed()
+bool HydraViewport::IsDisplayed()
 {
     return _wasDisplayed;
 }
 
-ImRect View::GetInnerRect()
+ImRect HydraViewport::GetInnerRect()
 {
     return _innerRect;
 }
 
-void View::_Draw(const LabViewInteraction& vi) {};
+void HydraViewport::_FocusInEvent() {};
 
-void View::_FocusInEvent() {};
+void HydraViewport::_FocusOutEvent() {};
 
-void View::_FocusOutEvent() {};
-
-void View::_HoverInEvent() {};
-
-void View::_HoverOutEvent() {};
-
-void View::_KeyPressEvent(ImGuiKey key) {};
-
-void View::_MousePressEvent(ImGuiMouseButton_ button, ImVec2 pos) {};
-
-void View::_MouseReleaseEvent(ImGuiMouseButton_ button, ImVec2 pos) {};
-
-void View::_MouseMoveEvent(ImVec2 prevPos, ImVec2 curPos) {};
-
-ImGuiWindowFlags View::_GetGizmoWindowFlags()
-{
-    return ImGuiWindowFlags_None;
-};
-
-class HydraViewport::Self {
-public:
-    UsdImagingStageSceneIndexRefPtr _stageSceneIndex;
-    HdSceneIndexBaseRefPtr _editableSceneIndex;
-    HdMergingSceneIndexRefPtr _sceneIndexBases;
-    HdMergingSceneIndexRefPtr _finalSceneIndex;
-
-    Self() {
-        _sceneIndexBases = HdMergingSceneIndex::New();
-        _finalSceneIndex = HdMergingSceneIndex::New();
-        _editableSceneIndex = _sceneIndexBases;
-        _finalSceneIndex->AddInputScene(_editableSceneIndex,
-                                        SdfPath::AbsoluteRootPath());
-        UsdImagingCreateSceneIndicesInfo info;
-        info.displayUnloadedPrimsWithBounds = false;
-        const UsdImagingSceneIndices sceneIndices =  UsdImagingCreateSceneIndices(info);
-        _stageSceneIndex = sceneIndices.stageSceneIndex;
-        _sceneIndexBases->AddInputScene(sceneIndices.finalSceneIndex, SdfPath::AbsoluteRootPath());
-    }
-
-    void SetEditableSceneIndex(HdSceneIndexBaseRefPtr sceneIndex)
-    {
-        _finalSceneIndex->RemoveInputScene(_editableSceneIndex);
-        _editableSceneIndex = sceneIndex;
-        _finalSceneIndex->AddInputScene(_editableSceneIndex,
-                                        SdfPath::AbsoluteRootPath());
-    }
-};
-
-HydraViewport::HydraViewport(const string label) : View(label)
-{
-    _model = std::make_unique<Self>();
-    _gizmoWindowFlags = ImGuiWindowFlags_MenuBar;
-    _isAmbientLightEnabled = true;
-    _isDomeLightEnabled = false;
-    _isGridEnabled = true;
-    _guiInterceptedMouse = false;
-
-    _curOperation = ImGuizmo::TRANSLATE;
-    _curMode = ImGuizmo::LOCAL;
-
-    _UpdateActiveCamFromViewport();
-
-    _gridSceneIndex = GridSceneIndex::New();
-    _model->_sceneIndexBases->AddInputScene(_gridSceneIndex, SdfPath::AbsoluteRootPath());
-
-    _xformSceneIndex = XformFilterSceneIndex::New(_model->_editableSceneIndex);
-    _model->SetEditableSceneIndex(_xformSceneIndex);
-
-    TfToken plugin = Engine::GetDefaultRendererPlugin();
-    _engine = new Engine(_model->_finalSceneIndex, plugin);
-};
-
-HydraViewport::~HydraViewport()
-{
-    delete _engine;
-}
+void HydraViewport::_MousePressEvent(ImGuiMouseButton_ button, ImVec2 pos) {};
 
 void HydraViewport::RemoveSceneIndex(HdSceneIndexBaseRefPtr p) {
     _engine->RemoveSceneIndex(p);
@@ -301,54 +275,6 @@ float HydraViewport::_GetViewportHeight()
     return GetInnerRect().GetHeight();
 }
 
-void testColors() {
-    GfColorSpace linrec709(TfToken("lin_rec709_scene"));
-    GfColorSpace acescg(TfToken("lin_ap1_scene"));
-
-    GfMatrix3f rm = linrec709.GetRGBToXYZ();
-    printf("709 to xyz\n");
-    for (int i = 0; i < 9; ++i) {
-        printf("%g ", rm[i/3][i%3]);
-        if (i == 2 || i == 5) printf("\n");
-    }
-
-    rm = rm.GetInverse();
-    printf("xyz to 709\n");
-    for (int i = 0; i < 9; ++i) {
-        printf("%g ", rm[i/3][i%3]);
-        if (i == 2 || i == 5) printf("\n");
-    }
-
-    printf("----\nap1 to xyz\n");
-    rm = acescg.GetRGBToXYZ();
-    for (int i = 0; i < 9; ++i) {
-        printf("%g ", rm[i/3][i%3]);
-        if (i == 2 || i == 5) printf("\n");
-    }
-
-
-    GfColor col(GfVec3f(0.3123, 0.2185, 0.0734), acescg);
-    GfColor col709(col, linrec709);
-    GfVec3f rgb = col709.GetRGB();
-    printf("r %f g %f b %f\n", rgb[0], rgb[1], rgb[2]);
-
-    GfColor col2(GfVec3f(0.3123, 0.2185, 0.0734), linrec709);
-    GfColor col3(col2, acescg);
-    rgb = col3.GetRGB();
-    printf("r %f g %f b %f\n", rgb[0], rgb[1], rgb[2]);
-#if 0
-    >>> linrec709 = pxr.Gf.ColorSpace("lin_rec709_scene")
-    >>> acescg = pxr.Gf.ColorSpace("lin_ap1_scene")
-    >>> col = linrec709.Convert(acescg, (0.3123, 0.2185, 0.0734))
-    >>> col
-    Gf.Color(Gf.Vec3f(0.44637531042099, 0.25115352869033813, 0.047788895666599274), Gf.ColorSpace('lin_rec709_scene'))
-    >>> col.GetRGB()
-    Gf.Vec3f(0.44637531042099, 0.25115352869033813, 0.047788895666599274)
-    However, this result is different from what OCIO gives (and which I verified independently is correct):
-#endif
-
-}
-
 void HydraViewport::_Draw(const LabViewInteraction& vi)
 {
     if (_model->_stageSceneIndex) {
@@ -364,8 +290,6 @@ void HydraViewport::_Draw(const LabViewInteraction& vi)
 
     _DrawMenuBar();
     
-    //testColors();
-
     ImGui::BeginChild("GameRender");
 
     const float dpad_width = 32;
@@ -671,7 +595,6 @@ void HydraViewport::_UpdateHydraRender()
     _engine->SetSelection(paths);
     _engine->SetRenderSize(width, height);
     _engine->SetCameraMatrices(view, _proj);
-    _engine->Prepare();
 
     // do the render
     _engine->Render();

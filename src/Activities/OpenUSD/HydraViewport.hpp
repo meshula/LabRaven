@@ -52,16 +52,17 @@ class Engine;
  * events, flag definition and globals.
  *
  */
-class View {
+class HydraViewport {
     public:
-        inline static const std::string VIEW_TYPE = "View";
+    inline static const std::string VIEW_TYPE = "HydraViewport";
 
-        /**
-         * @brief Construct a new View object
-         *
-         * @param label the ImGui label of the new View view
-         */
-        View(const std::string label);
+    /**
+     * @brief Construct a new HydraViewport object
+     *
+     * @param model the Model of the new HydraViewport view
+     * @param label the ImGui label of the new HydraViewport view
+     */
+    HydraViewport(const std::string label = VIEW_TYPE);
 
 
         /**
@@ -177,45 +178,15 @@ class View {
          * @return The ImGui Window flags
          */
         virtual ImGuiWindowFlags _GetGizmoWindowFlags();
-};
 
-
-
-/**
- * @brief HydraViewport view acts as a viewport for the data within the current
- * Model. It allows to visualize the USD data with the current Model using an
- * instance of UsdImagingGLEngine.
- *
- */
-class HydraViewport : public View {
     public:
-        inline static const std::string VIEW_TYPE = "HydraViewport";
 
-        /**
-         * @brief Construct a new HydraViewport object
-         *
-         * @param model the Model of the new HydraViewport view
-         * @param label the ImGui label of the new HydraViewport view
-         */
-        HydraViewport(const std::string label = VIEW_TYPE);
 
         /**
          * @brief Destroy the HydraViewport object
          *
          */
         ~HydraViewport();
-
-        /**
-         * @brief Override of the View::GetViewType
-         *
-         */
-        const std::string GetViewType() override;
-
-        /**
-         * @brief Override of the View::_GetGizmoWindowFlags
-         *
-         */
-        ImGuiWindowFlags _GetGizmoWindowFlags() override;
 
         PXR_NS::GfVec2d GetNearFar() const { return { _zNear, _zFar }; }
         void SetNearFar(float n, float f) { _zNear = n; _zFar = f; }
@@ -298,12 +269,6 @@ class HydraViewport : public View {
          * @return the height of the viewport
          */
         float _GetViewportHeight();
-
-        /**
-         * @brief Override of the View::Draw
-         *
-         */
-        void _Draw(const LabViewInteraction& vi) override;
 
         /**
          * @brief Draw the Menu bar of the HydraViewport
@@ -428,37 +393,6 @@ class HydraViewport : public View {
          * @param primPath the prim to focus on
          */
         void _FocusOnPrim(pxr::SdfPath primPath);
-
-        /**
-         * @brief Override of the View::_KeyPressEvent
-         *
-         */
-        void _KeyPressEvent(ImGuiKey key) override;
-
-        /**
-         * @brief Override of the View::_MouseMoveEvent
-         *
-         */
-        void _MouseMoveEvent(ImVec2 prevPos, ImVec2 curPos) override;
-
-        /**
-         * @brief Override of the View::_MouseReleaseEvent
-         *
-         */
-        void _MouseReleaseEvent(ImGuiMouseButton_ button,
-                                ImVec2 mousePos) override;
-
-        /**
-         * @brief Override of the View::_HoverInEvent
-         *
-         */
-        void _HoverInEvent() override;
-
-        /**
-         * @brief Override of the View::_HoverOutEvent
-         *
-         */
-        void _HoverOutEvent() override;
 };
 
 } // namespace lab

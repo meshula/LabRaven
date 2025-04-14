@@ -7,7 +7,6 @@
 //
 
 #include "UsdOutlinerActivity.hpp"
-#include "HydraViewport.hpp"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -78,18 +77,13 @@ void UsdOutlinerActivity::USDOutlinerUI(const LabViewInteraction& vi) {
     }
 }
 
-void UsdOutlinerActivity::HydraOutlinerUI(const LabViewInteraction& vi) {
-}
-
 void UsdOutlinerActivity::RunUI(const LabViewInteraction& vi) {
     if (!IsActive() || !UIVisible())
         return;
 
     ImGui::SetNextWindowSize(ImVec2(200, 400), ImGuiCond_FirstUseEver);
     ImGui::Begin("Stage Outliner");
-
     USDOutlinerUI(vi);
-
     ImGui::End();
 }
 
