@@ -16,7 +16,7 @@
 #include "Lab/CoreProviders/Color/nanocolor.h"
 #include "Lab/CoreProviders/Color/nanocolorUtils.h"
 
-#include "ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.h"
+#include "Providers/OpenUSD/sceneindices/xformfiltersceneindex.h"
 
 #include <pxr/base/plug/registry.h>
 #include <pxr/base/tf/fileUtils.h>

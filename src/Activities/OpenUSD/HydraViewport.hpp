@@ -25,8 +25,8 @@
 #include <pxr/usdImaging/usdImaging/stageSceneIndex.h>
 #include <pxr/usdImaging/usdImaging/sceneIndices.h>
 
-#include "sceneindices/gridsceneindex.h"
-#include "sceneindices/xformfiltersceneindex.h"
+#include "Providers/OpenUSD/sceneindices/gridsceneindex.h"
+#include "Providers/OpenUSD/sceneindices/xformfiltersceneindex.h"
 
 #include <imgui.h>
 #include <imgui_internal.h>

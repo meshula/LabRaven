@@ -84,7 +84,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     #ext
     Lab/cppzmq
     Lab/libzmq/include
-    #${ROOT_DIR}/ext/ImGuiHydraEditor/src
     #Imath::Imath
     #${ROOT_DIR}/ext/opentimelineio/src
     #ImGuizmo::ImGuizmo

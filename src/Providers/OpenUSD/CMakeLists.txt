@@ -66,16 +66,12 @@ set(OPENUSD_SRCS
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/kazmath/vec2.c
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/kazmath/vec3.c
     ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/par_heman/kazmath/vec4.c
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/colorfiltersceneindex.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/colorfiltersceneindex.cpp
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/gridsceneindex.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/gridsceneindex.cpp
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.h
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src/sceneindices/xformfiltersceneindex.cpp
-)
-
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${CMAKE_SOURCE_DIR}/ext/ImGuiHydraEditor/src
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/sceneindices/colorfiltersceneindex.h
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/sceneindices/colorfiltersceneindex.cpp
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/sceneindices/gridsceneindex.h
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/sceneindices/gridsceneindex.cpp
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/sceneindices/xformfiltersceneindex.h
+    ${CMAKE_SOURCE_DIR}/src/Providers/OpenUSD/sceneindices/xformfiltersceneindex.cpp
 )
 
 target_sources(${PROJECT_NAME} PUBLIC ${OPENUSD_SRCS})
