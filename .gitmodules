@@ -13,9 +13,6 @@
 [submodule "ext/ozz-animation"]
 	path = ext/ozz-animation
 	url = https://github.com/guillaumeblanc/ozz-animation.git
-[submodule "cgltf_vrm"]
-	path = cgltf_vrm
-	url = https://github.com/tcoppex/cgltf_vrm.git
 [submodule "ext/cgltf_vrm"]
 	path = ext/cgltf_vrm
 	url = https://github.com/meshula/cgltf_vrm.git
