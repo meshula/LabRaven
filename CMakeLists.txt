@@ -45,13 +45,28 @@ option(HAVE_OTIO "Enable OpenTimelineIO support" ON)
 option(HAVE_IMGUIZMO "Enable ImGuizmo support" ON)
 option(HAVE_TILENGINE "Enable Tilengine support" ON)
 
+#---------------------------------------------------
+
+# print the pxr_DIR environment variable
+if(DEFINED ENV{pxr_DIR})
+  message(STATUS "pxr_DIR environment variable is set to: $ENV{pxr_DIR}")
+else()
+  message(STATUS "pxr_DIR environment variable is not set.")
+endif()
+
 option(HAVE_OPENUSD "Enable OpenUSD support" ON)
 if(HAVE_OPENUSD)
-  find_package(pxr)
+  find_package(pxr QUIET)
   if(pxr_FOUND)
     message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
   else()
-    message(FATAL_ERROR "OpenUSD support is enabled, but the pxr package was not found. Please set the Pxr_DIR to point to the root of the USD installation.")
+    if(DEFINED ENV{pxr_DIR})
+      set(OpenSubdiv_DIR $ENV{pxr_DIR}/lib/cmake/OpenSubdiv)
+      message(STATUS "Looking for OpenSubdiv at ${OpenSubdiv_DIR}")
+      find_package(pxr REQUIRED)
+    else()
+      message(FATAL_ERROR "OpenUSD support is enabled but pxr package not found. Please set the pxr_DIR environment variable to the path of your OpenUSD installation.")
+    endif()
   endif()
 
   # garch needs OpenGL.
