@@ -191,32 +191,41 @@ endif()
 # LabCore library
 #---------------------------------------------------
 
+set(LABCORE_SOURCES
+  App.cpp App.h
+  AppTheme.cpp AppTheme.h
+  concurrentqueue.hpp
+  CSP.cpp CSP.hpp
+  IconsFontaudio.h
+  imgui_stdlib.cpp imgui_stdlib.h
+  ImguiExt.cpp ImguiExt.hpp
+  LabDirectories.cpp LabDirectories.h
+  LabFileDialogManager.hpp
+  LabJoystick.h
+  LabText_odr.cpp LabText.h
+  Landru.cpp Landru.hpp
+  StudioCore.cpp StudioCore.hpp
+  tinycolormap.hpp
+  ThreePanelLayout.cpp ThreePanelLayout.h
+)
+
 if (APPLE)
     set (PLATFORM_SRCS
         LabDirectoriesObjC.mm
         LabFileDialogManager.mm
         LabJoystick.mm
     )
+    # add PLATFORM_SRCS to LABCORE_SOURCES
+    list(APPEND LABCORE_SOURCES ${PLATFORM_SRCS})
 endif()
 
-add_library(LabCore
-    ${PLATFORM_SRCS}
-    App.cpp App.h
-    AppTheme.cpp AppTheme.h
-    concurrentqueue.hpp
-    CSP.cpp CSP.hpp
-    IconsFontaudio.h
-    imgui_stdlib.cpp imgui_stdlib.h
-    ImguiExt.cpp ImguiExt.hpp
-    LabDirectories.cpp LabDirectories.h
-    LabFileDialogManager.hpp
-    LabJoystick.h
-    LabText_odr.cpp LabText.h
-    Landru.cpp Landru.hpp
-    StudioCore.cpp StudioCore.hpp
-    tinycolormap.hpp
-    ThreePanelLayout.cpp ThreePanelLayout.h
-)
+# prepend "${CMAKE_SOURCE_DIR}/src/Lab/" to each source file
+# so that the source file grouping works in IDEs, add them to LABCORE_FULLPATHS
+foreach(SOURCE ${LABCORE_SOURCES})
+  list(APPEND LABCORE_FULLPATHS "${CMAKE_CURRENT_SOURCE_DIR}/${SOURCE}")
+endforeach()
+
+add_library(LabCore ${LABCORE_FULLPATHS})
 
 # add Core Providers
 add_subdirectory(CoreProviders/Color)
@@ -245,3 +254,6 @@ set_property(TARGET LabCore PROPERTY C_STANDARD 11)
 target_link_libraries(LabCore PUBLIC ImGui::ImGui)
 target_link_libraries(LabCore PRIVATE libzmq-static)
 target_link_libraries(LabCore PRIVATE nativefiledialog)
+
+include(${CMAKE_SOURCE_DIR}/cmake-scripts/GroupSourcesByFolder.cmake)
+GroupSourcesByFolder(LabCore)

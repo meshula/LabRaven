@@ -22,12 +22,12 @@ OpenUSDInsightsStudio::~OpenUSDInsightsStudio() {
 }
 
 static const std::vector<Studio::ActivityConfig> activities = {
-    {"Camera", false},
-    {"Hydra", true},
-    {"OpenUSD", false},
-    {"UsdOutliner", false},
-    {"Usd Statistics", true},
-    {"TfDebugger", false},
+    {"Camera",          false},
+    {"Hydra",           true},
+    {"OpenUSD",         false},
+    {"UsdOutliner",     false},
+    {"Usd Statistics",  true},
+    {"TfDebugger",      false},
     {"Prim Properties", false},
 };
 
