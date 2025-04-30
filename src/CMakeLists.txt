@@ -56,7 +56,7 @@ endif()
 
 target_sources(${PROJECT_NAME}
   PUBLIC
-    resources/fonts/embedded_font.inc
+    "${CMAKE_SOURCE_DIR}/src/resources/fonts/embedded_font.inc"
 )
 
 # From usdtweak:
@@ -92,7 +92,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 if(APPLE)
     target_sources(${PROJECT_NAME} PUBLIC 
-        Lab/main_macos.mm
+        "${CMAKE_SOURCE_DIR}/src/Lab/main_macos.mm"
     )
 
     # enable ARC
@@ -428,5 +428,5 @@ add_dependencies(${PROJECT_NAME} copy_plugins)
 # Group sources by folder
 #---------------------------------------------------
 
-#include(${CMAKE_SOURCE_DIR}/cmake/GroupSourcesByFolder.cmake)
-#GroupSourcesByFolder(${PROJECT_NAME})
+include(${CMAKE_SOURCE_DIR}/cmake-scripts/GroupSourcesByFolder.cmake)
+GroupSourcesByFolder(${PROJECT_NAME})
