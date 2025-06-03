@@ -23,8 +23,8 @@
 #include "Providers/Sprite/SpriteProvider.hpp"
 #include <pxr/usd/usd/stage.h>
 
-#include "usdtweak/src/Selection.h"
-#include "usdtweak/src/widgets/StageOutliner.h"
+//#include "usdtweak/src/Selection.h"
+//#include "usdtweak/src/widgets/StageOutliner.h"
 
 #include <vector>
 
@@ -32,6 +32,8 @@
 #if defined(__APPLE__)
 #include "Lab/CoreProviders/Metal/MetalProvider.hpp"
 #endif
+
+PXR_NAMESPACE_USING_DIRECTIVE
 
 
 namespace {

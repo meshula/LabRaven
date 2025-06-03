@@ -29,9 +29,11 @@ void Editor::SetPreviousLayer() {}
 void Editor::SetLayerPathSelection(const SdfPath &primPath) {}
 void Editor::SetStagePathSelection(const SdfPath &primPath) {}
 void Editor::ShowDialogSaveLayerAs(SdfLayerHandle layerToSaveAs) {}
+#if 0
 void Editor::SelectScaleManipulator() {}
 void Editor::SelectPositionManipulator() {}
 void Editor::SelectRotationManipulator() {}
 void Editor::SelectMouseHoverManipulator() {}
+#endif
 void Editor::ScaleUI(float) {}
 void Editor::OpenStage(const std::string &path, bool openLoaded) {}
