@@ -199,6 +199,8 @@ set(LABCORE_SOURCES
   IconsFontaudio.h
   imgui_stdlib.cpp imgui_stdlib.h
   ImguiExt.cpp ImguiExt.hpp
+  lab_imgui_ext.cpp lab_imgui_ext.hpp
+  lab_noodle.cpp lab_noodle.h
   LabDirectories.cpp LabDirectories.h
   LabFileDialogManager.hpp
   LabJoystick.h
@@ -258,6 +260,9 @@ set_property(TARGET LabCore PROPERTY C_STANDARD 11)
 target_link_libraries(LabCore PUBLIC ImGui::ImGui)
 target_link_libraries(LabCore PRIVATE libzmq-static)
 target_link_libraries(LabCore PRIVATE nativefiledialog)
+
+# Create alias for activities to use
+add_library(Lab ALIAS LabCore)
 
 include(${CMAKE_SOURCE_DIR}/cmake-scripts/GroupSourcesByFolder.cmake)
 GroupSourcesByFolder(LabCore)

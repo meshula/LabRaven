@@ -1,4 +1,3 @@
-
 add_subdirectory(App)
 add_subdirectory(Animation)
 add_subdirectory(Color)
