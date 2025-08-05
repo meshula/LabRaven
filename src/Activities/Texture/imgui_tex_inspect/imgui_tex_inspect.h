@@ -2,6 +2,7 @@
 
 #pragma once
 #include "imgui.h"
+#include <stdint.h>
 
 namespace ImGuiTexInspect
 {

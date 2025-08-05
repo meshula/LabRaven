@@ -199,7 +199,6 @@ set(LABCORE_SOURCES
   IconsFontaudio.h
   imgui_stdlib.cpp imgui_stdlib.h
   ImguiExt.cpp ImguiExt.hpp
-  lab_imgui_ext.cpp lab_imgui_ext.hpp
   lab_noodle.cpp lab_noodle.h
   LabDirectories.cpp LabDirectories.h
   LabFileDialogManager.hpp
