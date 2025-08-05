@@ -620,12 +620,6 @@ NcM33f NcGetXYZToRGBMatrix(const NcColorSpace* cs) {
     return NcM3ffInvert(NcGetRGBToXYZMatrix(cs));
 }
 
-NcM33f GetRGBtoRGBMatrix(const NcColorSpace* src, const NcColorSpace* dst) {
-    NcM33f t = NcM33fMultiply(NcM3ffInvert(NcGetRGBToXYZMatrix(src)),
-                                 NcGetXYZToRGBMatrix(dst));
-    return t;
-}
-
 NcM33f NcGetRGBToRGBMatrix(const NcColorSpace* src, const NcColorSpace* dst) {
     if (!dst || !src) {
         return (NcM33f){1,0,0,0,1,0,0,0,1};

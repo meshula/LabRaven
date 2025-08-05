@@ -95,17 +95,6 @@ if(APPLE)
   set(CMAKE_OBJCXX_FLAGS "${CMAKE_OBJCXX_FLAGS} -fobjc-arc")
 endif()
 
-#---------------------------------------------------
-# Windows/MSVC set up
-#---------------------------------------------------
-
-if(WIN32)
-  target_compile_definitions(${PROJECT_NAME}
-        PRIVATE
-            NOMINMAX
-            _USE_MATH_DEFINES
-    )
-endif()
 
 #---------------------------------------------------
 # Third party libraries

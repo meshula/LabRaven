@@ -160,6 +160,19 @@ if(INCLUDES)
   target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDES})
 endif()
 
+
+if(WIN32)
+  target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+            NOMINMAX
+            _USE_MATH_DEFINES
+    )
+endif()
+
+target_compile_definitions(${PROJECT_NAME}
+        PRIVATE
+          IMGUI_DEFINE_MATH_OPERATORS)
+
 #---------------------------------------------------
 # Add Activities
 #---------------------------------------------------

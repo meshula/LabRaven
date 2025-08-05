@@ -12,6 +12,7 @@
 #include "Lab/App.h"
 #include "Lab/tinycolormap.hpp"
 #include "Lab/ThreePanelLayout.h"
+#include "Lab/RingChart.hpp"
 #include "Providers/Selection/SelectionProvider.hpp"
 #include "Providers/OpenUSD/OpenUSDProvider.hpp"
 
@@ -21,6 +22,7 @@
 #include <pxr/usd/usd/primRange.h>
 #include <pxr/usd/usdGeom/mesh.h>
 #include <pxr/usd/usdGeom/tokens.h>
+
 #include <string>
 #include <vector>
 #include <stdio.h>
@@ -69,7 +71,6 @@ struct usd_traverse_t {
 struct usd_filter_t {
     bool count_faces = false;
 };
-
 
 
 void RenderRingSlice(ImDrawList& draw_list,
@@ -171,6 +172,37 @@ void RenderRadialChart(
     }
 }
 
+void BuildRingHeirarchy(std::vector<std::vector<float>>& hier,
+            UsdPrim root, UsdPrim selected, usd_statistics_t& stats) {
+    auto children = root.GetChildren();
+    float total = (float) stats.accumulated_data[root].face_count;
+    if (total < 1.f)
+        return;
+    float a0 = 0.f;
+    for (auto i = children.begin(); i != children.end(); ++i) {
+        int fc = stats.accumulated_data[*i].face_count;
+        if (!fc)
+            continue;
+        float ctotal = (float) fc;
+        float ratio = ctotal / total;
+        float a1 = a0 + ratio;
+        tinycolormap::Color c = tinycolormap::GetHeatColor(ratio);
+        if (a1 - a0 > 1e-2f) {
+            float halfa = (a0 + a1)/2;
+            float midr = (1.f + 20.f)/2;
+            ImVec2 p0 = ImVec2(cosf(halfa) * float(midr), sinf(halfa) * float(midr));
+            hier.push_back({p0.x, p0.y, (float) c.r(), (float) c.g(), (float) c.b(), 1.f});
+            slices.push_back((RenderSlice)
+                             {*i, 0, a0, a1,
+                              (float) c.r(), (float) c.g(), (float) c.b(), 1.f,
+                              1.f, 20.f,
+                              p0.x, p0.y});
+        }
+        BuildRingHeirarchy(hier, *i, selected, stats);
+        a0 = a1;
+    }
+}
+
 struct StatisticsActivity::data {
     data() = default;
     ~data() = default;
@@ -179,8 +211,8 @@ struct StatisticsActivity::data {
     float t = 0;
     
     usd_statistics_t stats;
-    void usd_statistics(usd_traverse_t& traverse, usd_statistics_t& stats);
-    void usd_traverse(UsdPrim root_prim, usd_traverse_t& traverse);
+    void GatherData(usd_traverse_t& traverse, usd_statistics_t& stats);
+    void GatherPrimsAndInstances(UsdPrim root_prim, usd_traverse_t& traverse);
     int  prepare_render_data(UsdPrim root, usd_statistics_t& stats);
 };
 
@@ -196,8 +228,8 @@ int StatisticsActivity::data::prepare_render_data(UsdPrim root, usd_statistics_t
      return count;
  }
 
-void StatisticsActivity::data::usd_traverse(UsdPrim root_prim, usd_traverse_t& traverse) {
-    printf("usd_traverse begin\n");
+void StatisticsActivity::data::GatherPrimsAndInstances(UsdPrim root_prim, usd_traverse_t& traverse) {
+    printf("GatherPrimsAndInstances begin\n");
     auto prim_range = UsdPrimRange::PreAndPostVisit(root_prim);
     for (auto prim_it = prim_range.begin(); 
             prim_it != prim_range.end(); ++prim_it) {
@@ -236,12 +268,12 @@ void StatisticsActivity::data::usd_traverse(UsdPrim root_prim, usd_traverse_t& t
             }
         }
     }
-    printf("usd_traverse end\n");
+    printf("GatherPrimsAndInstances end\n");
 }
 
-void StatisticsActivity::data::usd_statistics(usd_traverse_t& traverse, usd_statistics_t& stats)
+void StatisticsActivity::data::GatherData(usd_traverse_t& traverse, usd_statistics_t& stats)
 {
-    printf("usd_statistics begin\n");
+    printf("GatherData begin\n");
 
     
     // create this array outside the loop because .Get will re-use a container
@@ -260,7 +292,7 @@ void StatisticsActivity::data::usd_statistics(usd_traverse_t& traverse, usd_stat
             stats.data[i].face_count = (int) face_vert_counts.size();
         }
     }
-    printf("usd_statistics end\n");
+    printf("GatherData end\n");
 }
 
 StatisticsActivity::StatisticsActivity()
@@ -275,6 +307,10 @@ StatisticsActivity::StatisticsActivity()
 StatisticsActivity::~StatisticsActivity() {
     delete _self;
 }
+
+std::shared_ptr<RingChart> ringChart;
+
+#define V2
 
 void StatisticsActivity::DiscWidget(const LabViewInteraction& vi) {
     bool must_create_slices = false;
@@ -295,9 +331,12 @@ void StatisticsActivity::DiscWidget(const LabViewInteraction& vi) {
         if (_self->rootPrim) {
             must_create_slices = true;
             slices.clear();
+#ifdef V2
+            ringChart = std::make_shared<RingChart>();
+#endif
             _self->stats.clear();
-            _self->usd_traverse(_self->rootPrim, traverse);
-            _self->usd_statistics(traverse, _self->stats);
+            _self->GatherPrimsAndInstances(_self->rootPrim, traverse);
+            _self->GatherData(traverse, _self->stats);
             _self->prepare_render_data(_self->rootPrim, _self->stats);
         }
     }
@@ -321,10 +360,22 @@ void StatisticsActivity::DiscWidget(const LabViewInteraction& vi) {
         if (selectedPrims.size() > 0)
             selectedPrim = selectedPrims[0];
         
+#ifdef V2
+        ImGui::SetCursorScreenPos(ImVec2(windowPos.x + windowPadding.x + cx,
+                                         windowPos.y + windowPadding.y + cy));
+        if (create_slices) {
+            std::vector<std::vector<float>> hierarchy;
+            float r0 = 32;
+            float ringThickness = 8;
+            ringChart->BuildFromData(hierarchy, r0, ringThickness);
+        }
+        DrawRingChartInteractive(*ringChart, ChartMode::Ring, 0.f, 1.f);
+#else
         RenderRadialChart(0, _self->t, _self->rootPrim, selectedPrim, _self->stats,
                           windowPos.x + windowPadding.x + cx,
                           windowPos.y + windowPadding.y + cy,
                           0, 2*M_PI, 0,10);
+#endif
         create_slices = false;
         
         _self->t += 1.f/30.f;

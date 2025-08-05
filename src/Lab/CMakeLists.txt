@@ -204,6 +204,7 @@ set(LABCORE_SOURCES
   LabJoystick.h
   LabText_odr.cpp LabText.h
   Landru.cpp Landru.hpp
+  RingChart.cpp RingChart.hpp
   StudioCore.cpp StudioCore.hpp
   tinycolormap.hpp
   ThreePanelLayout.cpp ThreePanelLayout.h
@@ -247,6 +248,9 @@ target_include_directories(LabCore PRIVATE
 if (NOT HAVE_OPENUSD)
   target_compile_definitions(LabCore PRIVATE HAVE_NO_USD)
 endif()
+target_compile_definitions(LabCore
+        PRIVATE
+          IMGUI_DEFINE_MATH_OPERATORS)
 
 set_property(TARGET LabCore PROPERTY CXX_STANDARD 20)
 set_property(TARGET LabCore PROPERTY C_STANDARD 11)
