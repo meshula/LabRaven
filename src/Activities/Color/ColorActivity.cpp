@@ -11,13 +11,10 @@
 
 #include "Lab/CoreProviders/Color/nanocolorUtils.h"
 #include "Lab/CoreProviders/Color/WavelengthToRGB.h"
+#include "Lab/App.h"
 
 #include "imgui.h"
 #include "implot.h"
-//#include "LabGL.h"
-//#include "lab_imgui_ext.hpp"
-//#include "LabMath.h"
-//#include "metalRay.h"
 
 namespace lab {
 
@@ -54,6 +51,9 @@ struct ColorActivity::data {
     bool fill_chart = false;
     bool planckian_visible = true;
     bool show_gamuts = true;
+    bool demo_mode = false;
+    bool restorePowerSave = true;
+    float demo_time = 0.f;
     
     int horseshoe_points = 0;
     int stored_horseshoe_points = 0;
@@ -97,7 +97,7 @@ static LabV3f ISO17321_r709[24] = {
     { 0.45702324f, 0.03133905f, 0.041221802f },
     { 0.86766099f, 0.56453118f, 0.008749157f },
     { 0.51730194f, 0.09086778f, 0.269164551f },
-    { 0.f        , 0.24431530f, 0.351227007f }, // out of gamut r709 r: -0.02131250
+    { -0.02131250, 0.24431530f, 0.351227007f }, // out of gamut r709
     { 0.90906175f, 0.86448085f, 0.783917811f },
     { 0.60242857f, 0.56923897f, 0.523116990f },
     { 0.37003347f, 0.35136621f, 0.324028232f },
@@ -349,8 +349,8 @@ int ColorActivity::data::RenderColorChart(const LabViewDimensions& d) {
 
     if (fill_chart) {
         // fill in the solid wodge of color
-        float wodge = 4.f;
-        float step = wodge / height;
+        float blockiness = 1.f;
+        float step = blockiness / height;
         for (float x = -step; x <= 0.8f; x += step) {
             for (float y = 0; y <= 0.85f; y += step) {
                 NcChromaticity cr = { x, y };
@@ -390,7 +390,7 @@ int ColorActivity::data::RenderColorChart(const LabViewDimensions& d) {
                     (unsigned char)(rgb.b * 255.f),
                     255
                 };
-                const float radius = 2.5f;
+                const float radius = step;
                 DrawRectangle(p.x + xoff - radius, p.y + yoff - radius, radius *2, radius*2, col);
             }
         }
@@ -916,7 +916,7 @@ void ShowPhotometricSensitivity() {
             ShowSensitivityPlot();
             ImGui::EndTabItem();
         }
-        if (ImGui::BeginTabItem("10-Degree CMF Plot")) {
+        if (ImGui::BeginTabItem("Color Matching Functions")) {
             ShowColorMatchPlot10Degree(match10, sizeof(match10)/sizeof(CMFMatch));
             ImGui::EndTabItem();
         }
@@ -982,7 +982,7 @@ void PlotTick(double wavelength, const CMFMatch* cmfData, int dataSize, double t
 
 // Function to plot the spectral locus
 void ColorActivity::data::PlotSpectralLocus(const CMFMatch* cmfData, int dataSize) {
-    ImGui::Begin("CIE1964 10 degree Spectral Locus Plot");
+    ImGui::Begin("Spectral Locus Plot");
     ImVec2 sz = ImGui::GetWindowSize();
 
     const int numSamples = 100; // Number of wavelength samples
@@ -1042,7 +1042,7 @@ void ColorActivity::data::PlotSpectralLocus(const CMFMatch* cmfData, int dataSiz
             // Define the chromaticity boundaries and sample grid dimensions
             float x_start = 0.0f, y_start = 0.0f;
             float x_end = 1.0f, y_end = 1.0f;
-            int grid_x = 60, grid_y = 60; // Number of grid cells
+            int grid_x = 240, grid_y = 240; // Number of grid cells
 
             // Push the plot clipping region so we don't draw outside the plot
             ImPlot::PushPlotClipRect();
@@ -1093,6 +1093,10 @@ void ColorActivity::data::PlotSpectralLocus(const CMFMatch* cmfData, int dataSiz
         }
 
         ImPlot::PlotText("o", magook.x, magook.y);
+        
+        std::string label = working_cs + "_scene";
+        ImPlot::PlotText("Color Space:", 0.55f, 0.85f);
+        ImPlot::PlotText(label.c_str(), 0.6f, 0.8f);
 
         if (planckian_visible) {
             // Draw Planckian locus
@@ -1234,6 +1238,8 @@ void PlotSpectralResponseCurve(const CMFMatch* cmfData, int dataSize) {
 
 void ColorActivity::RunUI(const LabViewInteraction&)
 {
+    bool demoMode = _self->demo_mode;
+    
     ImGui::Begin("Color Activity Settings##mM");
     ImGui::Checkbox("Render perceptual color", &_self->horseshoe_visible);
     if (_self->horseshoe_visible) {
@@ -1241,6 +1247,7 @@ void ColorActivity::RunUI(const LabViewInteraction&)
         ImGui::Checkbox("Fill the chart", &_self->fill_chart);
         ImGui::Checkbox("Show Planckian locus", &_self->planckian_visible);
         ImGui::Checkbox("Show gamuts", &_self->show_gamuts);
+        ImGui::Checkbox("Demo mode", &_self->demo_mode);
     }
     const char* result = _self->working_cs.c_str();
     ImGui::Separator();
@@ -1248,6 +1255,49 @@ void ColorActivity::RunUI(const LabViewInteraction&)
         _self->working_cs.assign(result);
     }
     ImGui::End();
+    
+    if (demoMode != _self->demo_mode) {
+        if (demoMode) {
+            LabApp::instance()->SetPowerSave(_self->restorePowerSave);
+        }
+        else {
+            _self->restorePowerSave = LabApp::instance()->PowerSave();
+            LabApp::instance()->SetPowerSave(false);
+            _self->demo_time = 0.f;
+        }
+    }
+    
+    static const char* csnames[] = {
+        "lin_srgb",
+        "lin_adobergb",
+        "lin_displayp3",
+        "lin_rec2020",
+        "lin_ap1",
+        "lin_ap0",
+    };
+
+    if (_self->demo_mode) {
+        static const char** colorspaces = NcRegisteredColorSpaceNames();
+
+        // In demo mode, cycle through the color spaces
+        double ms = LabApp::instance()->FrameTime_ms() * 0.001;
+        _self->demo_time += float(ms);
+        if (_self->demo_time > 2.f) {
+            int index = (_self->demo_time - 2.f) / 1.6f;
+            if (index < 0)
+                index = 0;
+            int arrayLength = sizeof(csnames) / sizeof(csnames[0]);
+            index = index % arrayLength;
+            _self->working_cs = csnames[index];
+            // find the index of the color space in the list
+            for (int i = 0; i < arrayLength; ++i) {
+                if (_self->working_cs == colorspaces[i]) {
+                    _self->cs_index = i;
+                    break;
+                }
+            }
+        }
+    }
 
     ShowPhotometricSensitivity();
     _self->PlotSpectralLocus(match10, sizeof(match10)/sizeof(CMFMatch));
