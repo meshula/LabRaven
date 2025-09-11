@@ -15,7 +15,6 @@
 #include "Lab/CSP.hpp"
 #include "Lab/LabFileDialogManager.hpp"
 #include "Lab/LabDirectories.h"
-#include "Lab/ThreePanelLayout.h"
 #include "Activities/Console/ConsoleActivity.hpp"
 #include "HydraActivity.hpp"
 #include "UsdCreateActivity.hpp"

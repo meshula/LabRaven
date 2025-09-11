@@ -17,26 +17,35 @@ static NSArray *BuildAllowedFileTypes( const char *filterList )
     char typebuf[NFD_MAX_STRLEN] = {0};
     
     size_t filterListLen = strlen(filterList);
-    char *p_typebuf = typebuf;
+    
+    char ext[32];
+    int ext_i = 0;
+    for (int i = 0; i < 32; ++i)
+        ext[i] = '\0';
+    
     for ( size_t i = 0; i < filterListLen+1; ++i )
     {
+        if (filterList[i] == ' ')
+            continue;
+        
+        if (ext_i > 31)
+            continue;   // assume it's a bad filterList, and skip the rest.
+        
         if ( filterList[i] == ',' || filterList[i] == ';' || filterList[i] == '\0' )
         {
-            if (filterList[i] != '\0')
-                ++p_typebuf;
-            *p_typebuf = '\0';
-
-            NSString *thisType = [NSString stringWithUTF8String: typebuf];
+            if (filterList[i] == '\0')
+                i = filterListLen + 1;  // force termination
+            
+            ext[ext_i] = '\0';
+            ext_i = 0;
+            
+            NSString *thisType = [NSString stringWithUTF8String: ext];
             [buildFilterList addObject:thisType];
-            p_typebuf = typebuf;
-            *p_typebuf = '\0';
         }
         else
         {
-            if (filterList[i] != ' ') {
-                *p_typebuf = filterList[i];
-                ++p_typebuf;
-            }
+            ext[ext_i] = filterList[i];
+            ++ext_i;
         }
     }
 

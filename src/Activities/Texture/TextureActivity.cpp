@@ -14,6 +14,7 @@
 #include "Lab/CoreProviders/Color/ColorProvider.hpp"
 #include "Lab/CoreProviders/Color/nanocolorUtils.h"
 #include "Lab/CoreProviders/Texture/TextureCache.hpp"
+#include "Lab/ThreePanelLayout.h"
 
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -246,7 +247,6 @@ void TextureActivity::RunTextureCachePanel() {
        | ||  __/>  <| |_| |_| | | |  __/ | (_| (_| | (__| | | |  __/ | | \__ \ |_
         \__\___/_/\_\\__|\__,_|_|  \___|  \___\__,_|\___|_| |_|\___| |_|_|___/\__| */
 
-    ImGui::Begin("Loaded textures##tcp");
     ImVec2 windowSize = ImGui::GetWindowSize();
 
     if (_self->cache_selected_texture_index >= 0 && ImGuiTexInspect::texture_names.size() > 0) {
@@ -260,10 +260,9 @@ void TextureActivity::RunTextureCachePanel() {
             _self->cache_selected_texture_index = 0;
         }
     }
-    else {
-        if (ImGui::Button("Load a texture")) {
-            _self->loadTextureModule.LoadTexture();
-        }
+    ImGui::SameLine();
+    if (ImGui::Button("Load a texture")) {
+        _self->loadTextureModule.LoadTexture();
     }
 
     windowSize.x = -FLT_MIN;
@@ -445,14 +444,11 @@ void TextureActivity::RunTextureCachePanel() {
 
     ImGui::EndGroup();
 
-
     ImGui::PopItemWidth();
-    ImGui::End();
 }
 
 void TextureActivity::RunTextureInspectorPanel() {
 
-    ImGui::Begin("Textures");
     ImVec2 windowSize = ImGui::GetWindowSize();
 
     /*   _            _                                           _
@@ -483,20 +479,113 @@ void TextureActivity::RunTextureInspectorPanel() {
                                                 ImGuiTexInspect::ValueText::BytesDec));
     }
     ImGuiTexInspect::EndInspectorPanel();
-    ImGui::End();
 }
 
 void TextureActivity::RunUI(const LabViewInteraction&)
 {
+    ImGui::Begin("Texture Activity");
+    
+    static ThreePanelLayoutState layoutState;
     std::call_once(_self->init, [this]() {
         // initialize here because the initialization can't be called before
         // imgui is actually up and running
         ImGuiTexInspect::Init();
         ImGuiTexInspect::CreateContext();
+        layoutState.leftPanelTitle = "Spectral Locus";
+        layoutState.middlePanelTitle = "Tone Mapping";
+        layoutState.rightPanelTitle = "Navigation";
     });
-
-    RunTextureCachePanel();
+    // ----------------------------------------------------
+    // Top panel: fixed height child window
+    // ----------------------------------------------------
+    static float top_height = 300.0f;   // initial height
+    const float splitter_size = 6.0f;
+    const float min_height    = 100.0f;
+    const float avail_height  = ImGui::GetContentRegionAvail().y;
+    const float max_height    = avail_height - min_height;
+    
+    ImGui::BeginChild("###TopRegion_TA", ImVec2(0, top_height), true);
     RunTextureInspectorPanel();
+    ImGui::EndChild();
+    
+    // ----------------------------------------------------
+    // Splitter: draggable horizontal bar
+    // ----------------------------------------------------
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f,0.5f,0.5f,0.5f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.5f,0.5f,0.5f,0.7f));
+    ImGui::Button("##splitter", ImVec2(-1, splitter_size));
+    if (ImGui::IsItemActive())
+    {
+        top_height += ImGui::GetIO().MouseDelta.y;
+        top_height = std::max(min_height, std::min(max_height, top_height));
+    }
+    ImGui::PopStyleColor(3);
+    
+    ImGui::BeginChild("###BottomRegion_TA", ImVec2(0, 0), true);
+    {
+        // lower region is three panel layout
+        
+        // Setup middle panel tabs
+        const char* tabLabels[] = { "Foo", "Bar", "Baz" };
+        const int tabCount = IM_ARRAYSIZE(tabLabels);
+        
+        // Define panel content functions
+        auto leftPanelFn = []() {
+            ImGui::Text("Foo Tab Content");
+            //lab::Orchestrator* mm =lab:: Orchestrator::Canonical();
+            //std::weak_ptr<UsdOutlinerActivity> usdp;
+            //auto usd = mm->LockActivity(usdp);
+            //if (usd) {
+            //    usd->USDOutlinerUI(LabViewInteraction());
+            //}
+        };
+        
+        // Middle panel tab functions
+        std::function<void()> middlePanelFns[] = {
+            [this]() { // Foo tab
+                ImGui::Text("Foo Tab Content");
+            },
+            []() { // Bar tab
+                ImGui::Text("Bar Tab Content");
+                ImGui::Separator();
+                ImGui::Text("This is the Bar tab of the middle panel");
+                float value = 0.5f;
+                ImGui::SliderFloat("Bar Slider", &value, 0.0f, 1.0f);
+            },
+            []() { // Baz tab
+                ImGui::Text("Baz Tab Content");
+                ImGui::Separator();
+                ImGui::Text("This is the Baz tab of the middle panel");
+                if (ImGui::Button("Baz Button")) {
+                    // Do something when clicked
+                }
+            }
+        };
+        
+        auto rightPanelFn = [this]() {
+            RunTextureCachePanel();
+        };
+    
+        ThreePanelLayout(
+            layoutState,
+            leftPanelFn,
+            middlePanelFns,
+            rightPanelFn,
+            tabLabels,
+            tabCount
+        );
+        ImGui::EndChild();
+    }
+
+    ImGui::End();
+    
+    //ImGui::Begin("Loaded textures##tcp");
+    //RunTextureCachePanel();
+    //ImGui::End();
+    //ImGui::Begin("Textures");
+    //RunTextureInspectorPanel();
+    //ImGui::End();
 }
 
 void TextureActivity::Update()
