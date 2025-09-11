@@ -315,6 +315,9 @@ void DrawAnnotations(T drawer, ImU64 maxAnnotatedTexels)
         }
     }
 }
+
+void OverrideNextScale(float nextScale);
+
 } // namespace ImGuiTexInspect
 
 // ImGuiTexInspect, a texture inspector widget for dear imgui

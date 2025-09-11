@@ -117,6 +117,13 @@ void SetNextPanelFlags(InspectorFlags setFlags, InspectorFlags clearFlags)
     SetFlag(GContext->NextPanelOptions.ToClear, clearFlags);
 }
 
+static bool nextScaleOverride = false;
+static float nextScale = 1.f;
+void OverrideNextScale(float nextScale_) {
+    nextScaleOverride = true;
+    nextScale = nextScale_;
+}
+
 bool BeginInspectorPanel(const char *title, ImTextureID texture, ImVec2 textureSize, InspectorFlags flags,
                          SizeIncludingBorder sizeIncludingBorder)
 {
@@ -365,6 +372,10 @@ bool BeginInspectorPanel(const char *title, ImTextureID texture, ImVec2 textureS
             SetPanPos(inspector, inspector->PanPos + (mouseUV - inspector->PanPos) * (1 - prevScale / scale));
         }
 
+        if (nextScaleOverride) {
+            SetScale(inspector, ImVec2(inspector->PixelAspectRatio * nextScale, nextScale));
+            nextScaleOverride = false;
+        }
         return true;
     }
     else

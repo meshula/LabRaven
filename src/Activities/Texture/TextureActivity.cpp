@@ -35,6 +35,63 @@ using std::vector;
 extern void* LabGetEncodedTexture(int texture);
 extern void LabReleaseEncodedTexture(void* texture);
 
+// Zoom slider helper with hover/active thumb scaling
+float DrawZoomSlider(const char* id, float zoom, float minZoom, float maxZoom, float height)
+{
+    ImGuiWindow* window = ImGui::GetCurrentWindow();
+    if (window->SkipItems) return zoom;
+
+    const float lineWidth   = 2.0f;
+    const float baseRadius  = 6.0f;
+    const float hoverScale  = 1.3f; // thumb grows 30% when hovered
+    const float activeScale = 1.6f; // thumb grows 60% when dragged
+
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImVec2 size(20.0f, height); // invisible interaction area
+    ImRect bb(pos, pos + size);
+    ImGui::ItemSize(bb);
+    if (!ImGui::ItemAdd(bb, ImGui::GetID(id))) return zoom;
+
+    // Track line centered horizontally
+    float centerX = pos.x + size.x * 0.5f;
+    ImVec2 trackMin(centerX - lineWidth * 0.5f, pos.y);
+    ImVec2 trackMax(centerX + lineWidth * 0.5f, pos.y + size.y);
+
+    // Map zoom to slider position (inverse: bigger zoom at top)
+    float t = (zoom - minZoom) / (maxZoom - minZoom);
+    float thumbY = ImLerp(trackMax.y, trackMin.y, t);
+
+    // Interaction
+    bool hovered = false, held = false;
+    ImGui::ButtonBehavior(bb, ImGui::GetID(id), &hovered, &held);
+
+    // Animate thumb radius
+    float scale = 1.0f;
+    if (held)      scale = activeScale;
+    else if (hovered) scale = hoverScale;
+
+    float thumbRadius = baseRadius * scale;
+
+    // Draw track
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    drawList->AddRectFilled(trackMin, trackMax, IM_COL32(150, 150, 150, 180), lineWidth);
+
+    // Draw thumb (disc)
+    ImVec2 thumbCenter(centerX, thumbY);
+    drawList->AddCircleFilled(thumbCenter, thumbRadius, IM_COL32(220, 220, 220, 255));
+
+    // Update value if dragging
+    if (held)
+    {
+        float mouseY = ImGui::GetIO().MousePos.y;
+        t = ImSaturate((trackMax.y - mouseY) / (trackMax.y - trackMin.y));
+        zoom = minZoom + t * (maxZoom - minZoom);
+    }
+
+    return zoom;
+}
+
+
 namespace ImGuiTexInspect
 {
 
@@ -466,6 +523,7 @@ void TextureActivity::RunTextureInspectorPanel() {
     if (h < 20)
         h = 20;
     ImVec2 panelSize = { w, h };
+    
     if (ImGuiTexInspect::BeginInspectorPanel("##ColorMatrix",
                                              _self->focussedTexture.texture,
                                              _self->focussedTexture.size,
@@ -505,7 +563,28 @@ void TextureActivity::RunUI(const LabViewInteraction&)
     const float max_height    = avail_height - min_height;
     
     ImGui::BeginChild("###TopRegion_TA", ImVec2(0, top_height), true);
+    // create a sub-window for the texture inspector, leaving space for the zoom slider on the right
+    ImGui::BeginChild("###TextureInspectorSubWindow", ImVec2(-40, 0), false);
     RunTextureInspectorPanel();
+    // end the child and make one for the zoom slider
+    ImGui::EndChild();
+    ImGui::SameLine();
+    ImGui::BeginChild("###ZoomSliderSubWindow", ImVec2(40, 0), false);
+    static float zoom = 1.0f;
+    // remember the current cursor position, so we can return to it after drawing the slider
+    ImVec2 cursorPos = ImGui::GetCursorPos();
+    // move cursor to top-right corner of the child window, with some padding
+    ImGui::SetCursorPos(ImVec2(ImGui::GetWindowWidth() - 40, 10));
+    // draw the zoom slider
+    float prevZoom = zoom;
+    zoom = DrawZoomSlider("ZoomSlider", zoom, 0.1f, 64.0f, top_height - 64);
+    if (zoom != prevZoom) {
+        ImGuiTexInspect::OverrideNextScale(zoom);
+    }
+    // return cursor to its previous position
+    ImGui::SetCursorPos(cursorPos);
+    // set zoom on inspector here @TODO
+    ImGui::EndChild();
     ImGui::EndChild();
     
     // ----------------------------------------------------
