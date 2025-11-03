@@ -34,6 +34,9 @@ target_include_directories(cgltf_vrm INTERFACE cgltf_vrm)
 #---------------------------------------------------
 
 if(HAVE_TILENGINE)
+    # Configure Tilengine to use bundled stb_image instead of libpng
+    set(TLN_OPTION_LIBPNG OFF CACHE BOOL "Use system libpng" FORCE)
+    set(TILENGINE_EXTRA_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/src" CACHE PATH "Extra include dirs for Tilengine" FORCE)
     add_subdirectory(Tilengine)
 endif()
 if(HAVE_IMGUIZMO)

@@ -13,6 +13,14 @@ if(NOT EMSCRIPTEN AND NOT WIN32)
   set(GLFW_BUILD_DOCS OFF)
   set(BUILD_SHARED_LIBS OFF)
   add_subdirectory("glfw")
+
+  # GLFW uses manual reference counting, so we need to disable ARC for it
+  if(APPLE)
+    target_compile_options(glfw PRIVATE
+      $<$<COMPILE_LANGUAGE:OBJC>:-fno-objc-arc>
+      $<$<COMPILE_LANGUAGE:OBJCXX>:-fno-objc-arc>
+    )
+  endif()
 endif()
 
 #---------------------------------------------------
@@ -40,6 +48,14 @@ if(NOT EMSCRIPTEN)
   target_sources(nativefiledialog PRIVATE ${SOURCES})
   target_include_directories(nativefiledialog PRIVATE ${INCLUDE_DIRS})
   target_link_libraries(nativefiledialog PRIVATE ${LIBRARIES})
+
+  # nativefiledialog uses manual reference counting, so we need to disable ARC for it
+  if(APPLE)
+    target_compile_options(nativefiledialog PRIVATE
+      $<$<COMPILE_LANGUAGE:OBJC>:-fno-objc-arc>
+      $<$<COMPILE_LANGUAGE:OBJCXX>:-fno-objc-arc>
+    )
+  endif()
 endif()
 
 #---------------------------------------------------
@@ -175,6 +191,38 @@ target_link_libraries(imguicolortextedit PUBLIC ImGui::ImGui)
 add_library(ImGuiColorTextEdit::ImGuiColorTextEdit ALIAS imguicolortextedit)
 
 #---------------------------------------------------
+# add imgui_md (Markdown renderer)
+#---------------------------------------------------
+
+add_library(imgui_md STATIC)
+set_property(TARGET imgui_md PROPERTY CXX_STANDARD 11)
+
+# Add imgui_md and md4c sources as specified in README
+set(IMGUI_MD_SRCS 
+    imgui_md/imgui_md.h 
+    imgui_md/imgui_md.cpp
+    md4c/src/md4c.h 
+    md4c/src/md4c.c)
+
+target_sources(imgui_md PRIVATE ${IMGUI_MD_SRCS})
+
+# Include directories for both imgui_md and md4c
+target_include_directories(imgui_md PUBLIC 
+    imgui_md
+    md4c/src)
+
+# Also ensure that LabCore (which uses imgui_md) can find the headers
+target_include_directories(imgui_md SYSTEM PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/imgui_md
+    ${CMAKE_CURRENT_SOURCE_DIR}/md4c/src)
+
+# link with ImGui as imgui_md depends on it
+target_link_libraries(imgui_md PUBLIC ImGui::ImGui)
+
+# create alias
+add_library(ImGuiMd::ImGuiMd ALIAS imgui_md)
+
+#---------------------------------------------------
 # create binary_to_compressed_c
 #---------------------------------------------------
 
@@ -209,6 +257,7 @@ set(LABCORE_SOURCES
   StudioCore.cpp StudioCore.hpp
   tinycolormap.hpp
   ThreePanelLayout.cpp ThreePanelLayout.h
+  imgui_markdown.h
 )
 
 if (APPLE)
@@ -239,10 +288,10 @@ add_subdirectory(CoreProviders/Texture)
 target_include_directories(LabCore PUBLIC
     ${SRC_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/cppzmq
-    ${CMAKE_CURRENT_SOURCE_DIR}/libzmq/include)
+    ${CMAKE_CURRENT_SOURCE_DIR}/libzmq/include
+    ${PXR_INCLUDE_DIRS})
 
 target_include_directories(LabCore PRIVATE
-    ${PXR_INCLUDE_DIRS}
     nativefiledialog/src/include)
 
 # add HAVE_OPENUSD set to 1 to the compile definitions
@@ -257,6 +306,7 @@ set_property(TARGET LabCore PROPERTY CXX_STANDARD 20)
 set_property(TARGET LabCore PROPERTY C_STANDARD 11)
 
 target_link_libraries(LabCore PUBLIC ImGui::ImGui)
+target_link_libraries(LabCore PUBLIC ImGuiMd::ImGuiMd)
 target_link_libraries(LabCore PRIVATE libzmq-static)
 target_link_libraries(LabCore PRIVATE nativefiledialog)
 

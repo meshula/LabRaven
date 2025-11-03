@@ -252,9 +252,15 @@ if(APPLE)
     if (NOT METAL_SHADERS OR METAL_SHADERS STREQUAL "")
         message(INFO ": No Metal shaders found")
     else()
-    message(INFO ": Metal shaders found: ${METAL_SHADERS}")
-    target_sources(${PROJECT_NAME} PRIVATE ${METAL_SHADERS})
-    set_source_files_properties(${METAL_SHADERS} PROPERTIES LANGUAGE Metal)
+        message(INFO ": Metal shaders found: ${METAL_SHADERS}")
+        # Create a separate Metal shader library (shaders cannot be mixed with C++ sources)
+        add_metal_shader_library(RavenMetalShaders
+            ${METAL_SHADERS}
+        )
+        # Embed the Metal shader library in the app bundle
+        target_embed_metal_shader_libraries(${PROJECT_NAME}
+            RavenMetalShaders
+        )
     endif()
 endif()
 

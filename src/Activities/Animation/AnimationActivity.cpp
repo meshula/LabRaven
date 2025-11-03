@@ -259,9 +259,9 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
                             // Implot3d is z up, so swap zy
                             auto& transform = prealloc_models_[i];
                             ozz::math::SimdFloat4 vp = ozz::math::TransformPoint(transform, ozz::math::simd_float4::zero());
-                            xs[i] = vp.x;
-                            ys[i] = vp.z;
-                            zs[i] = vp.y;
+                            xs[i] = ozz::math::GetX(vp);
+                            ys[i] = ozz::math::GetZ(vp);
+                            zs[i] = ozz::math::GetY(vp);
                         }
 
                         ImPlot3D::PlotScatter("##joints-plot",
@@ -301,14 +301,14 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
                             const auto& parentMat = matrices[parentIdx];
 
                             // Add parent point
-                            xs.push_back(parentMat.cols[3].x);
-                            ys.push_back(parentMat.cols[3].y);
-                            zs.push_back(parentMat.cols[3].z);
+                            xs.push_back(ozz::math::GetX(parentMat.cols[3]));
+                            ys.push_back(ozz::math::GetY(parentMat.cols[3]));
+                            zs.push_back(ozz::math::GetZ(parentMat.cols[3]));
 
                             // Add child point
-                            xs.push_back(childMat.cols[3].x);
-                            ys.push_back(childMat.cols[3].y);
-                            zs.push_back(childMat.cols[3].z);
+                            xs.push_back(ozz::math::GetX(childMat.cols[3]));
+                            ys.push_back(ozz::math::GetY(childMat.cols[3]));
+                            zs.push_back(ozz::math::GetZ(childMat.cols[3]));
 
                             lineCount += 2;
                         }
@@ -327,9 +327,9 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
                     zs.clear();
                     for (int i = 0; i < numJoints; i++) {
                         const auto& mat = matrices[i];
-                        xs.push_back(mat.cols[3].x);
-                        ys.push_back(mat.cols[3].y);
-                        zs.push_back(mat.cols[3].z);
+                        xs.push_back(ozz::math::GetX(mat.cols[3]));
+                        ys.push_back(ozz::math::GetY(mat.cols[3]));
+                        zs.push_back(ozz::math::GetZ(mat.cols[3]));
                     }
 
                     // Draw all joints in one call
@@ -406,11 +406,11 @@ void AnimationActivity::RunUI(const LabViewInteraction&) {
                 // Get joint name
                 const char* name = skeleton->joint_names()[jointIndex];
                 const auto& transform = transforms[jointIndex];
-                ImGui::Text("%s (index: %d, pos: %.2f, %.2f, %.2f)", 
+                ImGui::Text("%s (index: %d, pos: %.2f, %.2f, %.2f)",
                     name, jointIndex,
-                    transform.cols[3].x,
-                    transform.cols[3].y,
-                    transform.cols[3].z
+                    ozz::math::GetX(transform.cols[3]),
+                    ozz::math::GetY(transform.cols[3]),
+                    ozz::math::GetZ(transform.cols[3])
                 );
 
                 // Process children
