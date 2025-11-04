@@ -8,9 +8,11 @@
 
 #include "NodeGraphActivity.hpp"
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "imgui.h"
-#include "Lab/lab_imgui_ext.hpp"
+#include "Lab/ImguiExt.hpp"
 #include "Lab/lab_noodle.h"
 #include <mutex>
 

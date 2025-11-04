@@ -20,6 +20,9 @@ namespace lab {
 
 LlamaCppActivity::LlamaCppActivity()
     : Activity("LlamaCpp") {
+    activity.RunUI = [](void* instance, const LabViewInteraction* vi) {
+        static_cast<LlamaCppActivity*>(instance)->RunUI(*vi);
+    };
 }
 
 LlamaCppActivity::~LlamaCppActivity() {
@@ -138,7 +141,7 @@ void LlamaCppActivity::RunUI(const LabViewInteraction&) {
         inputFlags
     );
 
-    if (ImGui::Button("Send", ImVec2(80, 0)) || (enterPressed && !isWaitingForResponse_)) {
+    if (ImGui::Button("Send", ImVec2(80, 0))) {
         sendMessage();
     }
 

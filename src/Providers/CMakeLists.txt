@@ -5,6 +5,7 @@ add_subdirectory(Camera)
 add_subdirectory(Animation)
 add_subdirectory(Scheme)
 add_subdirectory(Selection)
+add_subdirectory(LlamaCpp)
 add_subdirectory(Sprite)
 
 if(HAVE_OPENUSD)

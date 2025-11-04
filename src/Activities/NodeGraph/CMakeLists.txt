@@ -6,8 +6,3 @@ target_sources(${PROJECT_NAME} PUBLIC
     NodeGraphActivity.cpp
     NodeGraphActivity.hpp
 )
-
-# Add required include directories for nged
-target_include_directories(${PROJECT_NAME} PUBLIC 
-    ${CMAKE_SOURCE_DIR}/ext/nged
-)
