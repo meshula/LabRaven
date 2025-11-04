@@ -1890,7 +1890,8 @@ namespace noodle {
                 {
                     ImVec2 p0 = lr_ws - ImVec2(16, 16);
                     ImVec2 p1 = lr_ws - ImVec2(4, 4);
-                    drawList->AddRect(p0, p1, node_outline_hovered, node_border_radius, 15, 2);
+                    int flags = 0; // was 15
+                    drawList->AddRect(p0, p1, node_outline_hovered, node_border_radius, flags, 2);
                 }
 
                 if (show_profiler)

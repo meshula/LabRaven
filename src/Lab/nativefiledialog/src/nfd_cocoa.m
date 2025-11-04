@@ -5,17 +5,18 @@
  */
 
 #include <AppKit/AppKit.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include "nfd.h"
 #include "nfd_common.h"
 
-static NSArray *BuildAllowedFileTypes( const char *filterList )
+static NSArray *BuildAllowedContentTypes( const char *filterList )
 {
     // Commas and semicolons are the same thing on this platform
 
     NSMutableArray *buildFilterList = [[NSMutableArray alloc] init];
 
     char typebuf[NFD_MAX_STRLEN] = {0};
-    
+
     size_t filterListLen = strlen(filterList);
     char* copy = strdup(filterList);
     char* start = copy;
@@ -28,11 +29,16 @@ static NSArray *BuildAllowedFileTypes( const char *filterList )
         if (copy[i] == ',' || copy[i] == ';' || copy[i] == '\0')
         {
             copy[i] = '\0';
-            NSString *thisType = [NSString stringWithUTF8String: start];
-            [buildFilterList addObject:thisType];
+            NSString *extension = [NSString stringWithUTF8String: start];
+            // Convert file extension to UTType
+            UTType *type = [UTType typeWithFilenameExtension:extension];
+            if (type) {
+                [buildFilterList addObject:type];
+            }
             start = &copy[i + 1];
         }
     }
+    free(copy);
 
     NSArray *returnArray = [NSArray arrayWithArray:buildFilterList];
 
@@ -45,10 +51,10 @@ static void AddFilterListToDialog( NSSavePanel *dialog, const char *filterList )
     if ( !filterList || strlen(filterList) == 0 )
         return;
 
-    NSArray *allowedFileTypes = BuildAllowedFileTypes( filterList );
-    if ( [allowedFileTypes count] != 0 )
+    NSArray *allowedContentTypes = BuildAllowedContentTypes( filterList );
+    if ( [allowedContentTypes count] != 0 )
     {
-        [dialog setAllowedFileTypes:allowedFileTypes];
+        [dialog setAllowedContentTypes:allowedContentTypes];
     }
 }
 
