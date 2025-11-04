@@ -87,19 +87,30 @@ public:
      */
     bool isProcessing() const;
     
+    // JSON payload methods (public for CSP module access)
+    std::string buildChatCompletionPayload(const std::vector<ChatMessage>& history) const;
+    std::string parseAssistantResponse(const std::string& jsonResponse) const;
+    
+    
+    // History management (public for CSP module access)
+    void addMessageToHistory(const ChatMessage& msg);
+    void trimHistoryToFit();
+    int estimateTokenCount(const std::vector<ChatMessage>& history) const;
+    
+    /**
+     * Push response from CSP module (called by worker thread).
+     * Thread-safe method for CSP module to enqueue responses.
+     */
+    void pushResponse(const std::string& response);
+    void pushError(const std::string& error);
+    
+private:
+    
 private:
     struct data;
     data* _self;
     
     static LlamaCppProvider* _instance;
-    
-    // Context window management (from feedback)
-    void trimHistoryToFit();
-    int estimateTokenCount(const std::vector<ChatMessage>& history) const;
-    
-    // JSON building (will use RapidJSON)
-    std::string buildChatCompletionPayload(const std::vector<ChatMessage>& history) const;
-    std::string parseAssistantResponse(const std::string& jsonResponse) const;
 };
 
 } // lab

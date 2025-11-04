@@ -5,10 +5,14 @@ set_property(GLOBAL PROPERTY PROVIDERS_LIST "${PROVIDERS};LlamaCpp")
 
 # Find libcurl
 find_package(CURL REQUIRED)
-
 set(LLAMACPP_PROVIDER_SRCS
     LlamaCppProvider.cpp
     LlamaCppProvider.hpp
+    LlamaCppCSPModule.cpp
+    LlamaCppCSPModule.hpp
+    CurlClient.cpp
+    CurlClient.hpp
+)
     CurlClient.cpp
     CurlClient.hpp
 )

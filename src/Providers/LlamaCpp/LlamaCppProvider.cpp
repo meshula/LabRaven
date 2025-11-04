@@ -1,11 +1,11 @@
 #include "LlamaCppProvider.hpp"
+#include "LlamaCppCSPModule.hpp"
+#include "Lab/LabApp.hpp"
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 #include <algorithm>
 #include <numeric>
-#include <mutex>
-#include <queue>
 
 namespace lab {
 
@@ -13,25 +13,30 @@ namespace lab {
 struct LlamaCppProvider::data {
     Options options;
     std::vector<ChatMessage> history;
-    std::unique_ptr<CurlClient> curl;
+    std::mutex historyMutex;  // Protect history from CSP worker thread
     
-    // Thread-safe response queue
+    // Response queue for Activity polling
     std::queue<std::string> responseQueue;
     std::mutex queueMutex;
     
-    // Processing state
-    bool processing = false;
-    std::mutex stateMutex;
+    // CSP state machine (direct member, not pointer)
+    LlamaCppCSPModule cspModule;
     
-    data() : curl(std::make_unique<CurlClient>()) {}
+    data(LlamaCppProvider* provider) 
+        : cspModule(*LabApp::instance()->csp(), provider)
+    {
+        cspModule.Register();
+    }
 };
 
 // Static singleton instance
 LlamaCppProvider* LlamaCppProvider::_instance = nullptr;
-
 LlamaCppProvider::LlamaCppProvider()
     : Provider(sname())
-    , _self(new data())
+    , _self(new data(this))
+{
+    _instance = this;
+}
 {
     _instance = this;
 }
@@ -71,55 +76,14 @@ const std::vector<ChatMessage>& LlamaCppProvider::getHistory() const {
 }
 
 bool LlamaCppProvider::isProcessing() const {
-    std::lock_guard<std::mutex> lock(_self->stateMutex);
-    return _self->processing;
+    return _self->cspModule.isProcessing();
 }
 
 void LlamaCppProvider::requestChatCompletion(const std::string& userMessage) {
-    // Add user message to history
-    ChatMessage msg;
-    msg.role = "user";
-    msg.content = userMessage;
-    _self->history.push_back(msg);
-    
-    // Trim history if needed
-    trimHistoryToFit();
-    
-    // Mark as processing
-    {
-        std::lock_guard<std::mutex> lock(_self->stateMutex);
-        _self->processing = true;
-    }
-    
-    // TODO: Phase 2 - Trigger CSP state machine here
-    // For now, do synchronous request (will be replaced with CSP)
-    try {
-        std::string endpoint = "http://" + _self->options.host + ":" + 
-                               std::to_string(_self->options.port) + "/v1/chat/completions";
-        
-        std::string payload = buildChatCompletionPayload(_self->history);
-        std::string response = _self->curl->post(endpoint, payload);
-        std::string assistantMsg = parseAssistantResponse(response);
-        
-        // Add assistant response to history
-        ChatMessage assistantMessage;
-        assistantMessage.role = "assistant";
-        assistantMessage.content = assistantMsg;
-        _self->history.push_back(assistantMessage);
-        
-        // Push to response queue
-        {
-            std::lock_guard<std::mutex> lock(_self->queueMutex);
-            _self->responseQueue.push(assistantMsg);
-        }
-    } catch (const std::exception& e) {
-        // Push error to response queue
-        std::lock_guard<std::mutex> lock(_self->queueMutex);
-        _self->responseQueue.push(std::string("Error: ") + e.what());
-    }
-    
-    // Mark as done
-    {
+    // Simple delegation to CSP state machine
+    // CSP module will handle threading, HTTP, and state management
+    _self->cspModule.triggerRequest(userMessage);
+}
         std::lock_guard<std::mutex> lock(_self->stateMutex);
         _self->processing = false;
     }
@@ -133,6 +97,34 @@ std::string LlamaCppProvider::pollResponse() {
     std::string response = _self->responseQueue.front();
     _self->responseQueue.pop();
     return response;
+
+// Methods for CSP module to push responses back
+void LlamaCppProvider::pushResponse(const std::string& response) {
+    // Add to history
+    ChatMessage msg;
+    msg.role = "assistant";
+    msg.content = response;
+    {
+        std::lock_guard<std::mutex> lock(_self->historyMutex);
+        _self->history.push_back(msg);
+    }
+    
+    // Push to response queue for Activity polling
+    {
+        std::lock_guard<std::mutex> lock(_self->queueMutex);
+        _self->responseQueue.push(response);
+    }
+}
+
+void LlamaCppProvider::pushError(const std::string& error) {
+    std::lock_guard<std::mutex> lock(_self->queueMutex);
+    _self->responseQueue.push(error);
+}
+
+void LlamaCppProvider::addMessageToHistory(const ChatMessage& msg) {
+    std::lock_guard<std::mutex> lock(_self->historyMutex);
+    _self->history.push_back(msg);
+}
 }
 
 // Context window management (from feedback)
