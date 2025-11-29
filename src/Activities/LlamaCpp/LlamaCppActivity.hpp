@@ -1,17 +1,11 @@
 #pragma once
 
 #include "Lab/StudioCore.hpp"
+#include "Providers/LlamaCpp/LlamaCppProvider.hpp"
 #include <string>
 #include <vector>
-#include <memory>
 
 namespace lab {
-
-struct ChatMessage {
-    std::string role;      // "user" or "assistant"
-    std::string content;
-    double timestamp;
-};
 
 class LlamaCppActivity : public Activity {
 protected:
@@ -25,29 +19,31 @@ public:
     virtual const std::string Name() const override { return sname(); }
     static constexpr const char* sname() { return "LlamaCpp"; }
 
+    void Update(float dt);
     void RunUI(const LabViewInteraction&);
 
 private:
-    // Server configuration
-    int port_ = 8080;
-    char serverHost_[256] = "127.0.0.1";
-    char portBuffer_[16] = "8080";
-
-    // Chat state
-    std::vector<ChatMessage> chatHistory_;
-    char inputBuffer_[4096] = "";
-    bool isWaitingForResponse_ = false;
-    std::string errorMessage_;
-
+    // Provider access (via Orchestrator)
+    LlamaCppProvider* provider_ = nullptr;
+    
     // UI state
+    char inputBuffer_[4096] = "";
     bool autoScroll_ = true;
     bool showSettings_ = false;
-
+    std::string errorMessage_;
+    
+    // Options UI
+    char systemMessageBuffer_[1024] = "You are a helpful assistant.";
+    float temperature_ = 0.3f;
+    float topP_ = 0.9f;
+    int topK_ = 40;
+    int maxTokens_ = 256;
+    char stopSequence_[64] = "</s>";
+    
     // Helper methods
     void sendMessage();
     void clearChat();
-    std::string buildServerUrl() const;
-    void addMessage(const std::string& role, const std::string& content);
+    void applySettings();
 };
 
 } // namespace lab
