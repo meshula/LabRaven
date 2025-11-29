@@ -39,7 +39,7 @@ public:
      */
     struct Options {
         std::string host = "127.0.0.1";
-        uint16_t port = 8080;
+        uint16_t port = 8009;
         
         // Sampling parameters (optimized for instruction-tuned models)
         float temperature = 0.3f;      // Lower = more deterministic

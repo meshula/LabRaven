@@ -91,3 +91,8 @@ set(ozz_build_postfix OFF CACHE BOOL "Use per config postfix name" FORCE)
 set(ozz_build_msvc_rt_dll OFF CACHE BOOL "Select msvc DLL runtime library" FORCE)
 
 add_subdirectory(ozz-animation EXCLUDE_FROM_ALL)
+
+#---------------------------------------------------
+
+add_library(rapidjson INTERFACE)
+target_include_directories(rapidjson INTERFACE rapidjson/include)

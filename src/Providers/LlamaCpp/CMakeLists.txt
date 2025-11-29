@@ -13,9 +13,6 @@ set(LLAMACPP_PROVIDER_SRCS
     CurlClient.cpp
     CurlClient.hpp
 )
-    CurlClient.cpp
-    CurlClient.hpp
-)
 
 target_sources(${PROJECT_NAME} PUBLIC ${LLAMACPP_PROVIDER_SRCS})
 target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)

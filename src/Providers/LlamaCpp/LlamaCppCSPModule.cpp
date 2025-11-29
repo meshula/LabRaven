@@ -112,9 +112,6 @@ void LlamaCppCSPModule::onWaitingForResponse() {
 void LlamaCppCSPModule::onProcessingResponse() {
     // Response received, process it
     std::string response;
-void LlamaCppCSPModule::onProcessingResponse() {
-    // Response received, process it
-    std::string response;
     {
         std::lock_guard<std::mutex> lock(workMutex_);
         response = std::move(pendingResponse_);
@@ -173,10 +170,6 @@ void LlamaCppCSPModule::workerLoop() {
         std::string userMessage = pendingUserMessage_;
         lock.unlock();
         
-        // Get the user message
-        std::string userMessage = pendingUserMessage_;
-        lock.unlock();
-        
         try {
             // Build full history including new user message
             std::vector<ChatMessage> history = provider_->getHistory();
@@ -214,9 +207,7 @@ void LlamaCppCSPModule::workerLoop() {
             hasWork_ = false;
             lock.unlock();
         }
-            lock.unlock();
-        }
-    }
+    } // while
 }
 
 } // lab

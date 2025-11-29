@@ -1,6 +1,9 @@
 #include "LlamaCppProvider.hpp"
 #include "LlamaCppCSPModule.hpp"
-#include "Lab/LabApp.hpp"
+
+#include "Lab/App.h"
+#include "Lab/CSP.hpp"
+
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
@@ -37,9 +40,7 @@ LlamaCppProvider::LlamaCppProvider()
 {
     _instance = this;
 }
-{
-    _instance = this;
-}
+
 
 LlamaCppProvider::~LlamaCppProvider() {
     delete _self;
@@ -49,6 +50,9 @@ LlamaCppProvider::~LlamaCppProvider() {
 }
 
 LlamaCppProvider* LlamaCppProvider::instance() {
+    if (!_instance) {
+        _instance = new LlamaCppProvider();
+    }
     return _instance;
 }
 
@@ -84,10 +88,6 @@ void LlamaCppProvider::requestChatCompletion(const std::string& userMessage) {
     // CSP module will handle threading, HTTP, and state management
     _self->cspModule.triggerRequest(userMessage);
 }
-        std::lock_guard<std::mutex> lock(_self->stateMutex);
-        _self->processing = false;
-    }
-}
 
 std::string LlamaCppProvider::pollResponse() {
     std::lock_guard<std::mutex> lock(_self->queueMutex);
@@ -97,6 +97,7 @@ std::string LlamaCppProvider::pollResponse() {
     std::string response = _self->responseQueue.front();
     _self->responseQueue.pop();
     return response;
+}
 
 // Methods for CSP module to push responses back
 void LlamaCppProvider::pushResponse(const std::string& response) {
@@ -124,7 +125,6 @@ void LlamaCppProvider::pushError(const std::string& error) {
 void LlamaCppProvider::addMessageToHistory(const ChatMessage& msg) {
     std::lock_guard<std::mutex> lock(_self->historyMutex);
     _self->history.push_back(msg);
-}
 }
 
 // Context window management (from feedback)
