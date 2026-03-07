@@ -5,9 +5,25 @@
 #include "openexr-c.h"
 #endif
 
+#ifndef HAVE_OPENUSD
+#include <pxr/pxr.h>
+#include <pxr/base/arch/defines.h>
+#include <pxr/base/plug/plugin.h>
+#include <pxr/base/plug/registry.h>
+#include <pxr/base/tf/diagnostic.h>
+#include <pxr/imaging/hio/image.h>
+#include <pxr/usd/ar/resolver.h>
+#endif
+
 #include "stb_image.h"
+
+#include <array>
+#include <mutex>
+#include <iostream>
 #include <map>
 #include <string>
+
+PXR_NAMESPACE_USING_DIRECTIVE
 
 namespace lab {
 
@@ -81,19 +97,92 @@ namespace {
     }
 }
 
-std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheEXR(const char* path) {
+LabPixelType_t HioTypeToLabPixelType(HioType ht) {
+	switch (ht) {
+	case HioTypeUnsignedByte:
+	case HioTypeUnsignedByteSRGB:
+	case HioTypeSignedByte:
+		return LAB_PIXEL_UINT8;
+		
+	case HioTypeUnsignedShort:
+	case HioTypeSignedShort:
+		return LAB_PIXEL_UINT8; // not supported
+	case HioTypeUnsignedInt:
+		return LAB_PIXEL_UINT;
+	case HioTypeInt:
+		return LAB_PIXEL_UINT8; // not supported
+	case HioTypeHalfFloat:
+		return LAB_PIXEL_HALF;
+	case HioTypeFloat:
+		return LAB_PIXEL_FLOAT;
+	case HioTypeDouble:
+    default:
+		return LAB_PIXEL_UINT8; // not supported
+	}
+}
+
+std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheHIO(const char* path) {
+    if (!path) {
+        return {};
+    }
+
     std::shared_ptr<LabImageData_t> imgData = Get(path);
-    if (imgData && imgData->channelCount != 0)
+    if (imgData && imgData->channelCount != 0) {
         return imgData;
+	}
+    
+    HioImageSharedPtr image = HioImage::OpenForReading(path);
+    if (!image) {
+    	printf("Unable to open %s\n", path);
+    	return {};
+    }
+
+	HioImage::StorageSpec storageSpec;
+	storageSpec.width = image->GetWidth();
+	storageSpec.height = image->GetHeight();
+    HioFormat format = HioFormatFloat16Vec4; // force format. image->GetFormat();
+	storageSpec.format = format;
+    LabPixelType_t pixelType = HioTypeToLabPixelType(HioGetHioType(format));
+    int bytes_per_pixel = 1;
+    int channels = 4;
+    switch (pixelType) {
+        case LAB_PIXEL_UINT8: bytes_per_pixel = 1 * channels; break;
+        case LAB_PIXEL_HALF: bytes_per_pixel = 2 * channels; break;
+        case LAB_PIXEL_UINT: bytes_per_pixel = 4 * channels; break;
+        case LAB_PIXEL_FLOAT: bytes_per_pixel = 4 * channels; break;
+        default: bytes_per_pixel = channels; break;
+    }
+	int64_t data_size = bytes_per_pixel * storageSpec.width * storageSpec.height;
+	storageSpec.flipped = false;
+	storageSpec.data = (void*) malloc(data_size);
+	image->Read(storageSpec);
+
+	std::shared_ptr<LabImageData_t> img(new LabImageData_t());
+	img->data = (uint8_t*) storageSpec.data;
+	img->dataSize = data_size;
+	img->pixelType = HioTypeToLabPixelType(HioGetHioType(format));
+    img->channelCount = 4; // force filling in RGBA rather than calling HioGetComponentCount(format);
+	img->width = storageSpec.width;
+	img->height = storageSpec.height;
+	img->dataWindowMinY = 0;
+	img->dataWindowMaxY = storageSpec.height;
+    _self->cache[std::string(path)] = CacheEntry{std::string(path), img};
+    return img;
+}
+
+std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheEXR(const char* path) {
+ //   std::shared_ptr<LabImageData_t> imgData = Get(path);
+   // if (imgData && imgData->channelCount != 0)
+     //   return imgData;
 
     FILE* f = fopen(path, "rb");
     if (!f)
-        return nullptr;
+        return {};
 
     nanoexr_Reader_t exrReader;
     nanoexr_set_defaults(path, &exrReader);
     const int partIndex = 0;
-    const int channelsToRead = 4;
+    const int channelsToRead = 4; // force filling in RGBA rather than calling HioGetComponentCount(format);
     
     exr_result_t rv = nanoexr_read_header(&exrReader, exr_AssetRead_Func,
                                           nullptr, f,
@@ -129,9 +218,8 @@ std::shared_ptr<LabImageData_t> TextureCache::ReadAndCacheEXR(const char* path) 
 
             printf("nimg width, height %d %d\n", nimg.width, nimg.height);
             printf("img width, height %d %d\n", img->width, img->height);
-            _self->cache[name] = CacheEntry{std::string(path), img};
-            printf("nimg width, height %d %d\n", nimg.width, nimg.height);
-            printf("img width, height %d %d\n", img->width, img->height);
+            printf("channel count %d\n", nimg.channelCount);
+     //       _self->cache[name] = CacheEntry{std::string(path), img};
 
             printf("Loaded EXR %s, mip %d\n", path, mip);
             printf("mip info: \n");
@@ -285,12 +373,18 @@ nanoexr_ImageData_t TextureActivity::ReadAndCacheAVIF(const char* path) {
 #endif
 
 std::shared_ptr<LabImageData_t> TextureCache::ReadAndCache(const char* path) {
-    //if (strstr(path, ".avif") || strstr(path, ".AVIF"))
-    //    return ReadAndCacheAVIF(path);
-    if (strstr(path, ".exr") || strstr(path, ".EXR"))
-        return ReadAndCacheEXR(path);
-    if (strstr(path, ".pfm") || strstr(path, ".PFM"))
+    if (strstr(path, ".avif") || strstr(path, ".AVIF")) {
+        //return ReadAndCacheAVIF(path);
+        return ReadAndCacheHIO(path);
+    }
+    if (strstr(path, ".exr") || strstr(path, ".EXR")) {
+        //auto i = ReadAndCacheEXR(path);
+        auto j = ReadAndCacheHIO(path);
+        return j;
+    }
+    if (strstr(path, ".pfm") || strstr(path, ".PFM")) {
         return ReadAndCachePFM(path);
+    }
     return ReadAndCacheSTB(path);       // fallback to whatever STB provides
 }
 

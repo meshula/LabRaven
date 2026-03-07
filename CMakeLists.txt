@@ -4,6 +4,9 @@
 
 cmake_minimum_required(VERSION 3.26)
 
+# USD must come from pxr_DIR, not cmake search cross the environment
+set(CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH OFF)
+
 if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
   message(
     FATAL_ERROR
@@ -48,33 +51,68 @@ option(HAVE_TILENGINE "Enable Tilengine support" ON)
 
 #---------------------------------------------------
 
+# ---------------------------------------------------
+# TBB Diagnostics (before find_package(pxr))
+# ---------------------------------------------------
+
+message(STATUS "=== TBB Diagnostics (pre-pxr) ===")
+
+# Check if the imported target already exists
+if (TARGET TBB::tbb)
+  message(WARNING "TBB::tbb already exists!")
+  get_target_property(_inc TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
+  get_target_property(_loc TBB::tbb IMPORTED_LOCATION)
+  message(STATUS "  INCLUDE_DIRS: ${_inc}")
+  message(STATUS "  LOCATION    : ${_loc}")
+else()
+  message(STATUS "No TBB::tbb target defined yet.")
+endif()
+
+# Check variables CMake might have cached
+get_cmake_property(_vars VARIABLES)
+foreach(v ${_vars})
+  if (v MATCHES "^TBB")
+    message(STATUS "  ${v} = ${${v}}")
+  endif()
+endforeach()
+
 # print the pxr_DIR environment variable
 if(DEFINED ENV{pxr_DIR})
   message(STATUS "pxr_DIR environment variable is set to: $ENV{pxr_DIR}")
 else()
-  message(STATUS "pxr_DIR environment variable is not set.")
+  fatal(STATUS "pxr_DIR environment variable is not set.")
 endif()
 
+#---------------------------------------------------
+# OpenUSD support
+#---------------------------------------------------
 option(HAVE_OPENUSD "Enable OpenUSD support" ON)
-if(HAVE_OPENUSD)
-  find_package(pxr QUIET)
-  if(pxr_FOUND)
-    message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
-  else()
-    if(DEFINED ENV{pxr_DIR})
-      set(OpenSubdiv_DIR $ENV{pxr_DIR}/lib/cmake/OpenSubdiv)
-      message(STATUS "Looking for OpenSubdiv at ${OpenSubdiv_DIR}")
-      set(TBB_DIR $ENV{pxr_DIR}/lib/cmake/TBB)
-      message(STATUS "Looking for TBB at ${TBB_DIR}")
-      find_package(pxr REQUIRED)
-    else()
-      message(FATAL_ERROR "OpenUSD support is enabled but pxr package not found. Please set the pxr_DIR environment variable to the path of your OpenUSD installation.")
-    endif()
-  endif()
 
-  # garch needs OpenGL.
-  find_package(OpenGL REQUIRED)
+if(HAVE_OPENUSD)
+    # Prefer the -Dpxr_DIR=… command-line variable; fallback to environment
+    if(NOT DEFINED pxr_DIR AND DEFINED ENV{pxr_DIR})
+        set(pxr_DIR $ENV{pxr_DIR})
+    endif()
+
+    if(NOT DEFINED pxr_DIR)
+        message(FATAL_ERROR "OpenUSD support is enabled but pxr_DIR is not set. Use -Dpxr_DIR=<path> or set the environment variable pxr_DIR.")
+    endif()
+
+    # Tell USD where OpenSubdiv lives so pxrConfig can find it
+    set(OpenSubdiv_DIR "${pxr_DIR}/lib/cmake/OpenSubdiv")
+    message(STATUS "Set OpenSubdiv_DIR at ${OpenSubdiv_DIR} for OpenUSD")
+
+    # Prevent pxrConfig from redefining TBB::tbb
+    set(PXR_FIND_TBB_IN_CONFIG OFF CACHE BOOL "Prevent pxrConfig from defining TBB::tbb" FORCE)
+
+    # Find USD once
+    find_package(pxr REQUIRED)
+    message(STATUS "OpenUSD support enabled, using pxr package found at ${pxr_DIR}")
+
+    # USD needs OpenGL
+    find_package(OpenGL REQUIRED)
 endif()
+
 
 #---------------------------------------------------
 # Apple set up

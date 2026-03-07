@@ -12,9 +12,10 @@ class TextureCache {
     data* _self;
     static TextureCache* _instance;
 
-    std::shared_ptr<LabImageData_t> ReadAndCacheEXR(const char* path); // caller does not own the returned pointer
-    std::shared_ptr<LabImageData_t> ReadAndCachePFM(const char* path); // caller does not own the returned pointer
-    std::shared_ptr<LabImageData_t> ReadAndCacheSTB(const char* path); // caller does not own the returned pointer
+    std::shared_ptr<LabImageData_t> ReadAndCacheEXR(const char* path);
+    std::shared_ptr<LabImageData_t> ReadAndCachePFM(const char* path);
+    std::shared_ptr<LabImageData_t> ReadAndCacheSTB(const char* path);
+	std::shared_ptr<LabImageData_t> ReadAndCacheHIO(const char* path);
 
 public:
     TextureCache();
@@ -22,10 +23,10 @@ public:
 
     void Add(const char* name, std::shared_ptr<LabImageData_t> image);
     void Erase(const char* name);
-    std::shared_ptr<LabImageData_t> Get(const char* name); // caller does not own the returned pointer
+    std::shared_ptr<LabImageData_t> Get(const char* name);
     void ExportCache(const char* path);
 
-    std::shared_ptr<LabImageData_t> ReadAndCache(const char* path); // caller does not own the returned pointer
+    std::shared_ptr<LabImageData_t> ReadAndCache(const char* path);
 
     // on Mac and ios, the returned int can be provided to the MetalProvider to get a texture handle.
     int GetEncodedTexture(std::shared_ptr<LabImageData_t> image);
